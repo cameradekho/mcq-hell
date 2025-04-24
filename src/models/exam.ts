@@ -9,8 +9,6 @@ export type IQuestion = {
 export type IExam = {
   id: string;
   name: string;
-  standard?: string;
-  subject?: string;
   description: string;
   duration: number;
   questions: IQuestion[];
@@ -19,3 +17,6 @@ export type IExam = {
 };
 
 export const examCollectionName = "exam";
+
+// standard?: string;
+// subject?: string;

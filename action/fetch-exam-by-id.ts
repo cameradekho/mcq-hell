@@ -1,6 +1,6 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
-import { IExam } from "@/models/exam";
+import { IExam, IQuestion } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 
@@ -47,7 +47,7 @@ export const fetchExamById = async (
       };
     }
 
-    console.log(exam);
+    console.log(exam.questions.map((item: IQuestion) => item.id));
 
     return {
       success: true,

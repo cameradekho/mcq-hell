@@ -6,11 +6,12 @@ import { IExam } from "@/models/exam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Copy, Edit2, Trash2 } from "lucide-react";
+import { Clapperboard, Copy, Edit2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteExamById } from "../../action/delete-exam-by-id";
 import { ITeacher } from "@/models/teacher";
 import { fetchTeacherByEmail } from "../../action/fetch-teacher-by-email";
+import { HiAcademicCap } from "react-icons/hi";
 
 type Props = {
   teacherEmail: string;
@@ -119,6 +120,20 @@ export const AllExams = (params: Props) => {
                   >
                     <Copy className="w-5 h-5" />
                   </Button>
+                  <Link
+                    href={`/result/${teacher?.id}/${exam.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {}}
+                      className="text-lime-500 group-hover:scale-105 transition-all ease-in-out duration-200"
+                    >
+                      <HiAcademicCap className=" text-2xl" />
+                    </Button>
+                  </Link>
 
                   <Link
                     href={`/update-exam?userEmail=${encodeURIComponent(

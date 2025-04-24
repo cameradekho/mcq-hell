@@ -54,25 +54,6 @@ export const addExamByUser = async (
       };
     }
 
-    const res = await mongodb.collection("exam").insertOne({
-      id: nanoid(),
-      name: data.examName,
-      description: data.examDescription,
-      duration: data.duration,
-      questions: data.questions,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
-    console.log("result is : ", res.acknowledged);
-
-    if (!res.acknowledged) {
-      return {
-        success: false,
-        message: "Error adding exam by user",
-      };
-    }
-
     const resofUpdate = await mongodb.collection("teacher").updateOne(
       { email: data.userEmail },
       {
@@ -82,9 +63,16 @@ export const addExamByUser = async (
             name: data.examName,
             description: data.examDescription,
             duration: data.duration,
-            questions: data.questions,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            questions: data.questions.map((q) => ({
+              id: nanoid(),
+              question: q.question,
+              options: q.options,
+              answer: q.answer,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })),
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         } as any,
       }
