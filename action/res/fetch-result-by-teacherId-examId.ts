@@ -19,7 +19,7 @@ export type IScores = {
 export type ExamResultWithStudentInfo = {
   studentEmail: string;
   studentName: string;
-  scores: IScores[];
+  scores: IScores;
 };
 
 export type FetchResultByTeacherIdExamIdResult = ServerActionResult<
@@ -91,7 +91,7 @@ export const fetchResultByTeacherIdExamId = async (
         .map((attempt: any) => ({
           studentEmail: student.studentEmail,
           studentName: student.studentName,
-          score: {
+          scores: {
             scored: attempt.score.scored,
             submittedAt: attempt.score.submittedAt,
             responses: attempt.responses,
