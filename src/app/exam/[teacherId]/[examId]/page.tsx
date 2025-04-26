@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { addStudentResponse } from "../../../../../action/res/add-student-response";
 import { fetchTeacherById } from "../../../../../action/fetch-teacher-by-id";
+import Image from "next/image";
 
 type PageProps = {
   params: {
@@ -80,6 +81,7 @@ const Page = ({ params }: PageProps) => {
       exam?.questions.forEach((question) => {
         console.log("Question id", question.id);
         console.log(`Q: ${question.question}`);
+        console.log("Question's image", `${question.image}`);
         console.log(`Selected: ${answers[question.id] || "Not Answered"}`);
         console.log(`Correct: ${question.answer}`);
         console.log("------");
@@ -88,6 +90,7 @@ const Page = ({ params }: PageProps) => {
         exam?.questions.map((question) => ({
           questionId: question.id,
           question: question.question,
+          images: question?.image,
           correctOption: question.answer,
           selectedOption: answers[question.id] || "",
           isCorrect: question.answer === answers[question.id],
@@ -203,6 +206,16 @@ const Page = ({ params }: PageProps) => {
                   <p className="font-semibold mb-2">
                     {qIndex + 1}. {question.question}
                   </p>
+
+                  {question.image && (
+                    <Image
+                      src={question.image}
+                      alt="Question Image"
+                      height={200}
+                      width={200}
+                      className=" rounded-md w-72 h-64"
+                    />
+                  )}
                   <div className="space-y-1">
                     {question.options.map((option, j) => (
                       <label key={j} className="block cursor-pointer">

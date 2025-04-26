@@ -1,10 +1,8 @@
 "use server";
-import { IExam, IQuestion } from "@/models/exam";
+import { IExam } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
-import { checkExamByUser } from "./check-exam-by-user";
 import { mongodb } from "@/lib/mongodb";
-import { fetchExamById } from "./fetch-exam-by-id";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 
 export type IUpdateExamResult = ServerActionResult<undefined>;
@@ -25,7 +23,6 @@ export async function updateExamByExamIdAndTeacherId(
         message: "Please provide all the required fields",
       };
     }
-    // First find the teacher document
     const teacher = await fetchTeacherById({ teacherId: data.teacherId });
     if (!teacher) {
       return {
@@ -33,11 +30,6 @@ export async function updateExamByExamIdAndTeacherId(
         message: "Teacher not found",
       };
     }
-
-    // Find the exam in the array
-    // const examIndex = teacher && teacher.exam.findIndex(
-    //   (e: IExam) => e.id === data.examId
-    // );
 
     const examIndex =
       teacher.success &&
@@ -50,12 +42,6 @@ export async function updateExamByExamIdAndTeacherId(
       };
     }
 
-    // Log what we're trying to update
-    console.log("Updating exam at index:", examIndex);
-    console.log("Teacher ID:", data.teacherId);
-    console.log("Exam ID:", data.examId);
-
-    // Update all fields in one operation
     const updatedExam = await mongodb.collection("teacher").updateOne(
       {
         id: data.teacherId,
@@ -87,9 +73,6 @@ export async function updateExamByExamIdAndTeacherId(
         message: "No matching teacher found to update",
       };
     }
-
-    // Even if no documents were modified (because the data didn't change),
-    // we consider this a success since the document was found
     return {
       success: true,
       data: undefined,

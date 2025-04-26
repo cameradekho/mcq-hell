@@ -66,6 +66,7 @@ export const addExamByUser = async (
             questions: data.questions.map((q) => ({
               id: nanoid(),
               question: q.question,
+              image: q.image || "",
               options: q.options,
               answer: q.answer,
               createdAt: new Date(),

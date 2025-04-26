@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { addExamByUser } from "../../action/add-exam-by-user";
+import useDropZone from "react-dropzone";
 
 type QuestionProps = {
   userEmail: string;
@@ -18,6 +19,7 @@ const formSchema = z.object({
     .array(
       z.object({
         question: z.string().min(3, "Question must be at least 3 characters"),
+        image: z.string().optional(),
         options: z
           .array(z.string().min(1, "Option must be at least 1 character"))
           .min(2, "At least 2 options are required"),
@@ -47,7 +49,8 @@ export const Questions = (props: QuestionProps) => {
       questions: [
         {
           question: "",
-          options: ["", ""],
+          image: "",
+          options: ["", "", "", "All of the above", "None of the above"],
           answer: "",
         },
       ],
@@ -176,6 +179,51 @@ export const Questions = (props: QuestionProps) => {
                   <p className="text-red-500 text-sm mt-1">
                     {errors.questions[questionIndex]?.question?.message}
                   </p>
+                )}
+              </div>
+
+              {/* Images Upload */}
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">
+                  Image (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setValue(
+                          `questions.${questionIndex}.image`,
+                          reader.result as string
+                        );
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full border p-2 rounded"
+                />
+
+                {/* Preview the uploaded image */}
+                {watch(`questions.${questionIndex}.image`) && (
+                  <div className="mt-2 relative">
+                    <img
+                      src={watch(`questions.${questionIndex}.image`)}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setValue(`questions.${questionIndex}.image`, "")
+                      }
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
 

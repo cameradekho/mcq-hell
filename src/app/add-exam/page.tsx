@@ -1,5 +1,3 @@
-// app/add-exam/page.tsx
-
 import { redirect } from "next/navigation";
 import { QuestionsWrapper } from "@/components/questions-wrapper";
 import { auth } from "../../../auth";

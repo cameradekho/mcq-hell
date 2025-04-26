@@ -1,6 +1,7 @@
 export type IQuestion = {
   id: string;
   question: string;
+  image?: string;
   options: string[];
   answer: string;
   createdAt: Date;
@@ -17,6 +18,5 @@ export type IExam = {
 };
 
 export const examCollectionName = "exam";
-
 // standard?: string;
 // subject?: string;

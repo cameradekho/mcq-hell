@@ -18,6 +18,7 @@ export type AddStudentResponseData = {
   response: {
     questionId: string;
     question: string;
+    image?: string;
     correctOption: string;
     selectedOption: string;
     isCorrect: boolean;

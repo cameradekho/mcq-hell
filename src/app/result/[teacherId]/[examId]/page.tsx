@@ -18,6 +18,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { toast } from "sonner";
 
 type FormattedResultData = {
   studentName: string;
@@ -37,7 +39,6 @@ const Page = () => {
   >([]);
   const [selectedStudent, setSelectedStudent] =
     useState<FormattedResultData | null>(null);
-  const [selectedScoreIndex, setSelectedScoreIndex] = useState<number>(0);
   const [showDialog, setShowDialog] = useState(false);
   const [expandedScoreIndex, setExpandedScoreIndex] = useState<number | null>(
     null
@@ -82,7 +83,10 @@ const Page = () => {
           console.log("error: ", studentsResponseDatas.message);
         }
       } catch (error) {
+        console.log("error:");
+        console.log("error: ", error);
         console.error("Error fetching exam data:", error);
+        toast.error("Error fetching exam data: " + error);
       }
     }
 
@@ -185,6 +189,87 @@ const Page = () => {
                 </div>
               </div>
 
+              {/* {sortedScoresByDate?.map((score, index) => {
+                const isExpanded = expandedScoreIndex === index;
+
+                return (
+                  <div key={index} className="border rounded-md p-4">
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() =>
+                        setExpandedScoreIndex(
+                          isExpanded ? null : index // collapse if clicked again
+                        )
+                      }
+                    >
+                      <div>
+                        <p className="text-base font-medium text-gray-700">
+                          Scored: {score.scored}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Submitted at:{" "}
+                          {format(score.submittedAt, "dd/MM/yyyy HH:mm:ss")}
+                        </p>
+                      </div>
+                      <button className="text-blue-600 text-sm underline">
+                        {isExpanded ? "Hide Details" : "Show Details"}
+                      </button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="mt-4 overflow-x-auto border rounded-lg">
+                        <table className="min-w-full text-sm table-auto">
+                          <thead className="bg-gray-100 text-gray-700">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Question</th>
+                              <th className="px-4 py-2 text-left">Selected</th>
+                              <th className="px-4 py-2 text-left">Correct</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {score.responses.map((response, idx) => (
+                              <tr
+                                key={idx}
+                                className={
+                                  response.isCorrect
+                                    ? "bg-green-100"
+                                    : "bg-red-100"
+                                }
+                              >
+                                <td className="px-4 py-2 font-medium flex flex-col items-start gap-2">
+                                  <p className="text-sm">{response.question}</p>
+                                  {response.image && (
+                                    <>
+                                      <span>hello</span>
+                                      {response.image && (
+                                        <Image
+                                          src={response.image}
+                                          alt="Question Image"
+                                          height={200}
+                                          width={200}
+                                          className="rounded-md w-28 h-20"
+                                          unoptimized
+                                        />
+                                      )}
+                                    </>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2">
+                                  {response.selectedOption}
+                                </td>
+                                <td className="px-4 py-2">
+                                  {response.correctOption}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })} */}
+
               {sortedScoresByDate?.map((score, index) => {
                 const isExpanded = expandedScoreIndex === index;
 
@@ -232,8 +317,23 @@ const Page = () => {
                                     : "bg-red-100"
                                 }
                               >
-                                <td className="px-4 py-2 font-medium">
-                                  {response.question}
+                                <td className="px-4 py-2 font-medium flex flex-col items-start gap-2">
+                                  <p className="text-sm">{response.question}</p>
+                                  {response.image && (
+                                    <>
+                                      <span>hello</span>
+                                      {response.image && (
+                                        <Image
+                                          src={response.image}
+                                          alt="Question Image"
+                                          height={200}
+                                          width={200}
+                                          className="rounded-md w-28 h-20"
+                                          unoptimized
+                                        />
+                                      )}
+                                    </>
+                                  )}
                                 </td>
                                 <td className="px-4 py-2">
                                   {response.selectedOption}

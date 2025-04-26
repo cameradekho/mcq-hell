@@ -5,7 +5,6 @@ import { ServerActionResult } from "@/types";
 import { fetchTeacherById } from "../fetch-teacher-by-id";
 import { fetchExamById } from "../fetch-exam-by-id";
 import {
-  IStudentResponseDocument,
   StudentAnswer,
   studentResponseCollectionName,
 } from "@/models/students-response";
