@@ -81,7 +81,7 @@ const Page = ({ params }: PageProps) => {
       exam?.questions.forEach((question) => {
         console.log("Question id", question.id);
         console.log(`Q: ${question.question}`);
-        console.log("Question's image", `${question.image}`);
+        console.log("Question's image id", `${question.image}`);
         console.log(`Selected: ${answers[question.id] || "Not Answered"}`);
         console.log(`Correct: ${question.answer}`);
         console.log("------");
@@ -90,7 +90,7 @@ const Page = ({ params }: PageProps) => {
         exam?.questions.map((question) => ({
           questionId: question.id,
           question: question.question,
-          images: question?.image,
+          image: question?.image,
           correctOption: question.answer,
           selectedOption: answers[question.id] || "",
           isCorrect: question.answer === answers[question.id],

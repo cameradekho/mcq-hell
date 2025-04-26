@@ -1,7 +1,7 @@
 export type StudentAnswer = {
   questionId: string;
   question: string;
-  image?: string;
+  image: string;
   correctOption: string;
   selectedOption: string;
   isCorrect: boolean;

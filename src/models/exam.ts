@@ -1,7 +1,7 @@
 export type IQuestion = {
   id: string;
   question: string;
-  image?: string;
+  image: string;
   options: string[];
   answer: string;
   createdAt: Date;
