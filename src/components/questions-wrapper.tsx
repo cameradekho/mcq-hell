@@ -1,4 +1,3 @@
-// components/questions-wrapper.tsx
 "use client";
 
 import { Questions } from "@/components/questions";

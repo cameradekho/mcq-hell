@@ -22,6 +22,8 @@ export const fetchExamById = async (
       };
     }
 
+    console.log(data.examId);
+
     await mongodb.connect();
     const teacherData = await mongodb.collection("teacher").findOne({
       id: data.teacherId,
@@ -39,6 +41,8 @@ export const fetchExamById = async (
     const exam = teacherData.exam.find(
       (exam: IExam) => exam.id === data.examId
     );
+
+    console.log(exam);
 
     if (!exam) {
       return {

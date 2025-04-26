@@ -136,9 +136,7 @@ export const AllExams = (params: Props) => {
                   </Link>
 
                   <Link
-                    href={`/update-exam?userEmail=${encodeURIComponent(
-                      params.teacherEmail
-                    )}&examId=${encodeURIComponent(exam.name)}`}
+                    href={`/update-exam/${teacher?.id}/${exam.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

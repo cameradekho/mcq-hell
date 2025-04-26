@@ -16,12 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
-import {
-  ArrowDownWideNarrow,
-  ArrowUpNarrowWide,
-  CalendarArrowDown,
-  CalendarArrowUp,
-} from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type FormattedResultData = {
