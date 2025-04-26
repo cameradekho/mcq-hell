@@ -28,6 +28,7 @@ import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/badge";
 import { updateExamByExamIdAndTeacherId } from "../../../../../action/update-exam-by-examId-and-teacherId";
+import Image from "next/image";
 
 const UpdateExamPage = () => {
   const { teacherId, examId } = useParams() as {
@@ -44,6 +45,7 @@ const UpdateExamPage = () => {
     null
   );
   const [optionError, setOptionError] = useState(false);
+  const [imageValue, setImageValue] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
@@ -225,7 +227,8 @@ const UpdateExamPage = () => {
         {
           id: new Date().toISOString(),
           question: "New question",
-          options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+          image: "",
+          options: ["", "", "All of the Above", "None of the Above"],
           answer: "Option 1",
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -469,6 +472,66 @@ const UpdateExamPage = () => {
                     }
                     className="mt-1"
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor={`question-${question.id}-image`}>Image</Label>
+                  <div className="flex items-center mt-1">
+                    <input
+                      type="file"
+                      id={`question-${question.id}-image`}
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            // Update both state management systems
+                            setExam({
+                              ...exam,
+                              questions: exam.questions.map((q) =>
+                                q.id === question.id
+                                  ? { ...q, image: reader.result as string }
+                                  : q
+                              ),
+                            });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full border p-2 rounded"
+                      // Clear the file input value when removing an image
+                      key={question.image ? "has-image" : "no-image"}
+                    />
+                  </div>
+
+                  {/* Preview the uploaded image */}
+                  {question.image && (
+                    <div className="mt-2 relative">
+                      <Image
+                        width={200}
+                        height={200}
+                        src={question.image}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Update the exam state directly
+                          setExam({
+                            ...exam,
+                            questions: exam.questions.map((q) =>
+                              q.id === question.id ? { ...q, image: "" } : q
+                            ),
+                          });
+                        }}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
