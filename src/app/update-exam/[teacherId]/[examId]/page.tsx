@@ -471,6 +471,13 @@ const UpdateExamPage = () => {
               <Label htmlFor="duration" className="text-sm font-medium">
                 Duration (minutes)
               </Label>
+              <p className=" text-sm text-gray-200 tracking-tighter">
+                <p className="text-sm font-medium font-mono text-gray-600">
+                  Setting the duration to 0 minutes means there is no time
+                  limit.
+                </p>
+              </p>
+
               <Input
                 id="duration"
                 type="number"
