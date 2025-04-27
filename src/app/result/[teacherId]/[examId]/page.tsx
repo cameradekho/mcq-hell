@@ -266,16 +266,79 @@ const Page = () => {
                                   )}
                                 </td>
                                 <td className="px-4 py-2">
-                                  {/* {response.selectedOption} */}
-                                  {response.selectedOptionId
-                                    .map((item) => item)
+                                  {/* Display selected options text */}
+                                  {response.selectedOption
+                                    .map((item) => item.content.text)
                                     .join(", ")}
+
+                                  {/* Display images if there are any selected options */}
+                                  {response.selectedOption.length > 0 && (
+                                    <div className="mt-4 space-y-3">
+                                      {response.selectedOption.map(
+                                        (item, i) => (
+                                          <div
+                                            key={i}
+                                            className="flex flex-col items-center gap-2"
+                                          >
+                                            {item.content.image &&
+                                              item.content.image.map(
+                                                (img, index) => (
+                                                  <div
+                                                    key={index}
+                                                    className="w-28 h-20 overflow-hidden rounded-lg shadow-md"
+                                                  >
+                                                    <Image
+                                                      src={img}
+                                                      alt={`Option Image ${i}-${index}`}
+                                                      height={200}
+                                                      width={200}
+                                                      className="w-full h-full object-cover"
+                                                    />
+                                                  </div>
+                                                )
+                                              )}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
                                 </td>
+
                                 <td className="px-4 py-2">
-                                  {/* {response.correctOption} */}
-                                  {response.correctOptionId
-                                    .map((item) => item)
+                                  {/* Display correct option IDs as a comma-separated list */}
+                                  {response.correctOption
+                                    .map((item) => item.content.text)
                                     .join(", ")}
+
+                                  {/* Display images for correct options */}
+                                  {response.correctOption.length > 0 && (
+                                    <div className="mt-4 space-y-3">
+                                      {response.correctOption.map((item, i) => (
+                                        <div
+                                          key={i}
+                                          className="flex flex-col items-center gap-2"
+                                        >
+                                          {item.content.image &&
+                                            item.content.image.map(
+                                              (img, index) => (
+                                                <div
+                                                  key={index}
+                                                  className="w-28 h-20 overflow-hidden rounded-lg shadow-md"
+                                                >
+                                                  <Image
+                                                    src={img}
+                                                    alt={`Option Image ${i}-${index}`}
+                                                    height={200}
+                                                    width={200}
+                                                    className="w-full h-full object-cover"
+                                                  />
+                                                </div>
+                                              )
+                                            )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             ))}

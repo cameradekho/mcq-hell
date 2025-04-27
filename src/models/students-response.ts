@@ -1,14 +1,23 @@
 import { IAnswer } from "./exam";
 
+export type IAnswerOption = {
+  id: string; // not optionId
+  content: {
+    text?: string[];
+    image?: string[];
+  };
+};
+
 export type StudentAnswer = {
   questionId: string;
   question: string;
   image: string;
-  correctOptionId: IAnswer["id"][];
-  selectedOptionId: IAnswer["id"][];
+  correctOptionId: string[];
+  correctOption: IAnswerOption[];
+  selectedOptionId: string[];
+  selectedOption: IAnswerOption[];
   isCorrect: boolean;
 };
-
 type ExamAttempt = {
   examId: string;
   teacherEmail: string;

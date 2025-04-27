@@ -3,9 +3,11 @@ import { ServerActionResult } from "@/types";
 import { fetchTeacherById } from "../fetch-teacher-by-id";
 import { fetchExamById } from "../fetch-exam-by-id";
 import { mongodb } from "@/lib/mongodb";
-import { studentResponseCollectionName } from "@/models/students-response";
+import {
+  IAnswerOption,
+  studentResponseCollectionName,
+} from "@/models/students-response";
 import { logger } from "@/models/logger";
-import { IAnswer } from "@/models/exam";
 
 export type AddStudentResponseResult = ServerActionResult<undefined>;
 
@@ -20,8 +22,8 @@ export type AddStudentResponseData = {
     questionId: string;
     question: string;
     image?: string;
-    correctOptionId: IAnswer["id"][];
-    selectedOptionId: IAnswer["id"][];
+    correctOption: IAnswerOption[];
+    selectedOption: IAnswerOption[];
     isCorrect: boolean;
   }[];
   score: {

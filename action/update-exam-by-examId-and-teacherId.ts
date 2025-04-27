@@ -4,6 +4,7 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { mongodb } from "@/lib/mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
+import { nanoid } from "nanoid";
 
 export type IUpdateExamResult = ServerActionResult<undefined>;
 
@@ -41,6 +42,22 @@ export async function updateExamByExamIdAndTeacherId(
         message: "Exam not found in teacher's exam list",
       };
     }
+
+    // const processedQuestions = data.exam.questions.map((question) => {
+    //   // Create a copy of the question to avoid mutating the input
+    //   const processedQuestion = { ...question };
+
+    //   // Check if options need IDs
+    //   processedQuestion.options = question.options.map((option) => {
+    //     // If option doesn't have an ID, generate one
+    //     if (!option.id) {
+    //       return { ...option, id: nanoid() };
+    //     }
+    //     return option;
+    //   });
+
+    //   return processedQuestion;
+    // });
 
     const updatedExam = await mongodb.collection("teacher").updateOne(
       {

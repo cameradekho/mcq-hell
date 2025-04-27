@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { fetchTeacherById } from "../../../../../action/fetch-teacher-by-id";
 import Image from "next/image";
 import { addStudentResponse } from "../../../../../action/res/add-student-response";
-import { set } from "date-fns";
 
 type PageProps = {
   params: {
@@ -21,10 +20,22 @@ type StudentDetails = {
   studentName: string;
   studentEmail: string;
 };
+
 const Page = ({ params }: PageProps) => {
   const [exam, setExam] = useState<IExam>();
-  const [answersId, setAnswersId] = useState<Record<string, string[]>>({});
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [answers, setAnswers] = useState<
+    Record<
+      string,
+      {
+        id: string;
+        content: {
+          text?: string[];
+          image?: string[];
+        };
+      }[]
+    >
+  >({});
+
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<number>(0);
   const [teacherEmail, setTeacherEmail] = useState<string>();
@@ -48,17 +59,20 @@ const Page = ({ params }: PageProps) => {
 
           // Initialize answers object with empty arrays for each question
           if (data.data) {
-            const initialAnswersId: Record<string, string[]> = {};
+            const initialAnswers: Record<
+              string,
+              {
+                id: string;
+                content: {
+                  text?: string[];
+                  image?: string[];
+                };
+              }[]
+            > = {};
             (data.data as IExam).questions.forEach((q) => {
-              initialAnswersId[q.id] = [];
+              initialAnswers[q.id] = [];
             });
-            setAnswersId(initialAnswersId);
-
-            const initialAnswers: Record<string, string[]> = {};
-            // (data.data as IExam).questions.forEach((q) => {
-            //   initialAnswersId[q.question] = [];
-            // });
-            // setAnswers(initialAnswersId);
+            setAnswers(initialAnswers);
           }
 
           toast.success("Exam fetched successfully!");
@@ -85,38 +99,45 @@ const Page = ({ params }: PageProps) => {
   // Handle single choice (radio button) selection
   const handleSingleAnswerChange = (
     questionId: string,
-    selectedOption: string
+    selectedOption: {
+      id: string; // not optionId
+      content: {
+        text?: string[];
+        image?: string[];
+      };
+    }
   ) => {
-    setAnswersId((prev) => ({
-      ...prev,
-      [questionId]: [selectedOption], // Store as array with single element
-    }));
     setAnswers((prev) => ({
       ...prev,
+      [questionId]: [selectedOption],
     }));
   };
 
   // Handle multiple choice (checkbox) selection
   const handleMultipleAnswerChange = (
     questionId: string,
-    selectedOption: string,
+    selectedOption: {
+      id: string;
+      content: {
+        text?: string[];
+        image?: string[];
+      };
+    },
     isChecked: boolean
   ) => {
-    setAnswersId((prev) => {
+    setAnswers((prev) => {
       const currentSelections = prev[questionId] || [];
 
       if (isChecked) {
-        // Add option if checked
         return {
           ...prev,
           [questionId]: [...currentSelections, selectedOption],
         };
       } else {
-        // Remove option if unchecked
         return {
           ...prev,
           [questionId]: currentSelections.filter(
-            (opt) => opt !== selectedOption
+            (opt) => opt.id !== selectedOption.id
           ),
         };
       }
@@ -149,7 +170,7 @@ const Page = ({ params }: PageProps) => {
 
       // Check if all questions are answered
       const unansweredQuestions = exam.questions.filter(
-        (q) => answersId[q.id]?.length === 0
+        (q) => answers[q.id]?.length === 0
       );
 
       if (unansweredQuestions.length > 0) {
@@ -164,9 +185,10 @@ const Page = ({ params }: PageProps) => {
 
       // Format responses for submission
       const formattedResponses = exam.questions.map((question) => {
-        const selectedIds = answersId[question.id] || [];
+        const selectedOptions = answers[question.id] || [];
+
         const isCorrect = arraysEqual(
-          selectedIds.sort(),
+          selectedOptions.map((item) => item.id).sort(),
           question.answer.sort()
         );
 
@@ -174,8 +196,23 @@ const Page = ({ params }: PageProps) => {
           questionId: question.id,
           question: question.question,
           image: question.image || "",
-          correctOptionId: question.answer,
-          selectedOptionId: selectedIds,
+          correctOption: question.options
+            .filter((opt) => question.answer.includes(opt.id))
+            .map((opt) => ({
+              id: opt.id, // ✅ Corrected key
+              content: {
+                // ✅ Corrected key
+                text: opt.textAnswer ? [opt.textAnswer] : [],
+                image: opt.image ? [opt.image] : [],
+              },
+            })),
+          selectedOption: selectedOptions.map((opt) => ({
+            id: opt.id, // ✅ Corrected key
+            content: {
+              text: opt.content.text || [],
+              image: opt.content.image || [],
+            },
+          })),
           isCorrect: isCorrect,
         };
       });
@@ -328,7 +365,9 @@ const Page = ({ params }: PageProps) => {
                           <label
                             key={j}
                             className={`block cursor-pointer p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ${
-                              answersId[question.id]?.includes(option.id)
+                              answers[question.id]?.some(
+                                (ans) => ans.id === option.id
+                              )
                                 ? "ring-2 ring-blue-500"
                                 : ""
                             }`}
@@ -339,18 +378,30 @@ const Page = ({ params }: PageProps) => {
                                 name={`question-${qIndex}`}
                                 value={option.id}
                                 checked={
-                                  answersId[question.id]?.includes(option.id) ||
-                                  false
+                                  answers[question.id]?.some(
+                                    (ans) => ans.id === option.id
+                                  ) || false
                                 }
                                 onChange={(e) =>
                                   handleMultipleAnswerChange(
                                     question.id,
-                                    option.id,
+                                    {
+                                      id: option.id,
+                                      content: {
+                                        text: option.textAnswer
+                                          ? [option.textAnswer]
+                                          : [],
+                                        image: option.image
+                                          ? [option.image]
+                                          : [],
+                                      },
+                                    },
                                     e.target.checked
                                   )
                                 }
                                 className="mt-1 accent-blue-500"
                               />
+
                               <div className="flex-1">
                                 {option.textAnswer && (
                                   <span className="block text-lg text-gray-700">
@@ -376,7 +427,8 @@ const Page = ({ params }: PageProps) => {
                           <label
                             key={j}
                             className={`block cursor-pointer p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ${
-                              answersId[question.id]?.[0] === option.id
+                              answers[question.id]?.length > 0 &&
+                              answers[question.id][0].id === option.id
                                 ? "ring-2 ring-blue-500"
                                 : ""
                             }`}
@@ -387,16 +439,23 @@ const Page = ({ params }: PageProps) => {
                                 name={`question-${qIndex}`}
                                 value={option.id}
                                 checked={
-                                  answersId[question.id]?.[0] === option.id
+                                  answers[question.id]?.length > 0 &&
+                                  answers[question.id][0]?.id === option.id
                                 }
                                 onChange={() =>
-                                  handleSingleAnswerChange(
-                                    question.id,
-                                    option.id
-                                  )
+                                  handleSingleAnswerChange(question.id, {
+                                    id: option.id,
+                                    content: {
+                                      text: option.textAnswer
+                                        ? [option.textAnswer]
+                                        : [],
+                                      image: option.image ? [option.image] : [],
+                                    },
+                                  })
                                 }
                                 className="mt-1 accent-blue-500"
                               />
+
                               <div className="flex-1">
                                 {option.textAnswer && (
                                   <span className="block text-lg text-gray-700">
@@ -447,9 +506,9 @@ const Page = ({ params }: PageProps) => {
                   </thead>
                   <tbody>
                     {exam?.questions.map((question, index) => {
-                      const selectedIds = answersId[question.id] || [];
+                      const selectedIds = answers[question.id] || [];
                       const isCorrect = arraysEqual(
-                        selectedIds.sort(),
+                        selectedIds.map((item) => item.id).sort(),
                         question.answer.sort()
                       );
 
@@ -465,7 +524,9 @@ const Page = ({ params }: PageProps) => {
                           <td className="border px-4 py-2">
                             {selectedIds.length > 0
                               ? selectedIds
-                                  .map((id) => getOptionTextById(question, id))
+                                  .map((id) =>
+                                    getOptionTextById(question, id.id)
+                                  )
                                   .join(", ")
                               : "Not Answered"}
                           </td>

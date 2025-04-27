@@ -1,14 +1,24 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { IExam, IQuestion } from "@/models/exam";
+import { nanoid } from "nanoid";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, FileQuestion, Plus, Save, Trash2, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,19 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
-import { useSession } from "next-auth/react";
-import { Badge } from "@/components/ui/badge";
+import { Save, Plus, X, Trash2, FileQuestion, Copy } from "lucide-react";
+import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { updateExamByExamIdAndTeacherId } from "../../../../../action/update-exam-by-examId-and-teacherId";
-import Image from "next/image";
+import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
 
 const UpdateExamPage = () => {
   const { teacherId, examId } = useParams() as {
@@ -41,11 +42,11 @@ const UpdateExamPage = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newOptionText, setNewOptionText] = useState("");
+  const [newOptionImage, setNewOptionImage] = useState("");
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(
     null
   );
   const [optionError, setOptionError] = useState(false);
-  const [imageValue, setImageValue] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
@@ -86,16 +87,13 @@ const UpdateExamPage = () => {
   const session = useSession();
   const userEmail = session?.data?.user?.email;
 
-  const handleCorrectAnswerChange = (
-    questionId: string,
-    optionValue: string
-  ) => {
+  const handleCorrectAnswerChange = (questionId: string, optionId: string) => {
     setExam((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         questions: prev.questions.map((q) =>
-          q.id === questionId ? { ...q, answer: optionValue } : q
+          q.id === questionId ? { ...q, answer: [optionId] } : q
         ),
       };
     });
@@ -104,17 +102,57 @@ const UpdateExamPage = () => {
   const openAddOptionDialog = (questionId: string) => {
     setCurrentQuestionId(questionId);
     setNewOptionText("");
+    setNewOptionImage("");
     setOptionError(false);
     setDialogOpen(true);
   };
 
   const handleAddOption = () => {
-    if (!newOptionText.trim()) {
+    if (!newOptionText.trim() && !newOptionImage) {
       setOptionError(true);
       return;
     }
 
     if (currentQuestionId && exam) {
+      // Find the current question
+      const currentQuestion = exam.questions.find(
+        (q) => q.id === currentQuestionId
+      );
+
+      // Check if question text is empty
+      if (!currentQuestion || !currentQuestion.question.trim()) {
+        toast.error("Please add question text before adding options");
+        setDialogOpen(false);
+        return;
+      }
+
+      let newOption: IAnswer;
+
+      // Handle the different variants of IAnswer according to the discriminated union
+      if (newOptionText.trim() && newOptionImage) {
+        // Both text and image provided
+        newOption = {
+          id: nanoid(),
+          textAnswer: newOptionText.trim(),
+          image: newOptionImage,
+          isCorrect: false,
+        };
+      } else if (newOptionText.trim()) {
+        // Only text provided
+        newOption = {
+          id: nanoid(),
+          textAnswer: newOptionText.trim(),
+          isCorrect: false,
+        };
+      } else {
+        // Only image provided
+        newOption = {
+          id: nanoid(),
+          image: newOptionImage,
+          isCorrect: false,
+        };
+      }
+
       setExam((prev) => {
         if (!prev) return prev;
         return {
@@ -123,7 +161,7 @@ const UpdateExamPage = () => {
             q.id === currentQuestionId
               ? {
                   ...q,
-                  options: [...q.options, newOptionText.trim()],
+                  options: [...q.options, newOption],
                 }
               : q
           ),
@@ -135,29 +173,24 @@ const UpdateExamPage = () => {
     }
   };
 
-  const copyOptionToClipboard = (option: string) => {
+  const copyOptionToClipboard = (option: IAnswer) => {
+    const textToCopy = option.textAnswer || "Image option";
     navigator.clipboard
-      .writeText(option)
+      .writeText(textToCopy)
       .then(() => toast.success("Copied to clipboard!"))
       .catch(() => toast.error("Failed to copy"));
   };
 
-  const removeOption = (questionId: string, optionIndex: number) => {
+  const removeOption = (questionId: string, optionId: string) => {
     setExam((prev) => {
       if (!prev) return prev;
       const question = prev.questions.find((q) => q.id === questionId);
       if (!question) return prev;
 
-      const newOptions = [...question.options];
-      newOptions.splice(optionIndex, 1);
+      const newOptions = question.options.filter((opt) => opt.id !== optionId);
 
-      // If removing the correct answer, reset it to the first option
-      const newAnswer =
-        question.answer === question.options[optionIndex]
-          ? newOptions.length > 0
-            ? newOptions[0]
-            : ""
-          : question.answer;
+      // If removing a correct answer, update the answer array
+      const newAnswer = question.answer.filter((id) => id !== optionId);
 
       return {
         ...prev,
@@ -182,13 +215,26 @@ const UpdateExamPage = () => {
 
   const handleSaveExam = async () => {
     if (exam) {
-      const invalidQuestions = exam.questions.filter(
+      // Check for questions with no options
+      const questionsWithNoOptions = exam.questions.filter(
         (q) => q.options.length === 0
       );
 
-      if (invalidQuestions.length > 0) {
+      if (questionsWithNoOptions.length > 0) {
         toast.error(
-          `${invalidQuestions.length} question(s) have no options. Please add at least one option to each question.`
+          `${questionsWithNoOptions.length} question(s) have no options. Please add at least one option to each question.`
+        );
+        return;
+      }
+
+      // Check for questions with no correct answer selected
+      const questionsWithNoAnswer = exam.questions.filter(
+        (q) => q.answer.length === 0
+      );
+
+      if (questionsWithNoAnswer.length > 0) {
+        toast.error(
+          `${questionsWithNoAnswer.length} question(s) have no correct answer selected. Please select at least one correct answer for each question.`
         );
         return;
       }
@@ -198,7 +244,12 @@ const UpdateExamPage = () => {
         const res = await updateExamByExamIdAndTeacherId({
           examId: exam.id,
           teacherId: teacherId,
-          exam: exam,
+          exam: {
+            name: exam.name,
+            description: exam.description,
+            duration: exam.duration,
+            questions: exam.questions,
+          },
         });
 
         if (res.success) {
@@ -220,20 +271,19 @@ const UpdateExamPage = () => {
   const addNewQuestion = () => {
     if (!exam) return;
 
+    const newQuestion: IQuestion = {
+      id: nanoid(),
+      question: "",
+      image: "",
+      options: [],
+      answer: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
     setExam({
       ...exam,
-      questions: [
-        ...exam.questions,
-        {
-          id: new Date().toISOString(),
-          question: "New question",
-          image: "",
-          options: ["", "", "All of the Above", "None of the Above"],
-          answer: "Option 1",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
+      questions: [...exam.questions, newQuestion],
     });
   };
 
@@ -321,16 +371,57 @@ const UpdateExamPage = () => {
               value={newOptionText}
               onChange={(e) => {
                 setNewOptionText(e.target.value);
-                if (e.target.value.trim()) {
+                if (e.target.value.trim() || newOptionImage) {
                   setOptionError(false);
                 }
               }}
               className={optionError ? "border-red-500" : ""}
               placeholder="Enter option text"
             />
+
+            <Label htmlFor="new-option-image" className="mb-2 mt-4 block">
+              Option Image (Optional)
+            </Label>
+            <input
+              type="file"
+              id="new-option-image"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setNewOptionImage(reader.result as string);
+                    setOptionError(false);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="w-full border p-2 rounded"
+            />
+
+            {newOptionImage && (
+              <div className="mt-2 relative">
+                <Image
+                  width={100}
+                  height={100}
+                  src={newOptionImage}
+                  alt="Preview"
+                  className="w-24 h-24 object-cover rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewOptionImage("")}
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {optionError && (
               <p className="text-red-500 text-xs mt-1">
-                Option text cannot be empty
+                Please provide either text or an image for the option
               </p>
             )}
           </div>
@@ -475,7 +566,9 @@ const UpdateExamPage = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor={`question-${question.id}-image`}>Image</Label>
+                  <Label htmlFor={`question-${question.id}-image`}>
+                    Question Image
+                  </Label>
                   <div className="flex items-center mt-1">
                     <input
                       type="file"
@@ -486,7 +579,6 @@ const UpdateExamPage = () => {
                         if (file) {
                           const reader = new FileReader();
                           reader.onloadend = () => {
-                            // Update both state management systems
                             setExam({
                               ...exam,
                               questions: exam.questions.map((q) =>
@@ -500,7 +592,6 @@ const UpdateExamPage = () => {
                         }
                       }}
                       className="w-full border p-2 rounded"
-                      // Clear the file input value when removing an image
                       key={question.image ? "has-image" : "no-image"}
                     />
                   </div>
@@ -518,7 +609,6 @@ const UpdateExamPage = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          // Update the exam state directly
                           setExam({
                             ...exam,
                             questions: exam.questions.map((q) =>
@@ -551,16 +641,60 @@ const UpdateExamPage = () => {
                     <div className="space-y-2">
                       {question.options.map((option, optionIndex) => (
                         <div
-                          key={optionIndex}
+                          key={option.id}
                           className="flex items-center gap-2 p-2 border rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
                         >
-                          <div className="flex-1 overflow-hidden overflow-ellipsis">
-                            <span className="font-medium text-gray-700">
+                          <div className="flex-1 overflow-hidden overflow-ellipsis flex items-center">
+                            <span className="font-medium text-gray-700 mr-2">
                               {String.fromCharCode(65 + optionIndex)}.
-                            </span>{" "}
-                            {option}
+                            </span>
+
+                            {option.textAnswer && (
+                              <span>{option.textAnswer}</span>
+                            )}
+
+                            {option.image && (
+                              <Image
+                                src={option.image}
+                                alt="Option image"
+                                width={50}
+                                height={50}
+                                className="ml-2 h-8 w-8 object-cover rounded"
+                              />
+                            )}
+
+                            {question.answer.includes(option.id) && (
+                              <Badge className="ml-2 bg-green-100 text-green-800 border-green-300">
+                                Correct
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setExam({
+                                  ...exam,
+                                  questions: exam.questions.map((q) =>
+                                    q.id === question.id
+                                      ? {
+                                          ...q,
+                                          answer: q.answer.includes(option.id)
+                                            ? q.answer.filter(
+                                                (id) => id !== option.id
+                                              )
+                                            : [...q.answer, option.id],
+                                        }
+                                      : q
+                                  ),
+                                });
+                              }}
+                              className="text-green-500 hover:text-green-700"
+                              title="Toggle correct answer"
+                            >
+                              {question.answer.includes(option.id) ? "✓" : "○"}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -574,7 +708,7 @@ const UpdateExamPage = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() =>
-                                removeOption(question.id, optionIndex)
+                                removeOption(question.id, option.id)
                               }
                               className="text-red-500 hover:text-red-700"
                               title="Remove option"
@@ -593,36 +727,37 @@ const UpdateExamPage = () => {
                 </div>
 
                 <div>
-                  <Label
-                    htmlFor={`correct-answer-${question.id}`}
-                    className="text-sm font-medium"
-                  >
-                    Correct Answer
+                  <Label className="text-sm font-medium">
+                    Correct Answer Selection
                   </Label>
                   {question.options.length > 0 ? (
-                    <Select
-                      value={question.answer}
-                      onValueChange={(value) =>
-                        handleCorrectAnswerChange(question.id, value)
-                      }
-                    >
-                      <SelectTrigger
-                        id={`correct-answer-${question.id}`}
-                        className="w-full mt-1"
-                      >
-                        <SelectValue placeholder="Select the correct answer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {question.options.map((option, index) => (
-                          <SelectItem key={index} value={option}>
-                            <span className="font-medium">
-                              {String.fromCharCode(65 + index)}.
-                            </span>{" "}
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="mt-2 p-3 border rounded-md bg-gray-50">
+                      <p className="text-sm text-gray-700 mb-2">
+                        Select the correct answer(s) by clicking the circle
+                        button next to each option.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {question.answer.length > 0 ? (
+                          question.answer.map((answerId) => {
+                            const option = question.options.find(
+                              (opt) => opt.id === answerId
+                            );
+                            return option ? (
+                              <Badge
+                                key={answerId}
+                                className="bg-green-100 text-green-800 border-green-300"
+                              >
+                                {option.textAnswer || "Image option"}
+                              </Badge>
+                            ) : null;
+                          })
+                        ) : (
+                          <p className="text-sm text-orange-500">
+                            No correct answer selected
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     <div className="p-3 text-gray-500 border rounded-md mt-1">
                       Add options first to select a correct answer
