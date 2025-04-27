@@ -266,10 +266,16 @@ const Page = () => {
                                   )}
                                 </td>
                                 <td className="px-4 py-2">
-                                  {response.selectedOption}
+                                  {/* {response.selectedOption} */}
+                                  {response.selectedOptionId
+                                    .map((item) => item)
+                                    .join(", ")}
                                 </td>
                                 <td className="px-4 py-2">
-                                  {response.correctOption}
+                                  {/* {response.correctOption} */}
+                                  {response.correctOptionId
+                                    .map((item) => item)
+                                    .join(", ")}
                                 </td>
                               </tr>
                             ))}

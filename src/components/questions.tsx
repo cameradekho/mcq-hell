@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { addExamByUser } from "../../action/add-exam-by-user";
-import useDropZone from "react-dropzone";
 
 type QuestionProps = {
   userEmail: string;
@@ -21,9 +20,15 @@ const formSchema = z.object({
         question: z.string().min(3, "Question must be at least 3 characters"),
         image: z.string().optional(),
         options: z
-          .array(z.string().min(1, "Option must be at least 1 character"))
+          .array(
+            z.object({
+              text: z.string().optional(),
+              image: z.string().optional(),
+              isCorrect: z.boolean().optional(),
+            })
+          )
           .min(2, "At least 2 options are required"),
-        answer: z.string().min(1, "Answer must be selected"),
+        answer: z.string().optional(),
       })
     )
     .min(1, "At least one question is required"),
@@ -50,7 +55,12 @@ export const Questions = (props: QuestionProps) => {
         {
           question: "",
           image: "",
-          options: ["", "", "", "All of the above", "None of the above"],
+          options: [
+            { text: "", image: "" },
+            { text: "", image: "" },
+            { text: "All of the above", image: "" },
+            { text: "None of the above", image: "" },
+          ],
           answer: "",
         },
       ],
@@ -69,13 +79,36 @@ export const Questions = (props: QuestionProps) => {
   const onSubmit = async (data: FormValues) => {
     console.log("Exam Schema:", data);
 
+    if (data.questions.length > 0) {
+      for (const question of data.questions) {
+        // Check if there is at least one correct answer
+        if (
+          question.options.map((opt) => opt.isCorrect === true).filter(Boolean)
+            .length < 1
+        ) {
+          toast.error(
+            "Please select at least 1 correct answer for each question"
+          );
+          return; // Return early to stop further execution and form submission
+        }
+      }
+    }
+
     try {
       const result = await addExamByUser({
         userEmail: props.userEmail || "",
         examName: data.title,
         examDescription: data.description,
         duration: data.duration,
-        questions: data.questions as [],
+        questions: data.questions.map((q) => ({
+          question: q.question,
+          image: q.image || "",
+          options: q.options.map((opt) => ({
+            ...(opt.text ? { text: opt.text } : {}),
+            ...(opt.image ? { image: opt.image } : {}),
+            isCorrect: opt.isCorrect,
+          })),
+        })),
       });
 
       if (result.success) {
@@ -234,84 +267,93 @@ export const Questions = (props: QuestionProps) => {
                   control={control}
                   name={`questions.${questionIndex}.options`}
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {field.value.map((option, optionIndex) => (
                         <div
                           key={optionIndex}
-                          className="flex items-center space-x-2"
+                          className="space-y-2 border p-2 rounded"
                         >
+                          {/* Text input for option */}
                           <input
-                            value={option}
+                            value={option.text || ""}
                             onChange={(e) => {
                               const newOptions = [...field.value];
-                              newOptions[optionIndex] = e.target.value;
+                              newOptions[optionIndex].text = e.target.value;
                               field.onChange(newOptions);
-
-                              // Update answer if it was previously set to this option
-                              const currentAnswer = watch(
-                                `questions.${questionIndex}.answer`
-                              );
-                              if (currentAnswer === field.value[optionIndex]) {
-                                setValue(
-                                  `questions.${questionIndex}.answer`,
-                                  e.target.value
-                                );
-                              }
                             }}
-                            className="flex-1 border p-2 rounded"
-                            placeholder={`Option ${optionIndex + 1}`}
+                            className="w-full border p-2 rounded"
+                            placeholder={`Option ${optionIndex + 1} text`}
                           />
 
-                          {/* Mark as answer switch */}
-                          <div className="flex items-center">
-                            <input
-                              type="radio"
-                              id={`answer-${questionIndex}-${optionIndex}`}
-                              name={`answer-${questionIndex}`}
-                              checked={
-                                watch(`questions.${questionIndex}.answer`) ===
-                                option
+                          {/* Image upload */}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  const newOptions = [...field.value];
+                                  newOptions[optionIndex].image =
+                                    reader.result as string;
+                                  field.onChange(newOptions);
+                                };
+                                reader.readAsDataURL(file);
                               }
-                              onChange={() => {
-                                setValue(
-                                  `questions.${questionIndex}.answer`,
-                                  option
-                                );
-                              }}
-                              className="mr-2"
-                              disabled={!option.trim()}
-                            />
-                            <label
-                              htmlFor={`answer-${questionIndex}-${optionIndex}`}
-                            >
-                              Correct Answer
-                            </label>
-                          </div>
+                            }}
+                            className="w-full border p-2 rounded"
+                          />
 
-                          {/* Remove option button */}
+                          {/* Preview uploaded image */}
+                          {option.image && (
+                            <div className="relative">
+                              <img
+                                src={option.image}
+                                alt="Option preview"
+                                className="w-32 h-32 object-cover rounded-md"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = [...field.value];
+                                  newOptions[optionIndex].image = "";
+                                  field.onChange(newOptions);
+                                }}
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Correct Answer Checkbox */}
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={option.isCorrect || false}
+                              onChange={(e) => {
+                                const newOptions = [...field.value];
+                                newOptions[optionIndex].isCorrect =
+                                  e.target.checked;
+                                field.onChange(newOptions);
+                              }}
+                            />
+                            <span>Correct Answer</span>
+                          </label>
+
+                          {/* Remove Option */}
                           {field.value.length > 2 && (
                             <button
                               type="button"
                               onClick={() => {
                                 const newOptions = [...field.value];
-                                const removedOption = newOptions[optionIndex];
                                 newOptions.splice(optionIndex, 1);
                                 field.onChange(newOptions);
-
-                                // If the removed option was the answer, clear the answer
-                                if (
-                                  watch(`questions.${questionIndex}.answer`) ===
-                                  removedOption
-                                ) {
-                                  setValue(
-                                    `questions.${questionIndex}.answer`,
-                                    ""
-                                  );
-                                }
                               }}
                               className="text-red-500 hover:text-red-700"
                             >
-                              Remove
+                              Remove Option
                             </button>
                           )}
                         </div>
@@ -323,13 +365,19 @@ export const Questions = (props: QuestionProps) => {
                         </p>
                       )}
 
-                      {/* Add option button */}
+                      {/* Add Option Button */}
                       <button
                         type="button"
                         onClick={() => {
-                          field.onChange([...field.value, ""]);
+                          const newOptions = [...field.value];
+                          newOptions.push({
+                            text: "",
+                            image: "",
+                            isCorrect: false,
+                          });
+                          field.onChange(newOptions);
                         }}
-                        className="mt-2 px-3 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                        className="text-green-500 hover:text-green-700"
                       >
                         Add Option
                       </button>
@@ -357,7 +405,12 @@ export const Questions = (props: QuestionProps) => {
             onClick={() =>
               appendQuestion({
                 question: "",
-                options: ["", ""],
+                options: [
+                  { text: "", image: "" },
+                  { text: "", image: "" },
+                  { text: "All of the above", image: "" },
+                  { text: "None of the above", image: "" },
+                ],
                 answer: "",
               })
             }

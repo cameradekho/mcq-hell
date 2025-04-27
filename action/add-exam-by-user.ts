@@ -1,6 +1,5 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
-import { IQuestion } from "@/models/exam";
 import { ServerActionResult } from "@/types";
 import { nanoid } from "nanoid";
 
@@ -11,9 +10,16 @@ type AddExamByUserData = {
   examName: string;
   examDescription: string;
   duration: number;
-  questions: IQuestion[];
+  questions: Array<{
+    question: string;
+    image?: string;
+    options: Array<{
+      text?: string;
+      image?: string;
+      isCorrect?: boolean;
+    }>;
+  }>;
 };
-
 export const addExamByUser = async (
   data: AddExamByUserData
 ): Promise<AddExamByUserResult> => {
@@ -23,7 +29,7 @@ export const addExamByUser = async (
       !data.examName ||
       !data.examDescription ||
       !data.duration ||
-      !data.questions
+      data.questions.length === 0
     ) {
       return {
         success: false,
@@ -32,6 +38,7 @@ export const addExamByUser = async (
     }
 
     await mongodb.connect();
+
     const userData = await mongodb
       .collection("teacher")
       .findOne({ email: data.userEmail });
@@ -54,6 +61,10 @@ export const addExamByUser = async (
       };
     }
 
+    console.log(
+      data.questions.map((q) => q.options.map((opt) => opt.text || "empty"))
+    );
+
     const resofUpdate = await mongodb.collection("teacher").updateOne(
       { email: data.userEmail },
       {
@@ -63,15 +74,28 @@ export const addExamByUser = async (
             name: data.examName,
             description: data.examDescription,
             duration: data.duration,
-            questions: data.questions.map((q) => ({
-              id: nanoid(),
-              question: q.question,
-              image: q.image || "",
-              options: q.options,
-              answer: q.answer,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })),
+            questions: data.questions.map((q) => {
+              // Create options with IDs first
+              const optionsWithIds = q.options.map((opt) => ({
+                id: nanoid(),
+                textAnswer: opt.text,
+                image: opt.image || "",
+                isCorrect: opt.isCorrect || false,
+              }));
+
+              // Now use those IDs for the answer array
+              return {
+                id: nanoid(),
+                question: q.question,
+                image: q.image || "",
+                options: optionsWithIds,
+                answer: optionsWithIds
+                  .filter((opt) => opt.isCorrect)
+                  .map((opt) => opt.id),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+            }),
             createdAt: new Date(),
             updatedAt: new Date(),
           },

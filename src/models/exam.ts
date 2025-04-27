@@ -1,9 +1,17 @@
+export type IAnswer = { id: string } & (
+  | { textAnswer: string; image?: string }
+  | { textAnswer?: string; image: string }
+  | { textAnswer: string; image: string }
+) & {
+    isCorrect: boolean;
+  };
+
 export type IQuestion = {
   id: string;
   question: string;
   image: string;
-  options: string[];
-  answer: string;
+  options: IAnswer[];
+  answer: IAnswer["id"][];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -18,5 +26,3 @@ export type IExam = {
 };
 
 export const examCollectionName = "exam";
-// standard?: string;
-// subject?: string;

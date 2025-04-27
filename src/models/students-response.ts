@@ -1,9 +1,11 @@
+import { IAnswer } from "./exam";
+
 export type StudentAnswer = {
   questionId: string;
   question: string;
   image: string;
-  correctOption: string;
-  selectedOption: string;
+  correctOptionId: IAnswer["id"][];
+  selectedOptionId: IAnswer["id"][];
   isCorrect: boolean;
 };
 

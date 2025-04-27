@@ -5,6 +5,7 @@ import { fetchExamById } from "../fetch-exam-by-id";
 import { mongodb } from "@/lib/mongodb";
 import { studentResponseCollectionName } from "@/models/students-response";
 import { logger } from "@/models/logger";
+import { IAnswer } from "@/models/exam";
 
 export type AddStudentResponseResult = ServerActionResult<undefined>;
 
@@ -19,8 +20,8 @@ export type AddStudentResponseData = {
     questionId: string;
     question: string;
     image?: string;
-    correctOption: string;
-    selectedOption: string;
+    correctOptionId: IAnswer["id"][];
+    selectedOptionId: IAnswer["id"][];
     isCorrect: boolean;
   }[];
   score: {
@@ -33,20 +34,7 @@ export const addStudentResponse = async (
   data: AddStudentResponseData
 ): Promise<AddStudentResponseResult> => {
   try {
-    console.log("server data: ");
-    const requiredFields = [
-      data.teacherId,
-      data.teacherEmail,
-      data.studentName,
-      data.studentEmail,
-      data.studentAvatar,
-      data.examId,
-      data.response,
-      data.score,
-    ];
-
-    console.log("client data: ", data);
-
+    // Individual field validation
     if (!data.teacherId) {
       return {
         success: false,
@@ -82,10 +70,10 @@ export const addStudentResponse = async (
       };
     }
 
-    if (!data.response) {
+    if (!data.response || data.response.length === 0) {
       return {
         success: false,
-        message: "Please provide response",
+        message: "Please provide response data",
       };
     }
 
@@ -95,7 +83,6 @@ export const addStudentResponse = async (
         message: "Please provide score",
       };
     }
-    console.log("server data: ");
 
     const teacherExists = await fetchTeacherById({ teacherId: data.teacherId });
     if (!teacherExists) {
@@ -119,6 +106,12 @@ export const addStudentResponse = async (
     await mongodb.connect();
     const now = new Date();
 
+    // Make sure all response items have image field (even if empty string)
+    const normalizedResponses = data.response.map((item) => ({
+      ...item,
+      image: item.image || "",
+    }));
+
     const result = await mongodb
       .collection(studentResponseCollectionName)
       .updateOne(
@@ -136,15 +129,14 @@ export const addStudentResponse = async (
             examAttempts: {
               examId: data.examId,
               teacherEmail: data.teacherEmail,
-              responses: data.response,
+              responses: normalizedResponses,
               score: data.score,
-              submittedAt: data.score.submittedAt,
             },
           } as any,
         },
         { upsert: true }
       );
-    console.log("server updatded hello......");
+
     if (!result.acknowledged) {
       return {
         success: false,
@@ -152,12 +144,6 @@ export const addStudentResponse = async (
       };
     }
 
-    if (!result.upsertedCount) {
-      return {
-        success: false,
-        message: "Error adding student response",
-      };
-    }
     return {
       success: true,
       data: undefined,

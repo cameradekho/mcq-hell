@@ -46,6 +46,7 @@ export const fetchTeacherById = async (
       };
     }
 
+    console.log(teacherData);
     return {
       success: true,
       data: {

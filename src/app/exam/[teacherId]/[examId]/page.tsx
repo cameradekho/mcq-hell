@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
-import { IExam } from "@/models/exam";
+import { IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { addStudentResponse } from "../../../../../action/res/add-student-response";
 import { fetchTeacherById } from "../../../../../action/fetch-teacher-by-id";
 import Image from "next/image";
+import { addStudentResponse } from "../../../../../action/res/add-student-response";
+import { set } from "date-fns";
 
 type PageProps = {
   params: {
@@ -22,7 +23,8 @@ type StudentDetails = {
 };
 const Page = ({ params }: PageProps) => {
   const [exam, setExam] = useState<IExam>();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answersId, setAnswersId] = useState<Record<string, string[]>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<number>(0);
   const [teacherEmail, setTeacherEmail] = useState<string>();
@@ -42,7 +44,23 @@ const Page = ({ params }: PageProps) => {
         });
 
         if (data.success) {
-          setExam(data.data);
+          setExam(data.data as IExam);
+
+          // Initialize answers object with empty arrays for each question
+          if (data.data) {
+            const initialAnswersId: Record<string, string[]> = {};
+            (data.data as IExam).questions.forEach((q) => {
+              initialAnswersId[q.id] = [];
+            });
+            setAnswersId(initialAnswersId);
+
+            const initialAnswers: Record<string, string[]> = {};
+            // (data.data as IExam).questions.forEach((q) => {
+            //   initialAnswersId[q.question] = [];
+            // });
+            // setAnswers(initialAnswersId);
+          }
+
           toast.success("Exam fetched successfully!");
         } else {
           toast.error(data.message);
@@ -64,45 +82,109 @@ const Page = ({ params }: PageProps) => {
     fetchExamData();
   }, [params.teacherId, params.examId]);
 
-  const handleAnswerChange = (questionId: string, selectedOption: string) => {
+  // Handle single choice (radio button) selection
+  const handleSingleAnswerChange = (
+    questionId: string,
+    selectedOption: string
+  ) => {
+    setAnswersId((prev) => ({
+      ...prev,
+      [questionId]: [selectedOption], // Store as array with single element
+    }));
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: selectedOption,
     }));
   };
 
+  // Handle multiple choice (checkbox) selection
+  const handleMultipleAnswerChange = (
+    questionId: string,
+    selectedOption: string,
+    isChecked: boolean
+  ) => {
+    setAnswersId((prev) => {
+      const currentSelections = prev[questionId] || [];
+
+      if (isChecked) {
+        // Add option if checked
+        return {
+          ...prev,
+          [questionId]: [...currentSelections, selectedOption],
+        };
+      } else {
+        // Remove option if unchecked
+        return {
+          ...prev,
+          [questionId]: currentSelections.filter(
+            (opt) => opt !== selectedOption
+          ),
+        };
+      }
+    });
+  };
+
   const handleFetchStudentData = async () => {
+    // Validate student details
+    if (
+      !studentDetails.studentName.trim() ||
+      !studentDetails.studentEmail.trim()
+    ) {
+      toast.error("Please provide both student name and email");
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(studentDetails.studentEmail)) {
+      toast.error("Please provide a valid email address");
+      return;
+    }
+
     setStep((prev) => prev + 1);
   };
 
   const handleSubmit = async () => {
     try {
-      console.log("Selected Answers:");
-      exam?.questions.forEach((question) => {
-        console.log("Question id", question.id);
-        console.log(`Q: ${question.question}`);
-        console.log("Question's image id", `${question.image}`);
-        console.log(`Selected: ${answers[question.id] || "Not Answered"}`);
-        console.log(`Correct: ${question.answer}`);
-        console.log("------");
-      });
-      const formattedResponses =
-        exam?.questions.map((question) => ({
+      if (!exam) return;
+
+      // Check if all questions are answered
+      const unansweredQuestions = exam.questions.filter(
+        (q) => answersId[q.id]?.length === 0
+      );
+
+      if (unansweredQuestions.length > 0) {
+        if (
+          !confirm(
+            `You have ${unansweredQuestions.length} unanswered questions. Do you want to submit anyway?`
+          )
+        ) {
+          return;
+        }
+      }
+
+      // Format responses for submission
+      const formattedResponses = exam.questions.map((question) => {
+        const selectedIds = answersId[question.id] || [];
+        const isCorrect = arraysEqual(
+          selectedIds.sort(),
+          question.answer.sort()
+        );
+
+        return {
           questionId: question.id,
           question: question.question,
-          image: question?.image,
-          correctOption: question.answer,
-          selectedOption: answers[question.id] || "",
-          isCorrect: question.answer === answers[question.id],
-        })) || [];
+          image: question.image || "",
+          correctOptionId: question.answer,
+          selectedOptionId: selectedIds,
+          isCorrect: isCorrect,
+        };
+      });
 
-      const correctCount =
-        exam?.questions.reduce((count, question) => {
-          return question.answer === answers[question.id] ? count + 1 : count;
-        }, 0) || 0;
-
+      // Calculate score
+      const correctCount = formattedResponses.filter((r) => r.isCorrect).length;
       setResult(correctCount);
-      console.log("one");
+
+      // Submit to server
       const result = await addStudentResponse({
         teacherId: params.teacherId,
         teacherEmail: teacherEmail || "",
@@ -116,7 +198,7 @@ const Page = ({ params }: PageProps) => {
           submittedAt: new Date(),
         },
       });
-      console.log("two");
+
       if (result.success) {
         toast.success(result.message);
       } else {
@@ -126,8 +208,23 @@ const Page = ({ params }: PageProps) => {
       setSubmitted(true);
     } catch (error) {
       toast.error("Error submitting answers");
+      console.error(error);
     }
   };
+
+  // Helper function to compare arrays
+  function arraysEqual(a: string[], b: string[]) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+  function getOptionTextById(question: IQuestion, optionId: string) {
+    const option = question.options.find((opt) => opt.id === optionId);
+    return option ? option.textAnswer || "Image option" : "Not found";
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6 bg-slate-600">
@@ -199,38 +296,128 @@ const Page = ({ params }: PageProps) => {
 
         {step === 1 && (
           <CardContent className="space-y-6">
-            <span>Hello, {studentDetails.studentName}</span>
+            <span className="text-lg font-semibold">
+              Hello, {studentDetails.studentName}
+            </span>
+
             {!submitted &&
               exam?.questions.map((question, qIndex) => (
-                <div key={qIndex} className="mb-6">
-                  <p className="font-semibold mb-2">
+                <div
+                  key={qIndex}
+                  className="mb-8 p-4 border rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                >
+                  <p className="font-semibold text-xl text-gray-800 mb-4">
                     {qIndex + 1}. {question.question}
                   </p>
 
                   {question.image && (
-                    <Image
-                      src={question.image}
-                      alt="Question Image"
-                      height={200}
-                      width={200}
-                      className=" rounded-md w-72 h-64"
-                    />
+                    <div className="mb-4">
+                      <Image
+                        src={question.image}
+                        alt="Question Image"
+                        height={200}
+                        width={200}
+                        className="rounded-md w-72 h-64 object-cover mx-auto"
+                      />
+                    </div>
                   )}
-                  <div className="space-y-1">
-                    {question.options.map((option, j) => (
-                      <label key={j} className="block cursor-pointer">
-                        <input
-                          type="radio"
-                          name={`question-${qIndex}`}
-                          value={option}
-                          onChange={() =>
-                            handleAnswerChange(question.id, option)
-                          }
-                          className="mr-2"
-                        />
-                        {option}
-                      </label>
-                    ))}
+
+                  <div className="space-y-3">
+                    {question.answer.length > 1
+                      ? question.options.map((option, j) => (
+                          <label
+                            key={j}
+                            className={`block cursor-pointer p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ${
+                              answersId[question.id]?.includes(option.id)
+                                ? "ring-2 ring-blue-500"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                name={`question-${qIndex}`}
+                                value={option.id}
+                                checked={
+                                  answersId[question.id]?.includes(option.id) ||
+                                  false
+                                }
+                                onChange={(e) =>
+                                  handleMultipleAnswerChange(
+                                    question.id,
+                                    option.id,
+                                    e.target.checked
+                                  )
+                                }
+                                className="mt-1 accent-blue-500"
+                              />
+                              <div className="flex-1">
+                                {option.textAnswer && (
+                                  <span className="block text-lg text-gray-700">
+                                    {option.textAnswer}
+                                  </span>
+                                )}
+                                {option.image && (
+                                  <div className="mt-2">
+                                    <Image
+                                      src={option.image}
+                                      alt="Option Image"
+                                      height={200}
+                                      width={200}
+                                      className="rounded-md w-72 h-64 object-cover mx-auto"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        ))
+                      : question.options.map((option, j) => (
+                          <label
+                            key={j}
+                            className={`block cursor-pointer p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ${
+                              answersId[question.id]?.[0] === option.id
+                                ? "ring-2 ring-blue-500"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="radio"
+                                name={`question-${qIndex}`}
+                                value={option.id}
+                                checked={
+                                  answersId[question.id]?.[0] === option.id
+                                }
+                                onChange={() =>
+                                  handleSingleAnswerChange(
+                                    question.id,
+                                    option.id
+                                  )
+                                }
+                                className="mt-1 accent-blue-500"
+                              />
+                              <div className="flex-1">
+                                {option.textAnswer && (
+                                  <span className="block text-lg text-gray-700">
+                                    {option.textAnswer}
+                                  </span>
+                                )}
+                                {option.image && (
+                                  <div className="mt-2">
+                                    <Image
+                                      src={option.image}
+                                      alt="Option Image"
+                                      height={200}
+                                      width={200}
+                                      className="rounded-md w-72 h-64 object-cover mx-auto"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
                   </div>
                 </div>
               ))}
@@ -244,7 +431,7 @@ const Page = ({ params }: PageProps) => {
             {submitted && (
               <div className="overflow-x-auto mt-6">
                 <h3 className="text-lg font-semibold mb-4">
-                  Results: <span className=" text-green-500">{result}</span> /{" "}
+                  Results: <span className="text-green-500">{result}</span> /{" "}
                   {exam?.questions.length}
                 </h3>
 
@@ -253,14 +440,19 @@ const Page = ({ params }: PageProps) => {
                     <tr className="bg-gray-100 text-left">
                       <th className="border px-4 py-2">#</th>
                       <th className="border px-4 py-2">Question</th>
-                      <th className="border px-4 py-2">Chosen Option</th>
+                      <th className="border px-4 py-2">Your Answer</th>
                       <th className="border px-4 py-2">Correct Answer</th>
+                      <th className="border px-4 py-2">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {exam?.questions.map((question, index) => {
-                      const selected = answers[question.id];
-                      const isCorrect = selected === question.answer;
+                      const selectedIds = answersId[question.id] || [];
+                      const isCorrect = arraysEqual(
+                        selectedIds.sort(),
+                        question.answer.sort()
+                      );
+
                       return (
                         <tr
                           key={index}
@@ -271,10 +463,27 @@ const Page = ({ params }: PageProps) => {
                             {question.question}
                           </td>
                           <td className="border px-4 py-2">
-                            {selected || "Not Answered"}
+                            {selectedIds.length > 0
+                              ? selectedIds
+                                  .map((id) => getOptionTextById(question, id))
+                                  .join(", ")
+                              : "Not Answered"}
                           </td>
                           <td className="border px-4 py-2">
-                            {question.answer}
+                            {question.answer
+                              .map((id) => getOptionTextById(question, id))
+                              .join(", ")}
+                          </td>
+                          <td className="border px-4 py-2 text-center">
+                            {isCorrect ? (
+                              <span className="text-green-600 font-bold">
+                                ✓ Correct
+                              </span>
+                            ) : (
+                              <span className="text-red-600 font-bold">
+                                ✗ Incorrect
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
