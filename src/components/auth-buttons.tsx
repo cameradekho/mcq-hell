@@ -2,7 +2,7 @@
 "use client";
 import { useSession, signIn, signOut } from "next-auth/react";
 
-export default function AuthButtons() {
+export const AuthButtons = () => {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
@@ -28,4 +28,4 @@ export default function AuthButtons() {
       Sign In
     </button>
   );
-}
+};

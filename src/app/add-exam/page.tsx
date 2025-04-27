@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { QuestionsWrapper } from "@/components/questions-wrapper";
 import { auth } from "../../../auth";
+import { QuestionMaker } from "@/components/question-maker";
 
 export default async function AddExamPage() {
   const session = await auth();
@@ -26,7 +26,7 @@ export default async function AddExamPage() {
       </h1>
 
       {isOwner ? (
-        <QuestionsWrapper userEmail={session.user.email} />
+        <QuestionMaker userEmail={session.user.email} />
       ) : (
         <p className="mt-4 text-muted-foreground">
           You don’t have permission to add exams.
