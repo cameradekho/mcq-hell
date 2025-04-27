@@ -57,42 +57,59 @@ export const PreviewForm = ({
                     <h4 className="text-md font-medium">
                       {question.question || `Question ${index + 1}`}
                     </h4>
+
+                    {question.image && (
+                      <div className="mt-3 mb-3">
+                        <img
+                          src={question.image}
+                          alt={`Question ${index + 1} image`}
+                          className="max-h-32 object-contain rounded-md"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {question.image && (
-                  <div className="mb-4 flex justify-center">
-                    <img
-                      src={question.image}
-                      alt={`Question ${index + 1} image`}
-                      className="max-h-32 object-contain rounded-md"
-                    />
-                  </div>
-                )}
+                <div className="border-t border-muted/30 mb-3"></div>
 
                 <div className="ml-8 space-y-2">
+                  <h5 className="text-sm font-medium text-muted-foreground mb-2">
+                    Answer Options:
+                  </h5>
                   {question.options.map((option, optIdx) => (
                     <div key={optIdx} className="flex items-center gap-2">
                       <div
                         className={cn(
                           "h-4 w-4 rounded-full border flex items-center justify-center",
-                          question.answer === option
+                          question.answer.includes(option.id)
                             ? "border-primary bg-primary/10"
                             : "border-muted-foreground"
                         )}
                       >
-                        {question.answer === option && (
+                        {question.answer.includes(option.id) && (
                           <div className="h-2 w-2 rounded-full bg-primary"></div>
                         )}
                       </div>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          question.answer === option && "font-medium"
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "text-sm",
+                            question.answer.includes(option.id) && "font-medium"
+                          )}
+                        >
+                          {option.textAnswer || `Option ${optIdx + 1}`}
+                        </span>
+
+                        {option.image && (
+                          <div className="mt-1">
+                            <img
+                              src={option.image}
+                              alt={`Option ${optIdx + 1} image`}
+                              className="max-h-16 object-contain rounded-md"
+                            />
+                          </div>
                         )}
-                      >
-                        {option || `Option ${optIdx + 1}`}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>

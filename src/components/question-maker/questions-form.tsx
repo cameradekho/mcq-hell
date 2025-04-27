@@ -90,8 +90,21 @@ export const QuestionsForm = ({
             appendQuestion({
               question: "",
               image: "",
-              options: ["", ""],
-              answer: "",
+              options: [
+                {
+                  id: `opt-${Math.random().toString(36).substring(2, 9)}`,
+                  textAnswer: "",
+                  image: "",
+                  isCorrect: false,
+                },
+                {
+                  id: `opt-${Math.random().toString(36).substring(2, 9)}`,
+                  textAnswer: "",
+                  image: "",
+                  isCorrect: false,
+                },
+              ],
+              answer: [],
             })
           }
         >

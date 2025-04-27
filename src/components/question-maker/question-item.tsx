@@ -23,6 +23,7 @@ import { useDropzone } from "react-dropzone";
 import "katex/dist/katex.min.css";
 import { InlineMath, BlockMath } from "react-katex";
 import LatexSymbolPicker, { tryRenderLatex } from "./latex-symbol-picker";
+import Image from "next/image";
 
 // LaTeX symbol categories and symbols
 const latexSymbols = [
@@ -215,7 +216,7 @@ export const QuestionItem = ({
       </div>
 
       <div className="p-4 space-y-4">
-        <div className="space-y-1">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Question Text</label>
             <div className="flex items-center gap-2">
@@ -271,12 +272,12 @@ export const QuestionItem = ({
               {errors.questions[questionIndex]?.question?.message}
             </p>
           )}
-        </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Image Upload */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Image (optional)</label>
+          {/* Question Image Upload - Moved here to be associated with the question text */}
+          <div>
+            <label className="text-sm font-medium mb-1 block">
+              Question Image (optional)
+            </label>
             <Controller
               control={control}
               name={`questions.${questionIndex}.image`}
@@ -303,7 +304,7 @@ export const QuestionItem = ({
                   <div
                     {...getRootProps()}
                     className={cn(
-                      "flex items-center justify-center border border-dashed border-input rounded-md p-4 transition-colors h-[175px]",
+                      "flex items-center justify-center border border-dashed border-input rounded-md p-4 transition-colors h-[130px]",
                       isDragActive ? "bg-primary/10 border-primary" : "",
                       field.value ? "bg-muted/30" : "hover:bg-muted/50",
                       "cursor-pointer"
@@ -311,7 +312,7 @@ export const QuestionItem = ({
                   >
                     {!field.value ? (
                       <div className="flex flex-col items-center gap-1">
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <Upload className="h-6 w-6 text-muted-foreground mb-1" />
                         <p className="text-sm text-muted-foreground text-center">
                           {isDragActive
                             ? "Drop the image here"
@@ -322,8 +323,8 @@ export const QuestionItem = ({
                       <div className="relative w-full h-full flex items-center justify-center">
                         <img
                           src={field.value}
-                          alt="Preview"
-                          className="max-h-[140px] max-w-full object-contain rounded-md"
+                          alt="Question image"
+                          className="max-h-[110px] max-w-full object-contain rounded-md"
                         />
                         <button
                           type="button"
@@ -343,51 +344,57 @@ export const QuestionItem = ({
               }}
             />
           </div>
+        </div>
 
-          {/* Options */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Answer Options</label>
-            </div>
+        {/* Visual separator between question and answer sections */}
+        <div className="border-t my-4"></div>
 
-            <Controller
-              control={control}
-              name={`questions.${questionIndex}.options`}
-              render={({ field }) => (
-                <div className="space-y-2 bg-muted/20 p-3 rounded-md max-h-[175px] overflow-y-auto">
-                  {field.value.map((option, optionIndex) => (
-                    <div key={optionIndex} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id={`answer-${questionIndex}-${optionIndex}`}
-                        name={`answer-${questionIndex}`}
-                        checked={
-                          watch(`questions.${questionIndex}.answer`) === option
-                        }
-                        onChange={() => {
-                          setValue(`questions.${questionIndex}.answer`, option);
-                        }}
-                        className="h-4 w-4 accent-primary"
-                        disabled={!option.trim()}
-                      />
-                      <div className="flex-1 relative">
+        {/* Answer Options section - now comes after the separator */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Answer Options</label>
+          </div>
+
+          <Controller
+            control={control}
+            name={`questions.${questionIndex}.options`}
+            render={({ field }) => (
+              <div className="space-y-2 bg-muted/20 p-3 rounded-md max-h-[250px] overflow-y-auto">
+                {field.value.map((option, optionIndex) => (
+                  <div key={optionIndex} className="flex gap-2">
+                    <input
+                      type="radio"
+                      id={`answer-${questionIndex}-${optionIndex}`}
+                      name={`answer-${questionIndex}`}
+                      checked={watch(
+                        `questions.${questionIndex}.answer`
+                      ).includes(option.id)}
+                      onChange={() => {
+                        setValue(`questions.${questionIndex}.answer`, [
+                          option.id,
+                        ]);
+
+                        // Update isCorrect for all options
+                        const newOptions = [...field.value];
+                        newOptions.forEach((opt, idx) => {
+                          opt.isCorrect = idx === optionIndex;
+                        });
+                        field.onChange(newOptions);
+                      }}
+                      className="h-4 w-4 accent-primary"
+                      disabled={!option.textAnswer.trim()}
+                    />
+                    <div className="flex-1">
+                      <div className="relative">
                         <input
-                          value={option}
+                          value={option.textAnswer}
                           onChange={(e) => {
                             const newOptions = [...field.value];
-                            newOptions[optionIndex] = e.target.value;
+                            newOptions[optionIndex] = {
+                              ...newOptions[optionIndex],
+                              textAnswer: e.target.value,
+                            };
                             field.onChange(newOptions);
-
-                            // Update answer if it was previously set to this option
-                            const currentAnswer = watch(
-                              `questions.${questionIndex}.answer`
-                            );
-                            if (currentAnswer === field.value[optionIndex]) {
-                              setValue(
-                                `questions.${questionIndex}.answer`,
-                                e.target.value
-                              );
-                            }
                           }}
                           className={cn(
                             "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
@@ -397,60 +404,127 @@ export const QuestionItem = ({
                             optionIndex + 1
                           } (supports LaTeX: $x^2$)`}
                         />
-                        {option.includes("$") && (
+                        {option.textAnswer.includes("$") && (
                           <div className="absolute right-10 top-2">
-                            {tryRenderLatex(option)}
+                            {tryRenderLatex(option.textAnswer)}
                           </div>
                         )}
                       </div>
 
-                      {/* Remove option button */}
-                      {field.value.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newOptions = [...field.value];
-                            const removedOption = newOptions[optionIndex];
-                            newOptions.splice(optionIndex, 1);
-                            field.onChange(newOptions);
-
-                            // If the removed option was the answer, clear the answer
-                            if (
-                              watch(`questions.${questionIndex}.answer`) ===
-                              removedOption
-                            ) {
-                              setValue(`questions.${questionIndex}.answer`, "");
-                            }
-                          }}
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </button>
-                      )}
+                      {/* Option Image Upload */}
+                      <div className="mt-2">
+                        {option.image ? (
+                          <div className="relative mt-1 h-[60px]">
+                            <Image
+                              src={option.image}
+                              alt="Option image"
+                              className="max-h-[60px] max-w-full object-contain rounded-md"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOptions = [...field.value];
+                                newOptions[optionIndex] = {
+                                  ...newOptions[optionIndex],
+                                  image: "",
+                                };
+                                field.onChange(newOptions);
+                              }}
+                              className="absolute top-0 right-0 rounded-full bg-destructive p-1 text-xs text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              <XCircle className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Create a file input and trigger it
+                              const input = document.createElement("input");
+                              input.type = "file";
+                              input.accept = "image/*";
+                              input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement)
+                                  .files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    const newOptions = [...field.value];
+                                    newOptions[optionIndex] = {
+                                      ...newOptions[optionIndex],
+                                      image: reader.result as string,
+                                    };
+                                    field.onChange(newOptions);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              };
+                              input.click();
+                            }}
+                            className="mt-1 inline-flex h-6 items-center justify-center rounded-md px-2 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                          >
+                            <Upload className="mr-1 h-3 w-3" /> Add Image
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  ))}
 
-                  {errors.questions?.[questionIndex]?.options && (
-                    <p className="text-sm font-medium text-destructive flex items-center gap-1 mt-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {errors.questions[questionIndex]?.options?.message}
-                    </p>
-                  )}
+                    {/* Remove option button */}
+                    {field.value.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOptions = [...field.value];
+                          const removedOption = newOptions[optionIndex];
+                          newOptions.splice(optionIndex, 1);
+                          field.onChange(newOptions);
 
-                  {/* Add option button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      field.onChange([...field.value, ""]);
-                    }}
-                    className="mt-2 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Plus className="mr-1 h-3 w-3" /> Add Option
-                  </button>
-                </div>
-              )}
-            />
-          </div>
+                          // If the removed option was the answer, clear the answer
+                          if (
+                            watch(`questions.${questionIndex}.answer`).includes(
+                              removedOption.id
+                            )
+                          ) {
+                            setValue(`questions.${questionIndex}.answer`, []);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {errors.questions?.[questionIndex]?.options && (
+                  <p className="text-sm font-medium text-destructive flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.questions[questionIndex]?.options?.message}
+                  </p>
+                )}
+
+                {/* Add option button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newId = Math.random().toString(36).substring(2, 9);
+                    field.onChange([
+                      ...field.value,
+                      {
+                        id: newId,
+                        textAnswer: "",
+                        image: "",
+                        isCorrect: false,
+                      },
+                    ]);
+                  }}
+                  className="mt-2 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add Option
+                </button>
+              </div>
+            )}
+          />
         </div>
 
         {errors.questions?.[questionIndex]?.answer && (

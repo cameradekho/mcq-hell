@@ -24,9 +24,20 @@ const formSchema = z.object({
         question: z.string().min(3, "Question must be at least 3 characters"),
         image: z.string().optional(),
         options: z
-          .array(z.string().min(1, "Option must be at least 1 character"))
+          .array(
+            z.object({
+              id: z.string(),
+              textAnswer: z
+                .string()
+                .min(1, "Option must be at least 1 character"),
+              image: z.string().optional(),
+              isCorrect: z.boolean(),
+            })
+          )
           .min(2, "At least 2 options are required"),
-        answer: z.string().min(1, "Answer must be selected"),
+        answer: z
+          .array(z.string())
+          .min(1, "At least one answer must be selected"),
       })
     )
     .min(1, "At least one question is required"),
@@ -63,8 +74,39 @@ export const QuestionMaker = (props: ExamFormProps) => {
         {
           question: "",
           image: "",
-          options: ["", "", "", "All of the above", "None of the above"],
-          answer: "",
+          options: [
+            {
+              id: "opt1",
+              textAnswer: "",
+              image: "",
+              isCorrect: false,
+            },
+            {
+              id: "opt2",
+              textAnswer: "",
+              image: "",
+              isCorrect: false,
+            },
+            {
+              id: "opt3",
+              textAnswer: "",
+              image: "",
+              isCorrect: false,
+            },
+            {
+              id: "opt4",
+              textAnswer: "All of the above",
+              image: "",
+              isCorrect: false,
+            },
+            {
+              id: "opt5",
+              textAnswer: "None of the above",
+              image: "",
+              isCorrect: false,
+            },
+          ],
+          answer: [],
         },
       ],
     },
@@ -80,7 +122,15 @@ export const QuestionMaker = (props: ExamFormProps) => {
         examName: data.title,
         examDescription: data.description,
         duration: data.duration,
-        questions: data.questions as [],
+        questions: data.questions.map((q) => ({
+          question: q.question,
+          image: q.image,
+          options: q.options.map((opt) => ({
+            text: opt.textAnswer,
+            image: opt.image,
+            isCorrect: opt.isCorrect,
+          })),
+        })),
       });
 
       if (result.success) {
