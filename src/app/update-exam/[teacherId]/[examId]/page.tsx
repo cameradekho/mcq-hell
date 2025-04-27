@@ -87,18 +87,6 @@ const UpdateExamPage = () => {
   const session = useSession();
   const userEmail = session?.data?.user?.email;
 
-  const handleCorrectAnswerChange = (questionId: string, optionId: string) => {
-    setExam((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        questions: prev.questions.map((q) =>
-          q.id === questionId ? { ...q, answer: [optionId] } : q
-        ),
-      };
-    });
-  };
-
   const openAddOptionDialog = (questionId: string) => {
     setCurrentQuestionId(questionId);
     setNewOptionText("");
