@@ -204,6 +204,21 @@ const UpdateExamPage = () => {
   const handleSaveExam = async () => {
     if (exam) {
       // Check for questions with no options
+
+      if (exam.name.trim().length < 3) {
+        toast.error("Exam name must be at least 3 characters");
+        return;
+      }
+
+      if (exam.description.trim().length < 3) {
+        toast.error("Exam description must be at least 3 characters");
+        return;
+      }
+      if (exam.questions.some((q) => q.question.trim().length < 3)) {
+        toast.error("Question text must be at least 3 characters");
+        return;
+      }
+
       const questionsWithNoOptions = exam.questions.filter(
         (q) => q.options.length === 0
       );
