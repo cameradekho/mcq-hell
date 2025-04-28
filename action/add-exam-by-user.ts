@@ -1,5 +1,6 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
+import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { nanoid } from "nanoid";
 
@@ -77,7 +78,7 @@ export const addExamByUser = async (
             questions: data.questions.map((q) => {
               // Create options with IDs first
               const optionsWithIds = q.options.map((opt) => ({
-                id: nanoid(),
+                id: nanoid(), //option Id
                 textAnswer: opt.text,
                 image: opt.image || "",
                 isCorrect: opt.isCorrect || false,
@@ -85,7 +86,7 @@ export const addExamByUser = async (
 
               // Now use those IDs for the answer array
               return {
-                id: nanoid(),
+                id: nanoid(), //exam Id
                 question: q.question,
                 image: q.image || "",
                 options: optionsWithIds,
@@ -118,6 +119,10 @@ export const addExamByUser = async (
       message: "Exam added successfully",
     };
   } catch (error: any) {
+    await logger({
+      error: error.message,
+      errorStack: error.stack,
+    });
     return {
       success: false,
       message: `Error adding exam by user: ${

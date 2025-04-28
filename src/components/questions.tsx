@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { addExamByUser } from "../../action/add-exam-by-user";
+import { addExam } from "../../action/demo/add-exam";
 
 type QuestionProps = {
   userEmail: string;
@@ -113,6 +114,29 @@ export const Questions = (props: QuestionProps) => {
 
       if (result.success) {
         toast.success("Exam added successfully!");
+
+        const res = await addExam({
+          name: data.title,
+          description: data.description,
+          duration: data.duration,
+          questions: data.questions.map((q) => ({
+            question: q.question,
+            image: q.image || "",
+            options: q.options.map((opt) => ({
+              ...(opt.text ? { text: opt.text } : {}),
+              ...(opt.image ? { image: opt.image } : {}),
+              isCorrect: opt.isCorrect,
+            })),
+          })),
+          createdName: "",
+          createdByEmail: props.userEmail || "",
+        });
+
+        if (res.success) {
+          toast.success("Exam added successfully!");
+        } else {
+          toast.error(res.message);
+        }
       } else {
         toast.error(result.message);
       }
