@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
-import { IExam, IQuestion } from "@/models/exam";
+import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,8 @@ const Page = ({ params }: PageProps) => {
   const [examStarted, setExamStarted] = useState(false);
   const [open, setOpen] = useState(true);
   const [autoSubmit, setAutoSubmit] = useState(false);
+  const [shuffledQuestions, setShuffledQuestions] = useState<IQuestion[]>([]);
+  const [shuffledAnswers, setShuffledAnswers] = useState<IAnswer[]>([]);
 
   useEffect(() => {
     async function fetchExamData() {
@@ -116,7 +118,6 @@ const Page = ({ params }: PageProps) => {
     fetchExamData();
   }, [params.teacherId, params.examId]);
 
-  //time left
   useEffect(() => {
     if (!examStarted || !exam || exam.duration === 0) return;
 
@@ -136,6 +137,18 @@ const Page = ({ params }: PageProps) => {
 
     return () => clearInterval(interval); // cleanup
   }, [examStarted, exam]);
+
+  useEffect(() => {
+    if (exam?.questions) {
+      const shuffled: IQuestion[] = [...exam.questions]
+        .sort(() => Math.random() - 0.5) // shuffle questions
+        .map((q) => ({
+          ...q,
+          options: [...q.options].sort(() => Math.random() - 0.5), // shuffle options inside each question
+        }));
+      setShuffledQuestions(shuffled);
+    }
+  }, [exam]);
 
   const handleAutoSubmit = () => {
     if (!exam) return;
@@ -446,7 +459,8 @@ const Page = ({ params }: PageProps) => {
               </span>
 
               {!submitted &&
-                exam?.questions.map((question, qIndex) => (
+                exam?.questions &&
+                shuffledQuestions.map((question, qIndex) => (
                   <div
                     key={qIndex}
                     className="mb-8 p-4 border rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
