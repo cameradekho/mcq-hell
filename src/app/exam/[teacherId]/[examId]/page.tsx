@@ -11,6 +11,18 @@ import Image from "next/image";
 import { addStudentResponse } from "../../../../../action/res/add-student-response";
 import { motion } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { InlineMath, BlockMath } from "react-katex";
+import "katex/dist/katex.min.css";
 
 // Animation variants
 const containerVariants = {
@@ -32,6 +44,70 @@ const itemVariants = {
     transition: { type: "spring", stiffness: 100 },
   },
 };
+
+// Helper function to safely attempt to render LaTeX
+function tryRenderLatex(text: any) {
+  try {
+    // Process text to handle both inline and block LaTeX
+    const parts = [];
+    let lastIndex = 0;
+
+    // Regular expressions for detecting LaTeX delimiters
+    const blockRegex = /\$\$(.*?)\$\$/g;
+    const inlineRegex = /\$(.*?)\$/g;
+
+    // First handle block math ($$...$$)
+    let blockMatch;
+    while ((blockMatch = blockRegex.exec(text)) !== null) {
+      // Add text before the match
+      if (blockMatch.index > lastIndex) {
+        parts.push(text.substring(lastIndex, blockMatch.index));
+      }
+
+      // Add the BlockMath component for the LaTeX content
+      parts.push(<BlockMath math={blockMatch[1]} />);
+
+      lastIndex = blockMatch.index + blockMatch[0].length;
+    }
+
+    // Add any remaining text
+    if (lastIndex < text.length) {
+      const remaining = text.substring(lastIndex);
+
+      // Now process inline math ($...$) in the remaining text
+      let remainingParts = [];
+      let lastInlineIndex = 0;
+      let inlineMatch;
+
+      while ((inlineMatch = inlineRegex.exec(remaining)) !== null) {
+        // Add text before the match
+        if (inlineMatch.index > lastInlineIndex) {
+          remainingParts.push(
+            remaining.substring(lastInlineIndex, inlineMatch.index)
+          );
+        }
+
+        // Add the InlineMath component for the LaTeX content
+        remainingParts.push(<InlineMath math={inlineMatch[1]} />);
+
+        lastInlineIndex = inlineMatch.index + inlineMatch[0].length;
+      }
+
+      // Add any final remaining text
+      if (lastInlineIndex < remaining.length) {
+        remainingParts.push(remaining.substring(lastInlineIndex));
+      }
+
+      parts.push(...remainingParts);
+    }
+
+    return parts.length > 0 ? parts : text;
+  } catch (error) {
+    // If LaTeX rendering fails, return the original text
+    console.error("LaTeX rendering error:", error);
+    return text;
+  }
+}
 
 type PageProps = {
   params: {
@@ -384,7 +460,7 @@ const Page = ({ params }: PageProps) => {
                       className="mb-8 p-4 border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 bg-background"
                     >
                       <p className="font-semibold text-base sm:text-lg md:text-xl text-foreground mb-4">
-                        {qIndex + 1}. {question.question}
+                        {qIndex + 1}. {tryRenderLatex(question.question)}
                       </p>
 
                       {question.image && (
@@ -402,72 +478,100 @@ const Page = ({ params }: PageProps) => {
                       )}
 
                       <div className="space-y-3">
-                        {question.answer.length > 1
-                          ? question.options.map((option, j) => (
-                              <label
-                                key={j}
-                                className={`block cursor-pointer p-3 border rounded-lg bg-card shadow-sm hover:shadow-md transition-shadow duration-200 ${
-                                  answers[question.id]?.some(
-                                    (ans) => ans.id === option.id
-                                  )
-                                    ? "ring-2 ring-primary"
-                                    : ""
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <input
-                                    type="checkbox"
-                                    name={`question-${qIndex}`}
-                                    value={option.id}
-                                    checked={
-                                      answers[question.id]?.some(
-                                        (ans) => ans.id === option.id
-                                      ) || false
-                                    }
-                                    onChange={(e) =>
-                                      handleMultipleAnswerChange(
-                                        question.id,
-                                        {
-                                          id: option.id,
-                                          content: {
-                                            text: option.textAnswer
-                                              ? [option.textAnswer]
-                                              : [],
-                                            image: option.image
-                                              ? [option.image]
-                                              : [],
-                                          },
+                        {question.answer.length > 1 ? (
+                          question.options.map((option, j) => (
+                            <label
+                              key={j}
+                              className={`block cursor-pointer p-3 border rounded-lg bg-card shadow-sm hover:shadow-md transition-shadow duration-200 ${
+                                answers[question.id]?.some(
+                                  (ans) => ans.id === option.id
+                                )
+                                  ? "ring-2 ring-primary"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <Checkbox
+                                  id={`checkbox-${qIndex}-${j}`}
+                                  checked={
+                                    answers[question.id]?.some(
+                                      (ans) => ans.id === option.id
+                                    ) || false
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    handleMultipleAnswerChange(
+                                      question.id,
+                                      {
+                                        id: option.id,
+                                        content: {
+                                          text: option.textAnswer
+                                            ? [option.textAnswer]
+                                            : [],
+                                          image: option.image
+                                            ? [option.image]
+                                            : [],
                                         },
-                                        e.target.checked
-                                      )
-                                    }
-                                    className="mt-1 accent-primary"
-                                  />
+                                      },
+                                      checked === true
+                                    )
+                                  }
+                                  className="mt-1"
+                                />
 
-                                  <div className="flex-1">
-                                    {option.textAnswer && (
-                                      <span className="block text-sm sm:text-base text-foreground">
-                                        {option.textAnswer}
-                                      </span>
-                                    )}
-                                    {option.image && (
-                                      <div className="mt-2 flex justify-center">
-                                        <div className="relative w-full max-w-xs sm:max-w-sm overflow-hidden rounded-md border border-border">
-                                          <Image
-                                            src={option.image}
-                                            alt="Option Image"
-                                            height={200}
-                                            width={300}
-                                            className="w-full h-auto object-contain"
-                                          />
-                                        </div>
+                                <div className="flex-1">
+                                  {option.textAnswer && (
+                                    <span className="block text-sm sm:text-base text-foreground">
+                                      {tryRenderLatex(option.textAnswer)}
+                                    </span>
+                                  )}
+                                  {option.image && (
+                                    <div className="mt-2 flex justify-center">
+                                      <div className="relative w-full max-w-xs sm:max-w-sm overflow-hidden rounded-md border border-border">
+                                        <Image
+                                          src={option.image}
+                                          alt="Option Image"
+                                          height={200}
+                                          width={300}
+                                          className="w-full h-auto object-contain"
+                                        />
                                       </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
-                              </label>
-                            ))
-                          : question.options.map((option, j) => (
+                              </div>
+                            </label>
+                          ))
+                        ) : (
+                          <RadioGroup
+                            value={answers[question.id]?.[0]?.id}
+                            onValueChange={(value) =>
+                              handleSingleAnswerChange(question.id, {
+                                id: value,
+                                content: {
+                                  text: question.options.find(
+                                    (opt) => opt.id === value
+                                  )?.textAnswer
+                                    ? [
+                                        question.options.find(
+                                          (opt) => opt.id === value
+                                        )?.textAnswer!,
+                                      ]
+                                    : [],
+                                  image: question.options.find(
+                                    (opt) => opt.id === value
+                                  )?.image
+                                    ? [
+                                        question.options.find(
+                                          (opt) => opt.id === value
+                                        )?.image!,
+                                      ]
+                                    : [],
+                                },
+                              })
+                            }
+                            className="space-y-3"
+                          >
+                            {question.options.map((option, j) => (
                               <label
                                 key={j}
                                 className={`block cursor-pointer p-3 border rounded-lg bg-card shadow-sm hover:shadow-md transition-shadow duration-200 ${
@@ -478,34 +582,15 @@ const Page = ({ params }: PageProps) => {
                                 }`}
                               >
                                 <div className="flex items-start gap-3">
-                                  <input
-                                    type="radio"
-                                    name={`question-${qIndex}`}
+                                  <RadioGroupItem
                                     value={option.id}
-                                    checked={
-                                      answers[question.id]?.length > 0 &&
-                                      answers[question.id][0]?.id === option.id
-                                    }
-                                    onChange={() =>
-                                      handleSingleAnswerChange(question.id, {
-                                        id: option.id,
-                                        content: {
-                                          text: option.textAnswer
-                                            ? [option.textAnswer]
-                                            : [],
-                                          image: option.image
-                                            ? [option.image]
-                                            : [],
-                                        },
-                                      })
-                                    }
-                                    className="mt-1 accent-primary"
+                                    id={`option-${qIndex}-${j}`}
+                                    className="mt-1"
                                   />
-
                                   <div className="flex-1">
                                     {option.textAnswer && (
                                       <span className="block text-sm sm:text-base text-foreground">
-                                        {option.textAnswer}
+                                        {tryRenderLatex(option.textAnswer)}
                                       </span>
                                     )}
                                     {option.image && (
@@ -525,6 +610,8 @@ const Page = ({ params }: PageProps) => {
                                 </div>
                               </label>
                             ))}
+                          </RadioGroup>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -554,27 +641,27 @@ const Page = ({ params }: PageProps) => {
                     </div>
 
                     <div className="overflow-x-auto">
-                      <table className="min-w-full border border-border text-sm">
-                        <thead>
-                          <tr className="bg-secondary/20 text-left">
-                            <th className="border border-border px-2 sm:px-4 py-2">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-secondary/20">
+                            <TableHead className="border border-border">
                               #
-                            </th>
-                            <th className="border border-border px-2 sm:px-4 py-2">
+                            </TableHead>
+                            <TableHead className="border border-border">
                               Question
-                            </th>
-                            <th className="border border-border px-2 sm:px-4 py-2">
+                            </TableHead>
+                            <TableHead className="border border-border">
                               Your Answer
-                            </th>
-                            <th className="border border-border px-2 sm:px-4 py-2">
+                            </TableHead>
+                            <TableHead className="border border-border">
                               Correct Answer
-                            </th>
-                            <th className="border border-border px-2 sm:px-4 py-2">
+                            </TableHead>
+                            <TableHead className="border border-border">
                               Status
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {exam?.questions.map((question, index) => {
                             const selectedIds = answers[question.id] || [];
                             const isCorrect = arraysEqual(
@@ -583,7 +670,7 @@ const Page = ({ params }: PageProps) => {
                             );
 
                             return (
-                              <tr
+                              <TableRow
                                 key={index}
                                 className={
                                   isCorrect
@@ -591,31 +678,40 @@ const Page = ({ params }: PageProps) => {
                                     : "bg-red-100/80 dark:bg-red-950/30"
                                 }
                               >
-                                <td className="border border-border px-2 sm:px-4 py-2 text-xs sm:text-sm">
+                                <TableCell className="border border-border text-xs sm:text-sm">
                                   {index + 1}
-                                </td>
-                                <td className="border border-border px-2 sm:px-4 py-2 text-xs sm:text-sm">
+                                </TableCell>
+                                <TableCell className="border border-border text-xs sm:text-sm">
                                   {question.question.length > 50
-                                    ? `${question.question.substring(0, 50)}...`
-                                    : question.question}
-                                </td>
-                                <td className="border border-border px-2 sm:px-4 py-2 text-xs sm:text-sm">
+                                    ? tryRenderLatex(
+                                        `${question.question.substring(
+                                          0,
+                                          50
+                                        )}...`
+                                      )
+                                    : tryRenderLatex(question.question)}
+                                </TableCell>
+                                <TableCell className="border border-border text-xs sm:text-sm">
                                   {selectedIds.length > 0
                                     ? selectedIds
                                         .map((id) =>
-                                          getOptionTextById(question, id.id)
+                                          tryRenderLatex(
+                                            getOptionTextById(question, id.id)
+                                          )
                                         )
                                         .join(", ")
                                     : "Not Answered"}
-                                </td>
-                                <td className="border border-border px-2 sm:px-4 py-2 text-xs sm:text-sm">
+                                </TableCell>
+                                <TableCell className="border border-border text-xs sm:text-sm">
                                   {question.answer
                                     .map((id) =>
-                                      getOptionTextById(question, id)
+                                      tryRenderLatex(
+                                        getOptionTextById(question, id)
+                                      )
                                     )
                                     .join(", ")}
-                                </td>
-                                <td className="border border-border px-2 sm:px-4 py-2 text-center text-xs sm:text-sm">
+                                </TableCell>
+                                <TableCell className="border border-border text-center text-xs sm:text-sm">
                                   {isCorrect ? (
                                     <span className="text-green-600 dark:text-green-400 font-bold">
                                       ✓ Correct
@@ -625,12 +721,12 @@ const Page = ({ params }: PageProps) => {
                                       ✗ Incorrect
                                     </span>
                                   )}
-                                </td>
-                              </tr>
+                                </TableCell>
+                              </TableRow>
                             );
                           })}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                   </motion.div>
                 )}
