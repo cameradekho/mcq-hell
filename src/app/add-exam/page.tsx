@@ -3,7 +3,7 @@ import { auth } from "../../../auth";
 import { QuestionMaker } from "@/components/question-maker";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
-export default async function AddExamPage() {
+export default async function Home() {
   const session = await auth();
 
   if (!session?.user?.email) {
