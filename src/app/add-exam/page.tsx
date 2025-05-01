@@ -9,7 +9,6 @@ export default async function Home() {
     redirect("/api/auth/signin");
   }
 
-  // If needed, set the allowed email/userEmail manually or fetch from DB
   const allowedEmail = session.user.email; // or "someone@example.com"
 
   const isOwner = session.user.email === allowedEmail;

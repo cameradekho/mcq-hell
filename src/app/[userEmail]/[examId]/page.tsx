@@ -5,7 +5,7 @@ type Props = {
   examId: string;
 };
 
-const page = (props: Props) => {
+const Home = (props: Props) => {
   const userEmail = decodeURIComponent(props.userEmail);
   const examId = decodeURIComponent(props.examId);
 
@@ -18,4 +18,4 @@ const page = (props: Props) => {
   );
 };
 
-export default page;
+export default Home;
