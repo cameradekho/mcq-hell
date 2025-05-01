@@ -249,7 +249,9 @@ const Page = () => {
                                 }
                               >
                                 <td className="px-4 py-2 font-medium flex flex-col items-start gap-2">
-                                  <p className="text-sm">{response.question}</p>
+                                  <p className="text-sm">
+                                    {response.question}{" "}
+                                  </p>
                                   {response.image && (
                                     <>
                                       {response.image && (
@@ -269,7 +271,7 @@ const Page = () => {
                                   {/* Display selected options text */}
                                   {response.selectedOption
                                     .map((item) => item.content.text)
-                                    .join(", ")}
+                                    .join(", ") || "Not Answered"}
 
                                   {/* Display images if there are any selected options */}
                                   {response.selectedOption.length > 0 && (

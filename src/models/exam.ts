@@ -17,6 +17,8 @@ export type IQuestion = {
 };
 export type IExam = {
   id: string;
+  createdBy?: string;
+  createdByEmail?: string;
   name: string;
   description: string;
   duration: number;
