@@ -21,124 +21,9 @@ import {
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import "katex/dist/katex.min.css";
-import { InlineMath, BlockMath } from "react-katex";
 import LatexSymbolPicker, { tryRenderLatex } from "./latex-symbol-picker";
-import Image from "next/image";
-
-// LaTeX symbol categories and symbols
-const latexSymbols = [
-  {
-    category: "Greek Letters",
-    symbols: [
-      { symbol: "\\alpha", display: "α" },
-      { symbol: "\\beta", display: "β" },
-      { symbol: "\\gamma", display: "γ" },
-      { symbol: "\\delta", display: "δ" },
-      { symbol: "\\epsilon", display: "ε" },
-      { symbol: "\\zeta", display: "ζ" },
-      { symbol: "\\eta", display: "η" },
-      { symbol: "\\theta", display: "θ" },
-      { symbol: "\\iota", display: "ι" },
-      { symbol: "\\kappa", display: "κ" },
-      { symbol: "\\lambda", display: "λ" },
-      { symbol: "\\mu", display: "μ" },
-      { symbol: "\\nu", display: "ν" },
-      { symbol: "\\xi", display: "ξ" },
-      { symbol: "\\pi", display: "π" },
-      { symbol: "\\rho", display: "ρ" },
-      { symbol: "\\sigma", display: "σ" },
-      { symbol: "\\tau", display: "τ" },
-      { symbol: "\\upsilon", display: "υ" },
-      { symbol: "\\phi", display: "φ" },
-      { symbol: "\\chi", display: "χ" },
-      { symbol: "\\psi", display: "ψ" },
-      { symbol: "\\omega", display: "ω" },
-    ],
-  },
-  {
-    category: "Operators",
-    symbols: [
-      { symbol: "+", display: "+" },
-      { symbol: "-", display: "-" },
-      { symbol: "\\times", display: "×" },
-      { symbol: "\\div", display: "÷" },
-      { symbol: "\\pm", display: "±" },
-      { symbol: "\\cdot", display: "·" },
-      { symbol: "\\cup", display: "∪" },
-      { symbol: "\\cap", display: "∩" },
-      { symbol: "\\setminus", display: "∖" },
-      { symbol: "\\subset", display: "⊂" },
-      { symbol: "\\subseteq", display: "⊆" },
-      { symbol: "\\in", display: "∈" },
-      { symbol: "\\notin", display: "∉" },
-      { symbol: "\\emptyset", display: "∅" },
-      { symbol: "\\equiv", display: "≡" },
-    ],
-  },
-  {
-    category: "Calculus",
-    symbols: [
-      { symbol: "\\int", display: "∫" },
-      { symbol: "\\oint", display: "∮" },
-      { symbol: "\\partial", display: "∂" },
-      { symbol: "\\nabla", display: "∇" },
-      { symbol: "\\sum", display: "∑" },
-      { symbol: "\\prod", display: "∏" },
-      { symbol: "\\lim", display: "lim" },
-      { symbol: "\\infty", display: "∞" },
-      { symbol: "\\frac{a}{b}", display: "a/b" },
-      { symbol: "\\sqrt{x}", display: "√x" },
-      { symbol: "\\sqrt[n]{x}", display: "ⁿ√x" },
-    ],
-  },
-  {
-    category: "Relations",
-    symbols: [
-      { symbol: "=", display: "=" },
-      { symbol: "\\neq", display: "≠" },
-      { symbol: "<", display: "<" },
-      { symbol: ">", display: ">" },
-      { symbol: "\\leq", display: "≤" },
-      { symbol: "\\geq", display: "≥" },
-      { symbol: "\\approx", display: "≈" },
-      { symbol: "\\sim", display: "∼" },
-      { symbol: "\\cong", display: "≅" },
-      { symbol: "\\propto", display: "∝" },
-    ],
-  },
-  {
-    category: "Arrows",
-    symbols: [
-      { symbol: "\\rightarrow", display: "→" },
-      { symbol: "\\leftarrow", display: "←" },
-      { symbol: "\\Rightarrow", display: "⇒" },
-      { symbol: "\\Leftarrow", display: "⇐" },
-      { symbol: "\\mapsto", display: "↦" },
-      { symbol: "\\leftrightarrow", display: "↔" },
-      { symbol: "\\Leftrightarrow", display: "⇔" },
-    ],
-  },
-  {
-    category: "Templates",
-    symbols: [
-      { symbol: "x^2", display: "x²" },
-      { symbol: "x_i", display: "xᵢ" },
-      { symbol: "\\frac{dy}{dx}", display: "dy/dx" },
-      {
-        symbol: "\\begin{matrix} a & b \\\\ c & d \\end{matrix}",
-        display: "matrix",
-      },
-      {
-        symbol: "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
-        display: "(matrix)",
-      },
-      {
-        symbol: "\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}",
-        display: "[matrix]",
-      },
-    ],
-  },
-];
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 type QuestionItemProps = {
   field: FieldArrayWithId<FormValues, "questions", "id">;
@@ -350,7 +235,7 @@ export const QuestionItem = ({
         <div className="border-t my-4"></div>
 
         {/* Answer Options section - now comes after the separator */}
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Answer Options</label>
           </div>
@@ -359,7 +244,7 @@ export const QuestionItem = ({
             control={control}
             name={`questions.${questionIndex}.options`}
             render={({ field }) => (
-              <div className="space-y-2 bg-muted/20 p-3 rounded-md max-h-[250px] overflow-y-auto">
+              <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-md h-fit">
                 {field.value.map((option, optionIndex) => (
                   <div key={optionIndex} className="flex gap-2">
                     <input
@@ -400,9 +285,7 @@ export const QuestionItem = ({
                             "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
                             "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           )}
-                          placeholder={`Option ${
-                            optionIndex + 1
-                          } (supports LaTeX: $x^2$)`}
+                          placeholder={`Option ${optionIndex + 1}`}
                         />
                         {option.textAnswer.includes("$") && (
                           <div className="absolute right-10 top-2">
@@ -415,7 +298,7 @@ export const QuestionItem = ({
                       <div className="mt-2">
                         {option.image ? (
                           <div className="relative mt-1 h-[60px]">
-                            <Image
+                            <img
                               src={option.image}
                               alt="Option image"
                               className="max-h-[60px] max-w-full object-contain rounded-md"
@@ -436,43 +319,35 @@ export const QuestionItem = ({
                             </button>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              // Create a file input and trigger it
-                              const input = document.createElement("input");
-                              input.type = "file";
-                              input.accept = "image/*";
-                              input.onchange = (e) => {
-                                const file = (e.target as HTMLInputElement)
-                                  .files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    const newOptions = [...field.value];
-                                    newOptions[optionIndex] = {
-                                      ...newOptions[optionIndex],
-                                      image: reader.result as string,
-                                    };
-                                    field.onChange(newOptions);
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  const newOptions = [...field.value];
+                                  newOptions[optionIndex] = {
+                                    ...newOptions[optionIndex],
+                                    image: reader.result as string,
                                   };
-                                  reader.readAsDataURL(file);
-                                }
-                              };
-                              input.click();
+                                  field.onChange(newOptions);
+                                };
+                                reader.readAsDataURL(file);
+                              }
                             }}
-                            className="mt-1 inline-flex h-6 items-center justify-center rounded-md px-2 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                          >
-                            <Upload className="mr-1 h-3 w-3" /> Add Image
-                          </button>
+                            className="w-fit cursor-pointer"
+                          />
                         )}
                       </div>
                     </div>
 
                     {/* Remove option button */}
                     {field.value.length > 2 && (
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => {
                           const newOptions = [...field.value];
                           const removedOption = newOptions[optionIndex];
@@ -488,10 +363,9 @@ export const QuestionItem = ({
                             setValue(`questions.${questionIndex}.answer`, []);
                           }
                         }}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input hover:bg-accent hover:text-accent-foreground h-8 w-8"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 ))}

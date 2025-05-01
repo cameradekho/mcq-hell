@@ -202,7 +202,7 @@ export const AllExams = (params: Props) => {
           </div>
         )}
 
-        <Link href="/add-exam" target="_blank" rel="noopener noreferrer">
+        <Link href="/add-exam" rel="noopener noreferrer">
           <Card className="flex flex-col items-center justify-center shadow-md hover:shadow-xl transition-all duration-300 border hover:scale-105 cursor-pointer h-full">
             <CardHeader>
               <CardTitle className="text-center text-xl font-semibold">
