@@ -8,12 +8,12 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import "@fontsource/poppins";
 import "@fontsource/rubik";
-import { ITeacher } from "@/models/teacher";
 import { AllExams } from "@/components/all-exams";
 import { TopNavigationBar } from "@/components/top-navigation-bar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Settings, Activity } from "lucide-react";
+import Link from "next/link";
 import { fetchDashboardStats } from "../action/fetch-dashboard-stats";
 
 export default function Home() {
@@ -174,12 +174,14 @@ export default function Home() {
                     exams with ease. Streamline your assessment process and
                     focus on what matters most - teaching.
                   </p>
-                  <Button
-                    size="lg"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    Get Started Now
-                  </Button>
+                  <Link href="/api/auth/signin">
+                    <Button
+                      size="lg"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      Get Started Now
+                    </Button>
+                  </Link>
                 </motion.div>
               </div>
 
