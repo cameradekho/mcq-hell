@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
+import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { fetchTeacherById } from "../../../../../action/fetch-teacher-by-id";
+import { fetchTeacherById } from "@/action/fetch-teacher-by-id";
 import Image from "next/image";
-import { addStudentResponse } from "../../../../../action/res/add-student-response";
+import { addStudentResponse } from "@/action/res/add-student-response";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,15 @@ import {
 } from "@/components/ui/dialog";
 import { AlarmClock, CheckCircle } from "lucide-react";
 import { set } from "date-fns";
+import { cn } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type PageProps = {
   params: {
@@ -60,7 +69,7 @@ const Page = ({ params }: PageProps) => {
   });
   const [timeLeft, setTimeLeft] = useState<number>(0); // in seconds
   const [examStarted, setExamStarted] = useState(false);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [shuffledQuestions, setShuffledQuestions] = useState<IQuestion[]>([]);
   const [shuffledAnswers, setShuffledAnswers] = useState<IAnswer[]>([]);
@@ -96,8 +105,6 @@ const Page = ({ params }: PageProps) => {
             });
             setAnswers(initialAnswers);
           }
-
-          toast.success("Exam fetched successfully!");
         } else {
           toast.error(data.message);
         }
@@ -223,7 +230,13 @@ const Page = ({ params }: PageProps) => {
       return;
     }
 
-    setStep((prev) => prev + 1);
+    setOpen(true); // Show confirmation dialog
+  };
+
+  const handleStartExam = () => {
+    setOpen(false); // close dialog
+    setStep((prev) => prev + 1); // Move to step 2
+    setExamStarted(true); // Start the exam
   };
 
   const handleSubmit = async () => {
@@ -328,12 +341,6 @@ const Page = ({ params }: PageProps) => {
     return option ? option.textAnswer || "Image option" : "Not found";
   }
 
-  const handleStartExam = () => {
-    setOpen(false); // close dialog
-    // you can also trigger your start exam logic here
-    setExamStarted(true);
-  };
-
   const formatTime = (seconds: number) => {
     const min = Math.floor(seconds / 60)
       .toString()
@@ -343,346 +350,365 @@ const Page = ({ params }: PageProps) => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6 bg-slate-600">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">
-            {exam?.name || "Loading Exam..."}
-          </CardTitle>
-          <p className="text-muted-foreground">{exam?.description}</p>
-        </CardHeader>
-        {step === 0 && (
-          <CardContent className="space-y-6">
-            <span className="text-lg font-semibold">Student Details</span>
-            <div className="space-y-4">
-              <div className="flex flex-col">
-                <label
-                  htmlFor="student-name"
-                  className="mb-1 text-sm font-medium text-gray-700"
-                >
-                  Student Name
-                </label>
-                <input
-                  id="student-name"
-                  type="text"
-                  placeholder="Enter student name"
-                  className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={studentDetails.studentName}
-                  onChange={(e) =>
-                    setStudentDetails({
-                      ...studentDetails,
-                      studentName: e.target.value,
-                    })
-                  }
-                />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl md:text-3xl font-bold">
+              {exam?.name || "Loading Exam..."}
+            </CardTitle>
+            {exam?.description && (
+              <p className="text-muted-foreground mt-2">{exam.description}</p>
+            )}
+            {examStarted && timeLeft > 0 && (
+              <div className="mt-4 flex items-center gap-2 text-primary">
+                <AlarmClock className="h-5 w-5" />
+                <span className="font-semibold">{formatTime(timeLeft)}</span>
               </div>
+            )}
+          </CardHeader>
 
-              <div className="flex flex-col">
-                <label
-                  htmlFor="student-email"
-                  className="mb-1 text-sm font-medium text-gray-700"
-                >
-                  Student Email
-                </label>
-                <input
-                  id="student-email"
-                  type="email"
-                  placeholder="Enter student email"
-                  className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={studentDetails.studentEmail}
-                  onChange={(e) =>
-                    setStudentDetails({
-                      ...studentDetails,
-                      studentEmail: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <Button
-                type="button"
-                onClick={handleFetchStudentData}
-                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Proceed
-              </Button>
-            </div>
-          </CardContent>
-        )}
-
-        {step === 1 && (
-          <div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogPortal>
-                <DialogOverlay className="bg-slate-900">
-                  <DialogContent
-                    className="bg-white"
-                    onPointerDownOutside={(e) => e.preventDefault()}
-                    onInteractOutside={(e) => e.preventDefault()}
-                  >
-                    <DialogHeader>
-                      <DialogTitle>Are you absolutely sure?</DialogTitle>
-                      <DialogDescription>
-                        This action cannot be undone. This will permanently
-                        delete your account and remove your data from our
-                        servers.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          handleStartExam();
-                        }}
-                      >
-                        <AlarmClock className="mr-2 h-4 w-4" />
-                        Start Exam
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </DialogOverlay>
-              </DialogPortal>
-            </Dialog>
-
+          {step === 0 && (
             <CardContent className="space-y-6">
-              {examStarted && (
-                <div className="flex flex-col items-start justify-center">
-                  <div className="text-3xl font-bold flex items-center justify-center gap-2">
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    <span>Exam Started!</span>
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Student Details</h2>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="student-name"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Student Name
+                    </label>
+                    <input
+                      id="student-name"
+                      type="text"
+                      placeholder="Enter your full name"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      value={studentDetails.studentName}
+                      onChange={(e) =>
+                        setStudentDetails({
+                          ...studentDetails,
+                          studentName: e.target.value,
+                        })
+                      }
+                    />
                   </div>
-                  <div>Time Left: {formatTime(timeLeft)}</div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="student-email"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Student Email
+                    </label>
+                    <input
+                      id="student-email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      value={studentDetails.studentEmail}
+                      onChange={(e) =>
+                        setStudentDetails({
+                          ...studentDetails,
+                          studentEmail: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-              )}
-              <span className="text-lg font-semibold">
-                Hello, {studentDetails.studentName}
-              </span>
+                <Button
+                  onClick={handleFetchStudentData}
+                  className="w-full sm:w-auto"
+                  size="lg"
+                >
+                  Proceed
+                </Button>
+              </div>
+            </CardContent>
+          )}
 
-              {!submitted &&
-                exam?.questions &&
-                shuffledQuestions.map((question, qIndex) => (
-                  <div
-                    key={qIndex}
-                    className="mb-8 p-4 border rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-                  >
-                    <p className="font-semibold text-xl text-gray-800 mb-4">
-                      {qIndex + 1}. {question.question}
-                    </p>
+          {step === 1 && (
+            <>
+              <CardContent className="space-y-8">
+                {examStarted && (
+                  <div className="rounded-lg bg-primary/5 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        Hello, {studentDetails.studentName}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-primary">
+                      <AlarmClock className="h-5 w-5" />
+                      <span className="font-semibold">
+                        {formatTime(timeLeft)}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-                    {question.image && (
-                      <div className="mb-4">
-                        <Image
-                          src={question.image}
-                          alt="Question Image"
-                          height={200}
-                          width={200}
-                          className="rounded-md w-72 h-64 object-cover mx-auto"
-                        />
-                      </div>
-                    )}
+                {!submitted &&
+                  exam?.questions &&
+                  shuffledQuestions.map((question, qIndex) => (
+                    <div
+                      key={qIndex}
+                      className="rounded-lg border bg-card p-6 shadow-sm transition-colors"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
+                            {qIndex + 1}
+                          </span>
+                          <h3 className="text-lg font-medium leading-none pt-1">
+                            {question.question}
+                          </h3>
+                        </div>
 
-                    <div className="space-y-3">
-                      {question.answer.length > 1
-                        ? question.options.map((option, j) => (
+                        {question.image && (
+                          <div className="mt-4">
+                            <Image
+                              src={question.image}
+                              alt="Question Image"
+                              width={400}
+                              height={300}
+                              className="rounded-lg object-cover mx-auto"
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-3 pt-4">
+                          {question.options.map((option, j) => (
                             <label
                               key={j}
-                              className={`block cursor-pointer p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ${
-                                answers[question.id]?.some(
-                                  (ans) => ans.id === option.id
-                                )
-                                  ? "ring-2 ring-blue-500"
-                                  : ""
-                              }`}
+                              className={cn(
+                                "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
+                                (question.answer.length > 1
+                                  ? answers[question.id]?.some(
+                                      (ans) => ans.id === option.id
+                                    )
+                                  : answers[question.id]?.[0]?.id ===
+                                    option.id) && "ring-2 ring-primary"
+                              )}
                             >
                               <div className="flex items-start gap-3">
                                 <input
-                                  type="checkbox"
+                                  type={
+                                    question.answer.length > 1
+                                      ? "checkbox"
+                                      : "radio"
+                                  }
                                   name={`question-${qIndex}`}
                                   value={option.id}
                                   checked={
-                                    answers[question.id]?.some(
-                                      (ans) => ans.id === option.id
-                                    ) || false
+                                    question.answer.length > 1
+                                      ? answers[question.id]?.some(
+                                          (ans) => ans.id === option.id
+                                        )
+                                      : answers[question.id]?.[0]?.id ===
+                                        option.id
                                   }
                                   onChange={(e) =>
-                                    handleMultipleAnswerChange(
-                                      question.id,
-                                      {
-                                        id: option.id,
-                                        content: {
-                                          text: option.textAnswer
-                                            ? [option.textAnswer]
-                                            : [],
-                                          image: option.image
-                                            ? [option.image]
-                                            : [],
-                                        },
-                                      },
-                                      e.target.checked
-                                    )
+                                    question.answer.length > 1
+                                      ? handleMultipleAnswerChange(
+                                          question.id,
+                                          {
+                                            id: option.id,
+                                            content: {
+                                              text: option.textAnswer
+                                                ? [option.textAnswer]
+                                                : [],
+                                              image: option.image
+                                                ? [option.image]
+                                                : [],
+                                            },
+                                          },
+                                          e.target.checked
+                                        )
+                                      : handleSingleAnswerChange(question.id, {
+                                          id: option.id,
+                                          content: {
+                                            text: option.textAnswer
+                                              ? [option.textAnswer]
+                                              : [],
+                                            image: option.image
+                                              ? [option.image]
+                                              : [],
+                                          },
+                                        })
                                   }
-                                  className="mt-1 accent-blue-500"
+                                  className="mt-1"
                                 />
-
-                                <div className="flex-1">
+                                <div className="flex-1 space-y-3">
                                   {option.textAnswer && (
-                                    <span className="block text-lg text-gray-700">
+                                    <span className="text-sm">
                                       {option.textAnswer}
                                     </span>
                                   )}
                                   {option.image && (
-                                    <div className="mt-2">
-                                      <Image
-                                        src={option.image}
-                                        alt="Option Image"
-                                        height={200}
-                                        width={200}
-                                        className="rounded-md w-72 h-64 object-cover mx-auto"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </label>
-                          ))
-                        : question.options.map((option, j) => (
-                            <label
-                              key={j}
-                              className={`block cursor-pointer p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ${
-                                answers[question.id]?.length > 0 &&
-                                answers[question.id][0].id === option.id
-                                  ? "ring-2 ring-blue-500"
-                                  : ""
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <input
-                                  type="radio"
-                                  name={`question-${qIndex}`}
-                                  value={option.id}
-                                  checked={
-                                    answers[question.id]?.length > 0 &&
-                                    answers[question.id][0]?.id === option.id
-                                  }
-                                  onChange={() =>
-                                    handleSingleAnswerChange(question.id, {
-                                      id: option.id,
-                                      content: {
-                                        text: option.textAnswer
-                                          ? [option.textAnswer]
-                                          : [],
-                                        image: option.image
-                                          ? [option.image]
-                                          : [],
-                                      },
-                                    })
-                                  }
-                                  className="mt-1 accent-blue-500"
-                                />
-
-                                <div className="flex-1">
-                                  {option.textAnswer && (
-                                    <span className="block text-lg text-gray-700">
-                                      {option.textAnswer}
-                                    </span>
-                                  )}
-                                  {option.image && (
-                                    <div className="mt-2">
-                                      <Image
-                                        src={option.image}
-                                        alt="Option Image"
-                                        height={200}
-                                        width={200}
-                                        className="rounded-md w-72 h-64 object-cover mx-auto"
-                                      />
-                                    </div>
+                                    <Image
+                                      src={option.image}
+                                      alt="Option Image"
+                                      width={300}
+                                      height={200}
+                                      className="rounded-lg object-cover"
+                                    />
                                   )}
                                 </div>
                               </div>
                             </label>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                {!submitted && (
+                  <Button
+                    onClick={handleSubmit}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
+                    Submit Exam
+                  </Button>
+                )}
+
+                {submitted && (
+                  <div className="space-y-6">
+                    <div className="rounded-lg bg-card p-6 shadow-sm">
+                      <h3 className="text-xl font-semibold mb-4">
+                        Exam Results
+                      </h3>
+                      <div className="flex items-center gap-4">
+                        <div className="text-4xl font-bold text-primary">
+                          {result}
+                          <span className="text-muted-foreground text-lg">
+                            /{exam?.questions.length}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground">
+                          Questions Answered Correctly
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border shadow-sm">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[50px]">#</TableHead>
+                            <TableHead>Question</TableHead>
+                            <TableHead>Your Answer</TableHead>
+                            <TableHead>Correct Answer</TableHead>
+                            <TableHead className="w-[100px]">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {exam?.questions.map((question, index) => {
+                            const selectedIds = answers[question.id] || [];
+                            const isCorrect = arraysEqual(
+                              selectedIds.map((item) => item.id).sort(),
+                              question.answer.sort()
+                            );
+
+                            return (
+                              <TableRow
+                                key={index}
+                                className={cn(
+                                  isCorrect ? "bg-green-50" : "bg-red-50"
+                                )}
+                              >
+                                <TableCell className="font-medium">
+                                  {index + 1}
+                                </TableCell>
+                                <TableCell>{question.question}</TableCell>
+                                <TableCell>
+                                  {selectedIds.length > 0
+                                    ? selectedIds
+                                        .map((id) =>
+                                          getOptionTextById(question, id.id)
+                                        )
+                                        .join(", ")
+                                    : "Not Answered"}
+                                </TableCell>
+                                <TableCell>
+                                  {question.answer
+                                    .map((id: string) =>
+                                      getOptionTextById(question, id)
+                                    )
+                                    .join(", ")}
+                                </TableCell>
+                                <TableCell>
+                                  {isCorrect ? (
+                                    <span className="inline-flex items-center gap-1 text-green-600">
+                                      <CheckCircle className="h-4 w-4" />
+                                      <span>Correct</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-red-600">
+                                      <span className="h-4 w-4">✗</span>
+                                      <span>Incorrect</span>
+                                    </span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
-                ))}
+                )}
+              </CardContent>
+            </>
+          )}
+        </Card>
 
-              {!submitted && (
-                <Button className="w-full mt-6" onClick={handleSubmit}>
-                  Submit Exam
-                </Button>
-              )}
-
-              {submitted && (
-                <div className="overflow-x-auto mt-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Results: <span className="text-green-500">{result}</span> /{" "}
-                    {exam?.questions.length}
-                  </h3>
-
-                  <table className="min-w-full border border-gray-300 text-sm">
-                    <thead>
-                      <tr className="bg-gray-100 text-left">
-                        <th className="border px-4 py-2">#</th>
-                        <th className="border px-4 py-2">Question</th>
-                        <th className="border px-4 py-2">Your Answer</th>
-                        <th className="border px-4 py-2">Correct Answer</th>
-                        <th className="border px-4 py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {exam?.questions.map((question, index) => {
-                        const selectedIds = answers[question.id] || [];
-                        const isCorrect = arraysEqual(
-                          selectedIds.map((item) => item.id).sort(),
-                          question.answer.sort()
-                        );
-
-                        return (
-                          <tr
-                            key={index}
-                            className={
-                              isCorrect ? "bg-green-100" : "bg-red-100"
-                            }
-                          >
-                            <td className="border px-4 py-2">{index + 1}</td>
-                            <td className="border px-4 py-2">
-                              {question.question}
-                            </td>
-                            <td className="border px-4 py-2">
-                              {selectedIds.length > 0
-                                ? selectedIds
-                                    .map((id) =>
-                                      getOptionTextById(question, id.id)
-                                    )
-                                    .join(", ")
-                                : "Not Answered"}
-                            </td>
-                            <td className="border px-4 py-2">
-                              {question.answer
-                                .map((id) => getOptionTextById(question, id))
-                                .join(", ")}
-                            </td>
-                            <td className="border px-4 py-2 text-center">
-                              {isCorrect ? (
-                                <span className="text-green-600 font-bold">
-                                  ✓ Correct
-                                </span>
-                              ) : (
-                                <span className="text-red-600 font-bold">
-                                  ✗ Incorrect
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </div>
-        )}
-      </Card>
+        <Dialog open={open} onOpenChange={setOpen} modal={true}>
+          <DialogContent
+            className="sm:max-w-md"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>Confirm Student Details</DialogTitle>
+              <DialogDescription>
+                Please verify your information before proceeding to the exam.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Name:
+                </span>
+                <span className="font-medium">
+                  {studentDetails.studentName}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Email:
+                </span>
+                <span className="font-medium">
+                  {studentDetails.studentEmail}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <AlarmClock className="h-5 w-5" />
+                <span>Duration: {exam?.duration} minutes</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CheckCircle className="h-5 w-5" />
+                <span>Questions: {exam?.questions?.length || 0}</span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Edit Details
+              </Button>
+              <Button onClick={handleStartExam}>Confirm & Start Exam</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };

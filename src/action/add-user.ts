@@ -3,7 +3,7 @@
 import { mongodb } from "@/lib/mongodb";
 import { teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
-import { auth } from "../auth";
+import { auth } from "../../auth";
 import { logger } from "@/models/logger";
 import { nanoid } from "nanoid";
 

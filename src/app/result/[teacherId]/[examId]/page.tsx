@@ -1,25 +1,34 @@
 "use client";
 import { IExam } from "@/models/exam";
 import React, { useEffect, useState } from "react";
-import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
+import { fetchExamById } from "../../../../action/fetch-exam-by-id";
 import { useParams } from "next/navigation";
 import {
   ExamResultWithStudentInfo,
   fetchResultByTeacherIdExamId,
   IScores,
-} from "../../../../../action/res/fetch-result-by-teacherId-examId";
+} from "../../../../action/res/fetch-result-by-teacherId-examId";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast } from "sonner";
+import { TopNavigationBar } from "@/components/top-navigation-bar";
+import { Footer } from "@/components/footer";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type FormattedResultData = {
   studentName: string;
@@ -123,51 +132,79 @@ const Page = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Results: {examData?.name}
-      </h2>
+    <div className="min-h-screen flex flex-col">
+      <TopNavigationBar />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {formattedResultData?.map((result, index) => (
-          <Card
-            key={index}
-            onClick={() => {
-              setSelectedStudent(result);
-              setShowDialog(true);
-            }}
-            className="cursor-pointer shadow-md transition-transform duration-200 hover:scale-[1.02] border border-gray-200"
-          >
-            <CardContent className="p-4">
-              <div className="flex flex-col gap-2">
-                <div className="text-xl font-semibold text-gray-900">
-                  {result.studentName}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {result.studentEmail}
-                </div>
-                {result.scores?.length > 0 ? (
-                  <div className="mt-2 space-y-1 text-sm text-gray-600">
-                    <p>
-                      <span className="font-medium">Scored:</span>{" "}
-                      {result.scores[result.scores.length - 1].scored}
-                    </p>
-                    <p>
-                      <span className="font-medium">Submitted at:</span>{" "}
-                      {format(
-                        result.scores[result.scores.length - 1].submittedAt,
-                        "dd/MM/yyyy HH:mm:ss"
-                      )}
-                    </p>
-                  </div>
-                ) : (
-                  <span className="text-red-500 text-sm">No scores found</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <main className="flex-grow max-w-7xl w-full mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Results: {examData?.name}
+            </h2>
+            <Button
+              variant="outline"
+              onClick={() => handleSortResult(true)}
+              className="text-md"
+            >
+              {sortResultByDate ? (
+                <ArrowDownWideNarrow className="text-gray-500 text-lg" />
+              ) : (
+                <ArrowUpNarrowWide className="text-gray-500 text-lg" />
+              )}
+            </Button>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Latest Score</TableHead>
+                  <TableHead>Last Submission</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {formattedResultData?.map((result, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">
+                      {result.studentName}
+                    </TableCell>
+                    <TableCell>{result.studentEmail}</TableCell>
+                    <TableCell>
+                      {result.scores?.length > 0
+                        ? result.scores[result.scores.length - 1].scored
+                        : "No scores"}
+                    </TableCell>
+                    <TableCell>
+                      {result.scores?.length > 0
+                        ? format(
+                            result.scores[result.scores.length - 1].submittedAt,
+                            "MMM d, yyyy - h:mm a"
+                          )
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedStudent(result);
+                          setShowDialog(true);
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
 
       {/* Dialog for Student Details */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

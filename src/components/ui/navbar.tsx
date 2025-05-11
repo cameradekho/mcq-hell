@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
-import { getUser } from "../../../action/get-user";
+import { getUser } from "../../action/get-user";
 
 export const Navbar = () => {
   const [session, setSession] = useState<any>(null);

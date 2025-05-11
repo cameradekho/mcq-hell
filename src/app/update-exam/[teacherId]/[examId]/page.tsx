@@ -19,17 +19,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Save, Plus, X, Trash2, FileQuestion, Copy } from "lucide-react";
 import { IAnswer, IExam, IQuestion } from "@/models/exam";
-import { updateExamByExamIdAndTeacherId } from "../../../../../action/update-exam-by-examId-and-teacherId";
-import { fetchExamById } from "../../../../../action/fetch-exam-by-id";
+import { updateExamByExamIdAndTeacherId } from "@/action/update-exam-by-examId-and-teacherId";
+import { fetchExamById } from "@/action/fetch-exam-by-id";
 
 const UpdateExamPage = () => {
   const { teacherId, examId } = useParams() as {
@@ -580,7 +573,7 @@ const UpdateExamPage = () => {
                     Question Image
                   </Label>
                   <div className="flex items-center mt-1">
-                    <input
+                    <Input
                       type="file"
                       id={`question-${question.id}-image`}
                       accept="image/*"

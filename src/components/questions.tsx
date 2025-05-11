@@ -4,12 +4,22 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { addExamByUser } from "../../action/add-exam-by-user";
-import { addExam } from "../../action/demo/add-exam";
-
-type QuestionProps = {
-  userEmail: string;
-};
+import { addExamByUser } from "../action/add-exam-by-user";
+import { addExam } from "../action/demo/add-exam";
+import { useSession } from "next-auth/react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Plus, X, Image as ImageIcon } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -37,7 +47,9 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const Questions = (props: QuestionProps) => {
+export const Questions = () => {
+  const { data: session } = useSession();
+
   const {
     register,
     handleSubmit,
@@ -97,7 +109,7 @@ export const Questions = (props: QuestionProps) => {
 
     try {
       const result = await addExamByUser({
-        userEmail: props.userEmail || "",
+        userEmail: session?.user.email || "",
         examName: data.title,
         examDescription: data.description,
         duration: data.duration,
@@ -129,7 +141,7 @@ export const Questions = (props: QuestionProps) => {
             })),
           })),
           createdName: "",
-          createdByEmail: props.userEmail || "",
+          createdByEmail: session?.user.email || "",
         });
 
         if (res.success) {
@@ -147,409 +159,405 @@ export const Questions = (props: QuestionProps) => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white shadow-md rounded-lg">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex items-center justify-between border-b pb-4">
-          <h1 className="text-2xl font-bold">Create Exam</h1>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <span>Save Exam</span>
-          </button>
-        </div>
-
-        {/* Basic Information */}
-        <div className="bg-gray-50 p-6 rounded-lg space-y-4 shadow-sm">
-          <h2 className="text-lg font-semibold border-b pb-2 mb-4">
-            Basic Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <Card className="max-w-4xl mx-auto">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <div>
-              <label className="block mb-1 font-medium text-gray-700">
-                Exam Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                {...register("title")}
-                className="w-full border p-3 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                placeholder="e.g., Midterm Biology Exam"
-              />
-              {errors.title && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.title.message}
-                </p>
-              )}
+              <CardTitle className="text-2xl">Create Exam</CardTitle>
+              <CardDescription>
+                Create a new exam with multiple choice questions
+              </CardDescription>
+            </div>
+            <Button type="submit" className="flex items-center gap-2">
+              Save Exam
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-8">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="title">
+                  Exam Title <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  {...register("title")}
+                  placeholder="e.g., Midterm Biology Exam"
+                />
+                {errors.title && (
+                  <p className="text-sm text-destructive">
+                    {errors.title.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="duration">
+                  Duration <span className="text-destructive">*</span>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="duration"
+                    type="number"
+                    min={1}
+                    {...register("duration", { valueAsNumber: true })}
+                    placeholder="60"
+                  />
+                  <span className="text-muted-foreground">minutes</span>
+                </div>
+                {errors.duration && (
+                  <p className="text-sm text-destructive">
+                    {errors.duration.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="block mb-1 font-medium text-gray-700">
-                Duration <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center">
-                <input
-                  type="number"
-                  min={1}
-                  {...register("duration", { valueAsNumber: true })}
-                  className="w-full border p-3 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  placeholder="60"
-                />
-                <span className="ml-2 text-gray-500">minutes</span>
-              </div>
-              {errors.duration && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.duration.message}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                {...register("description")}
+                placeholder="Add exam instructions or additional information"
+                rows={3}
+              />
+              {errors.description && (
+                <p className="text-sm text-destructive">
+                  {errors.description.message}
                 </p>
               )}
             </div>
           </div>
 
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              {...register("description")}
-              className="w-full border p-3 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              placeholder="Add exam instructions or additional information"
-              rows={3}
-            />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.description.message}
+          {/* Questions Section */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Questions</h2>
+              <Button
+                type="button"
+                onClick={() =>
+                  appendQuestion({
+                    question: "",
+                    options: [
+                      { text: "", image: "" },
+                      { text: "", image: "" },
+                      { text: "All of the above", image: "" },
+                      { text: "None of the above", image: "" },
+                    ],
+                    answer: "",
+                  })
+                }
+                variant="outline"
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add Question
+              </Button>
+            </div>
+
+            {errors.questions?.message && (
+              <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {errors.questions.message}
               </p>
             )}
-          </div>
-        </div>
 
-        {/* Questions Section */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold">Questions</h2>
-            <button
-              type="button"
-              onClick={() =>
-                appendQuestion({
-                  question: "",
-                  options: [
-                    { text: "", image: "" },
-                    { text: "", image: "" },
-                    { text: "All of the above", image: "" },
-                    { text: "None of the above", image: "" },
-                  ],
-                  answer: "",
-                })
-              }
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-1"
-            >
-              <span>Add Question</span>
-            </button>
-          </div>
-
-          {errors.questions?.message && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md mb-4">
-              <p className="text-red-600 text-sm">{errors.questions.message}</p>
-            </div>
-          )}
-
-          {questionFields.length === 0 ? (
-            <div className="text-center py-8 border-2 border-dashed rounded-lg">
-              <p className="text-gray-500">
-                No questions added yet. Click "Add Question" to start.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {questionFields.map((field, questionIndex) => (
-                <div
-                  key={field.id}
-                  className="border border-gray-200 p-5 rounded-lg mb-4 bg-white shadow-sm"
-                >
-                  <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                    <h3 className="text-lg font-medium">
-                      Question {questionIndex + 1}
-                    </h3>
-                    {questionFields.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeQuestion(questionIndex)}
-                        className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
-                      >
-                        Remove Question
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block mb-1 font-medium text-gray-700">
-                      Question Text <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      {...register(`questions.${questionIndex}.question`)}
-                      className="w-full border p-3 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter your question here"
-                    />
-                    {errors.questions?.[questionIndex]?.question && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.questions[questionIndex]?.question?.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Images Upload */}
-                  <div className="mb-6">
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Question Image (optional)
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      {watch(`questions.${questionIndex}.image`) ? (
-                        <div className="relative">
-                          <img
-                            src={watch(`questions.${questionIndex}.image`)}
-                            alt="Preview"
-                            className="w-32 h-32 object-cover rounded-md border"
-                          />
-                          <button
+            {questionFields.length === 0 ? (
+              <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/30">
+                <p className="text-muted-foreground">
+                  No questions added yet. Click "Add Question" to start.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {questionFields.map((field, questionIndex) => (
+                  <Card key={field.id} className="relative">
+                    <CardHeader className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-medium">
+                          Question {questionIndex + 1}
+                        </h3>
+                        {questionFields.length > 1 && (
+                          <Button
                             type="button"
-                            onClick={() =>
-                              setValue(`questions.${questionIndex}.image`, "")
-                            }
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                            onClick={() => removeQuestion(questionIndex)}
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="border-2 border-dashed border-gray-300 rounded-md p-4 w-full">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setValue(
-                                    `questions.${questionIndex}.image`,
-                                    reader.result as string
-                                  );
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Options */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <label className="block font-medium text-gray-700">
-                        Answer Options <span className="text-red-500">*</span>
-                      </label>
-                      <Controller
-                        control={control}
-                        name={`questions.${questionIndex}.options`}
-                        render={({ field }) => (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newOptions = [...field.value];
-                              newOptions.push({
-                                text: "",
-                                image: "",
-                                isCorrect: false,
-                              });
-                              field.onChange(newOptions);
-                            }}
-                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                          >
-                            <span>Add Option</span>
-                          </button>
+                            <X className="h-4 w-4" />
+                          </Button>
                         )}
-                      />
-                    </div>
+                      </div>
 
-                    <Controller
-                      control={control}
-                      name={`questions.${questionIndex}.options`}
-                      render={({ field }) => (
-                        <div className="space-y-4">
-                          {field.value.map((option, optionIndex) => (
-                            <div
-                              key={optionIndex}
-                              className="p-3 border rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
+                      <div className="space-y-2">
+                        <Input
+                          {...register(`questions.${questionIndex}.question`)}
+                          placeholder="Enter your question here"
+                          className="w-full"
+                        />
+                        {errors.questions?.[questionIndex]?.question && (
+                          <p className="text-sm text-destructive">
+                            {errors.questions[questionIndex]?.question?.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Question Image Upload */}
+                      <div className="space-y-2">
+                        {watch(`questions.${questionIndex}.image`) ? (
+                          <div className="relative inline-block">
+                            <img
+                              src={watch(`questions.${questionIndex}.image`)}
+                              alt="Question preview"
+                              className="w-32 h-32 object-cover rounded-md border"
+                            />
+                            <Button
+                              type="button"
+                              onClick={() =>
+                                setValue(`questions.${questionIndex}.image`, "")
+                              }
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2"
                             >
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center">
-                                  <span className="font-medium text-gray-500 mr-2">
-                                    {String.fromCharCode(65 + optionIndex)}.
-                                  </span>
-                                  <input
-                                    type="checkbox"
-                                    id={`correct-${questionIndex}-${optionIndex}`}
-                                    checked={option.isCorrect || false}
-                                    onChange={(e) => {
-                                      const newOptions = [...field.value];
-                                      newOptions[optionIndex].isCorrect =
-                                        e.target.checked;
-                                      field.onChange(newOptions);
-                                    }}
-                                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <label
-                                    htmlFor={`correct-${questionIndex}-${optionIndex}`}
-                                    className="text-sm font-medium text-gray-700"
-                                  >
-                                    Correct Answer
-                                  </label>
-                                </div>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed rounded-md p-4">
+                            <label className="flex flex-col items-center gap-2 cursor-pointer">
+                              <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">
+                                Add question image
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setValue(
+                                        `questions.${questionIndex}.image`,
+                                        reader.result as string
+                                      );
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
 
-                                {field.value.length > 2 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newOptions = [...field.value];
-                                      newOptions.splice(optionIndex, 1);
-                                      field.onChange(newOptions);
-                                    }}
-                                    className="text-red-500 hover:text-red-700 text-sm"
-                                  >
-                                    Remove
-                                  </button>
-                                )}
-                              </div>
+                    <CardContent>
+                      {/* Options */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-base">
+                            Answer Options{" "}
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Controller
+                            control={control}
+                            name={`questions.${questionIndex}.options`}
+                            render={({ field }) => (
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = [...field.value];
+                                  newOptions.push({
+                                    text: "",
+                                    image: "",
+                                    isCorrect: false,
+                                  });
+                                  field.onChange(newOptions);
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Add Option
+                              </Button>
+                            )}
+                          />
+                        </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                                {/* Text input for option */}
-                                <div>
-                                  <input
-                                    value={option.text || ""}
-                                    onChange={(e) => {
-                                      const newOptions = [...field.value];
-                                      newOptions[optionIndex].text =
-                                        e.target.value;
-                                      field.onChange(newOptions);
-                                    }}
-                                    className="w-full border p-2 rounded-md"
-                                    placeholder={`Option text`}
-                                  />
-                                </div>
-
-                                {/* Image upload */}
-                                <div>
-                                  {option.image ? (
-                                    <div className="relative inline-block">
-                                      <img
-                                        src={option.image}
-                                        alt="Option preview"
-                                        className="h-16 object-cover rounded-md border"
+                        <Controller
+                          control={control}
+                          name={`questions.${questionIndex}.options`}
+                          render={({ field }) => (
+                            <div className="space-y-3">
+                              {field.value.map((option, optionIndex) => (
+                                <div
+                                  key={optionIndex}
+                                  className="p-4 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
+                                >
+                                  <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`correct-${questionIndex}-${optionIndex}`}
+                                        checked={option.isCorrect || false}
+                                        onChange={(e) => {
+                                          const newOptions = [...field.value];
+                                          newOptions[optionIndex].isCorrect =
+                                            e.target.checked;
+                                          field.onChange(newOptions);
+                                        }}
+                                        className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
                                       />
-                                      <button
+                                      <Label
+                                        htmlFor={`correct-${questionIndex}-${optionIndex}`}
+                                        className="text-sm font-medium cursor-pointer"
+                                      >
+                                        Correct Answer
+                                      </Label>
+                                    </div>
+
+                                    {field.value.length > 2 && (
+                                      <Button
                                         type="button"
                                         onClick={() => {
                                           const newOptions = [...field.value];
-                                          newOptions[optionIndex].image = "";
+                                          newOptions.splice(optionIndex, 1);
                                           field.onChange(newOptions);
                                         }}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                       >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <input
-                                      type="file"
-                                      accept="image/*"
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                      value={option.text || ""}
                                       onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          const reader = new FileReader();
-                                          reader.onloadend = () => {
-                                            const newOptions = [...field.value];
-                                            newOptions[optionIndex].image =
-                                              reader.result as string;
-                                            field.onChange(newOptions);
-                                          };
-                                          reader.readAsDataURL(file);
-                                        }
+                                        const newOptions = [...field.value];
+                                        newOptions[optionIndex].text =
+                                          e.target.value;
+                                        field.onChange(newOptions);
                                       }}
-                                      className="w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700"
+                                      placeholder="Option text"
                                     />
-                                  )}
+
+                                    <div>
+                                      {option.image ? (
+                                        <div className="relative inline-block">
+                                          <img
+                                            src={option.image}
+                                            alt="Option preview"
+                                            className="h-16 object-cover rounded-md border"
+                                          />
+                                          <Button
+                                            type="button"
+                                            onClick={() => {
+                                              const newOptions = [
+                                                ...field.value,
+                                              ];
+                                              newOptions[optionIndex].image =
+                                                "";
+                                              field.onChange(newOptions);
+                                            }}
+                                            variant="destructive"
+                                            size="icon"
+                                            className="absolute -top-2 -right-2"
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <div className="border rounded-md p-2">
+                                          <label className="flex items-center gap-2 cursor-pointer">
+                                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                            <span className="text-sm text-muted-foreground">
+                                              Add image
+                                            </span>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              className="hidden"
+                                              onChange={(e) => {
+                                                const file =
+                                                  e.target.files?.[0];
+                                                if (file) {
+                                                  const reader =
+                                                    new FileReader();
+                                                  reader.onloadend = () => {
+                                                    const newOptions = [
+                                                      ...field.value,
+                                                    ];
+                                                    newOptions[
+                                                      optionIndex
+                                                    ].image =
+                                                      reader.result as string;
+                                                    field.onChange(newOptions);
+                                                  };
+                                                  reader.readAsDataURL(file);
+                                                }
+                                              }}
+                                            />
+                                          </label>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
+                              ))}
                             </div>
-                          ))}
-
-                          {errors.questions?.[questionIndex]?.options && (
-                            <p className="text-red-500 text-sm">
-                              {
-                                errors.questions[questionIndex]?.options
-                                  ?.message
-                              }
-                            </p>
                           )}
-                        </div>
-                      )}
-                    />
-                  </div>
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-                  {errors.questions?.[questionIndex]?.answer && (
-                    <p className="text-red-500 text-sm">
-                      {errors.questions[questionIndex]?.answer?.message}
-                    </p>
-                  )}
+            {questionFields.length > 0 && (
+              <Button
+                type="button"
+                onClick={() =>
+                  appendQuestion({
+                    question: "",
+                    options: [
+                      { text: "", image: "" },
+                      { text: "", image: "" },
+                      { text: "All of the above", image: "" },
+                      { text: "None of the above", image: "" },
+                    ],
+                    answer: "",
+                  })
+                }
+                variant="outline"
+                className="w-full gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add Another Question
+              </Button>
+            )}
+          </div>
+        </CardContent>
 
-                  {/* Hidden input to track the answer */}
-                  <input
-                    type="hidden"
-                    {...register(`questions.${questionIndex}.answer`)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {questionFields.length > 0 && (
-            <button
-              type="button"
-              onClick={() =>
-                appendQuestion({
-                  question: "",
-                  options: [
-                    { text: "", image: "" },
-                    { text: "", image: "" },
-                    { text: "All of the above", image: "" },
-                    { text: "None of the above", image: "" },
-                  ],
-                  answer: "",
-                })
-              }
-              className="mt-6 px-4 py-2 border border-green-600 text-green-700 bg-white rounded-md hover:bg-green-50 transition-colors w-full"
-            >
-              + Add Another Question
-            </button>
-          )}
-        </div>
-
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-          >
+        <CardFooter className="flex justify-end space-x-4">
+          <Button type="button" variant="outline">
             Save Draft
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Submit Exam
-          </button>
-        </div>
+          </Button>
+          <Button type="submit">Submit Exam</Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   );
 };

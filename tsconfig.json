@@ -21,6 +21,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "action/fetch-exam-by-examname-and-email.ts-"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/action/fetch-exam-by-examname-and-email.ts-"],
   "exclude": ["node_modules"]
 }

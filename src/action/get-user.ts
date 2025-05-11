@@ -2,7 +2,7 @@
 
 import { ITeacher, teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
-import { auth } from "../auth";
+import { auth } from "../../auth";
 import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 
