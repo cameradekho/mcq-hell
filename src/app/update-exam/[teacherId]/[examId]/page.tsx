@@ -331,7 +331,7 @@ const UpdateExamPage = () => {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h3 className="text-2xl font-semibold">Update Exam</h3>
+        <h3 className="text-2xl font-semibold">Update Exam: {exam.name}</h3>
         <div className="flex gap-3">
           {isDirty && (
             <Badge

@@ -1,8 +1,6 @@
 "use client";
 
-import { redirect } from "next/navigation";
 import { QuestionsWrapper } from "@/components/questions-wrapper";
-import { useSession } from "next-auth/react";
 import { TopNavigationBar } from "@/components/top-navigation-bar";
 import { Footer } from "@/components/ui/footer";
 

@@ -24,7 +24,7 @@ import { Plus, X, Image as ImageIcon } from "lucide-react";
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(3, "Description must be at least 3 characters"),
-  duration: z.number().min(1, "Duration must be at least 1 minute"),
+  duration: z.number().min(0, "There must be duration"),
   questions: z
     .array(
       z.object({
@@ -56,7 +56,7 @@ export const Questions = () => {
     control,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     watch,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -125,7 +125,7 @@ export const Questions = () => {
       });
 
       if (result.success) {
-        toast.success("Exam added successfully!");
+       // toast.success("Exam added successfully!");
 
         const res = await addExam({
           name: data.title,
@@ -146,16 +146,16 @@ export const Questions = () => {
 
         if (res.success) {
           toast.success("Exam added successfully!");
+          reset();
         } else {
           toast.error(res.message);
         }
       } else {
         toast.error(result.message);
       }
-    } catch (error) {
-      toast.error("Error adding exam by user: " + error);
+    } catch (error:any) {
+      toast.error(error)
     }
-    reset();
   };
 
   return (
@@ -199,16 +199,20 @@ export const Questions = () => {
                 <Label htmlFor="duration">
                   Duration <span className="text-destructive">*</span>
                 </Label>
+                
                 <div className="flex items-center gap-2">
                   <Input
                     id="duration"
                     type="number"
-                    min={1}
+                    min={0}
                     {...register("duration", { valueAsNumber: true })}
                     placeholder="60"
                   />
                   <span className="text-muted-foreground">minutes</span>
                 </div>
+                
+                <span className=" text-sm text-gray-400/65 font-medium">If the time is set to 0, the exam will have no time limit.
+                </span>
                 {errors.duration && (
                   <p className="text-sm text-destructive">
                     {errors.duration.message}
@@ -552,10 +556,11 @@ export const Questions = () => {
         </CardContent>
 
         <CardFooter className="flex justify-end space-x-4">
-          <Button type="button" variant="outline">
+          {/* <Button type="button" variant="outline">
             Save Draft
-          </Button>
-          <Button type="submit">Submit Exam</Button>
+          </Button> */}
+
+          <Button type="submit" disabled={isSubmitting}>Submit Exam</Button>
         </CardFooter>
       </form>
     </Card>

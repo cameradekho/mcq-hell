@@ -34,7 +34,7 @@ export const addExamByUser = async (
     ) {
       return {
         success: false,
-        message: "Please provide all the required fields",
+        message: "..Please provide all the required fields",
       };
     }
 
@@ -109,7 +109,7 @@ export const addExamByUser = async (
     if (!resofUpdate.acknowledged) {
       return {
         success: false,
-        message: "Error adding exam by user",
+        message: "....Error adding exam by user",
       };
     }
 
@@ -125,7 +125,7 @@ export const addExamByUser = async (
     });
     return {
       success: false,
-      message: `Error adding exam by user: ${
+      message: `...Error adding exam by user: ${
         error instanceof Error ? error.message : error
       }`,
     };

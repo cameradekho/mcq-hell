@@ -21,12 +21,12 @@ export function TopNavigationBar() {
           <div className="flex items-center space-x-4">
             {session ? (
               <div className="flex items-center space-x-4">
-                <Link
+                {/* <Link
                   href="/result"
                   className="text-sm font-medium text-foreground hover:text-primary transition-colors"
                 >
                   Results
-                </Link>
+                </Link> */}
                 <div className="flex items-center space-x-2">
                   <Image
                     src={session.user?.avatar || "/images/cat-guest.png"}

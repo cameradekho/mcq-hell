@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlarmClock, CheckCircle } from "lucide-react";
+import { AlarmClock, CheckCircle, Loader2 } from "lucide-react";
 import { set } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -59,6 +59,7 @@ const Page = ({ params }: PageProps) => {
   >({});
 
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<number>(0);
   const [teacherEmail, setTeacherEmail] = useState<string>();
   const [step, setStep] = useState<number>(0);
@@ -241,6 +242,7 @@ const Page = ({ params }: PageProps) => {
 
   const handleSubmit = async () => {
     try {
+      setSubmitting(true);
       if (!exam) return;
 
       // Check if all questions are answered
@@ -316,12 +318,15 @@ const Page = ({ params }: PageProps) => {
         setAutoSubmit(false);
         setExamStarted(false);
         setTimeLeft(0);
+        setDuration(0)
       } else {
         toast.error(result.message);
+        setSubmitting(false)
       }
 
       setSubmitted(true);
     } catch (error) {
+      setSubmitting(true)
       toast.error("Error submitting answers");
       console.error(error);
     }
@@ -561,21 +566,29 @@ const Page = ({ params }: PageProps) => {
                     </div>
                   ))}
 
-                {!submitted && (
-                  <Button
-                    onClick={handleSubmit}
-                    size="lg"
-                    className="w-full sm:w-auto"
-                  >
-                    Submit Exam
-                  </Button>
-                )}
+              {!submitted && (
+                <Button
+                  onClick={handleSubmit}
+                  size="lg"
+                  disabled={submitting}
+                  className="w-full sm:w-auto flex items-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Exam"
+                  )}
+                </Button>
+              )}
 
                 {submitted && (
                   <div className="space-y-6">
                     <div className="rounded-lg bg-card p-6 shadow-sm">
                       <h3 className="text-xl font-semibold mb-4">
-                        Exam Results
+                        Exam Results..
                       </h3>
                       <div className="flex items-center gap-4">
                         <div className="text-4xl font-bold text-primary">
@@ -619,7 +632,21 @@ const Page = ({ params }: PageProps) => {
                                 <TableCell className="font-medium">
                                   {index + 1}
                                 </TableCell>
-                                <TableCell>{question.question}</TableCell>
+                                <TableCell>
+                                  <div className=" flex flex-col items-start justify-center gap-2">
+                                    {question.question}
+                                    {
+                                      question.image &&
+                                      <Image
+                                        src={question.image}
+                                        alt="question"
+                                        width={400}
+                                        height={400}
+                                        className=" w-32 h-27 rounded-lg"
+                                      />
+                                    }
+                                    </div>
+                                  </TableCell>
                                 <TableCell>
                                   {selectedIds.length > 0
                                     ? selectedIds
@@ -635,6 +662,7 @@ const Page = ({ params }: PageProps) => {
                                       getOptionTextById(question, id)
                                     )
                                     .join(", ")}
+                                   
                                 </TableCell>
                                 <TableCell>
                                   {isCorrect ? (
