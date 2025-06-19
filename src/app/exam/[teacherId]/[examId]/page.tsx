@@ -21,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AlarmClock, CheckCircle, Loader2 } from "lucide-react";
-import { set } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -442,12 +441,15 @@ const Page = ({ params }: PageProps) => {
                         Hello, {studentDetails.studentName}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-primary">
+                    {
+                      !examStarted &&
+                    (<div className="flex items-center gap-2 text-primary">
                       <AlarmClock className="h-5 w-5" />
                       <span className="font-semibold">
                         {formatTime(timeLeft)}
                       </span>
-                    </div>
+                    </div>)
+                    }
                   </div>
                 )}
 
@@ -624,60 +626,96 @@ const Page = ({ params }: PageProps) => {
 
                             return (
                               <TableRow
-                                key={index}
-                                className={cn(
-                                  isCorrect ? "bg-green-50" : "bg-red-50"
-                                )}
-                              >
-                                <TableCell className="font-medium">
-                                  {index + 1}
-                                </TableCell>
-                                <TableCell>
-                                  <div className=" flex flex-col items-start justify-center gap-2">
-                                    {question.question}
-                                    {
-                                      question.image &&
-                                      <Image
-                                        src={question.image}
-                                        alt="question"
-                                        width={400}
-                                        height={400}
-                                        className=" w-32 h-27 rounded-lg"
-                                      />
-                                    }
-                                    </div>
-                                  </TableCell>
-                                <TableCell>
-                                  {selectedIds.length > 0
-                                    ? selectedIds
-                                        .map((id) =>
-                                          getOptionTextById(question, id.id)
-                                        )
-                                        .join(", ")
-                                    : "Not Answered"}
-                                </TableCell>
-                                <TableCell>
-                                  {question.answer
-                                    .map((id: string) =>
-                                      getOptionTextById(question, id)
-                                    )
-                                    .join(", ")}
-                                   
-                                </TableCell>
-                                <TableCell>
-                                  {isCorrect ? (
-                                    <span className="inline-flex items-center gap-1 text-green-600">
-                                      <CheckCircle className="h-4 w-4" />
-                                      <span>Correct</span>
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 text-red-600">
-                                      <span className="h-4 w-4">✗</span>
-                                      <span>Incorrect</span>
-                                    </span>
-                                  )}
-                                </TableCell>
-                              </TableRow>
+  key={index}
+  className={cn(isCorrect ? "bg-green-50" : "bg-red-50")}
+>
+  {/* Question Number */}
+  <TableCell className="font-medium">{index + 1}</TableCell>
+
+  {/* Question Text + Optional Image */}
+  <TableCell>
+    <div className="flex flex-col items-start gap-2">
+      <span>{question.question}</span>
+      {question.image && (
+        <Image
+          src={question.image}
+          alt="question"
+          width={200}
+          height={200}
+          className="w-32 h-auto rounded-lg"
+        />
+      )}
+    </div>
+  </TableCell>
+
+  {/* Your Answer */}
+  <TableCell>
+    <div className="flex flex-wrap items-center gap-4">
+      {selectedIds.length > 0 ? (
+        selectedIds.map(({ id }) => {
+          const option = question.options.find((opt) => opt.id === id);
+          if (!option) return <span key={id}>Not found</span>;
+
+          return (
+            <div key={id} className="flex items-center gap-2">
+              {option.image && (
+                <img
+                  src={option.image}
+                  alt="Option"
+                  className="h-12 w-12 object-cover rounded"
+                />
+              )}
+              {option.textAnswer && <span>{option.textAnswer}</span>}
+            </div>
+          );
+        })
+      ) : (
+        <span>Not Answered</span>
+      )}
+    </div>
+  </TableCell>
+
+  {/* Correct Answer */}
+  <TableCell>
+    <div className="flex flex-wrap items-center gap-4">
+      {question.answer.map((id: string) => {
+        const option = question.options.find((opt) => opt.id === id);
+        if (!option) return <span key={id}>Not found</span>;
+
+        return (
+          <div key={id} className="flex items-center gap-2">
+            {option.image && (
+              <Image
+                src={option.image}
+                alt="Option"
+                height={48}
+                width={48}
+                className="h-12 w-12 object-cover rounded"
+              />
+            )}
+            {option.textAnswer && <span>{option.textAnswer}</span>}
+          </div>
+        );
+      })}
+    </div>
+  </TableCell>
+
+  {/* Result */}
+  <TableCell>
+    {isCorrect ? (
+      <span className="inline-flex items-center gap-1 text-green-600">
+        <CheckCircle className="h-4 w-4" />
+        <span>Correct</span>
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 text-red-600">
+        <span className="text-xl leading-none">✗</span>
+        <span>Incorrect</span>
+      </span>
+    )}
+  </TableCell>
+</TableRow>
+
                             );
                           })}
                         </TableBody>
