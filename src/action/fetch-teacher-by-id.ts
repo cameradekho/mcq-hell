@@ -3,11 +3,12 @@ import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 import { ITeacher } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
+import { ObjectId } from "mongodb";
 
 export type FetchTeacherByIdResult = ServerActionResult<
   Pick<
     ITeacher,
-    | "id"
+    | "_id"
     | "email"
     | "name"
     | "avatar"
@@ -36,7 +37,7 @@ export const fetchTeacherById = async (
     await mongodb.connect();
 
     const teacherData = await mongodb.collection("teacher").findOne({
-      id: data.teacherId,
+      _id: new ObjectId(data.teacherId),
     });
 
     if (!teacherData) {
@@ -50,7 +51,7 @@ export const fetchTeacherById = async (
     return {
       success: true,
       data: {
-        id: teacherData.id,
+        _id: teacherData.id,
         name: teacherData.name,
         email: teacherData.email,
         avatar: teacherData.avatar,

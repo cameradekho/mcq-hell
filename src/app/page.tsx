@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Settings, Activity } from "lucide-react";
 import Link from "next/link";
 import { fetchDashboardStats } from "../action/fetch-dashboard-stats";
+import AuthButtons from "@/components/auth/auth-buttons";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -36,6 +37,7 @@ export default function Home() {
             name: session.user.name,
             email: session.user.email,
             avatar: session.user.avatar,
+            role: session.user.role,
           });
 
           if (result.success) {
@@ -121,7 +123,7 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
+                {/* <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-4">
                       <Settings className="h-8 w-8 text-primary" />
@@ -135,7 +137,7 @@ export default function Home() {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
+                </Card> */}
               </div>
 
               <AllExams
@@ -174,14 +176,12 @@ export default function Home() {
                     exams with ease. Streamline your assessment process and
                     focus on what matters most - teaching.
                   </p>
-                  <Link href="/api/auth/signin">
-                    <Button
-                      size="lg"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      Get Started Now
-                    </Button>
-                  </Link>
+                  <AuthButtons
+                    props={{
+                      signInbtnText: "Get Started Now",
+                      signOutbtnText: "Sign Out",
+                    }}
+                  />
                 </motion.div>
               </div>
 

@@ -7,7 +7,7 @@ import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 
 export type GetUserResult = ServerActionResult<
-  Pick<ITeacher, "id" | "name" | "email" | "avatar">
+  Pick<ITeacher, "_id" | "name" | "email" | "avatar">
 >;
 
 export type GetUserData = {
@@ -37,14 +37,16 @@ export const getUser = async (data: GetUserData): Promise<GetUserResult> => {
       };
     }
 
+    console.log("hello broteht", user._id);
+
     return {
       success: true,
       data: {
-        id: user?._id,
+        _id: user?._id,
         name: user?.name,
         email: user?.email,
         avatar: user?.avatar,
-      } as unknown as Pick<ITeacher, "id" | "name" | "email" | "avatar">,
+      } as unknown as Pick<ITeacher, "_id" | "name" | "email" | "avatar">,
       message: "User found",
     };
   } catch (error: any) {

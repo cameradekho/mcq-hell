@@ -3,6 +3,7 @@ import { mongodb } from "@/lib/mongodb";
 import { IExam, IQuestion } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
+import { ObjectId } from "mongodb";
 
 export type FetchExamByIdResult = ServerActionResult<IExam>;
 
@@ -23,11 +24,14 @@ export const fetchExamById = async (
     }
 
     console.log(data.examId);
+    const teacherId = new ObjectId(data.teacherId);
+
+    const examId = data.examId;
 
     await mongodb.connect();
-    const teacherData = await mongodb.collection("teacher").findOne({
-      id: data.teacherId,
-    });
+    const teacherData = await mongodb
+      .collection("teacher")
+      .findOne({ _id: teacherId });
 
     if (!teacherData) {
       return {
@@ -36,7 +40,7 @@ export const fetchExamById = async (
       };
     }
 
-    console.log(teacherData);
+    console.log("pro-start ", teacherData);
 
     const exam = teacherData.exam.find(
       (exam: IExam) => exam.id === data.examId
