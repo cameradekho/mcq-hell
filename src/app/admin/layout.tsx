@@ -9,6 +9,8 @@ export default async function AdminLayout({
 }) {
   const result = await checkAdmin();
 
+  console.log(result);
+
   if (!result.success) {
     redirect("/");
   }

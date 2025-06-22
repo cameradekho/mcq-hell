@@ -1,9 +1,11 @@
+"use server";
+
 import { mongodb } from "@/lib/mongodb";
 import { auth } from "../../auth";
 import { adminCollectionName, IAdmin } from "@/models/admin";
 import { ServerActionResult } from "@/types";
 
-type CheckAdminResponse = ServerActionResult<boolean>;
+type CheckAdminResponse = ServerActionResult<undefined>;
 
 export const checkAdmin = async (): Promise<CheckAdminResponse> => {
   const session = await auth();
@@ -18,8 +20,15 @@ export const checkAdmin = async (): Promise<CheckAdminResponse> => {
     email: session.user.email,
   });
 
+  if (!admin) {
+    return {
+      success: false,
+      message: "Admin not found",
+    };
+  }
+
   return {
     success: true,
-    data: admin ? true : false,
+    data: undefined,
   };
 };

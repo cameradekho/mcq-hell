@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/table";
 import { signOut, useSession } from "next-auth/react";
 import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
-import { ObjectId } from "mongodb";
 
 type PageProps = {
   params: {

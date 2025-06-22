@@ -1,14 +1,14 @@
+"use server";
+
 import { mongodb } from "@/lib/mongodb";
 import { ITicket, ticketCollectionName } from "@/models/ticket";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { ServerActionResult } from "@/types";
-import { auth } from "../../auth";
 import { checkAdmin } from "./check-admin";
 
-export const updateTicketSchema = z.object({
-  ticketId: z.string(),
-  message: z.string().optional(),
+const updateTicketSchema = z.object({
+  _id: z.string().optional(),
   status: z.enum(["open", "closed"]).optional(),
 });
 
@@ -19,65 +19,26 @@ type UpdateTicketResult = ServerActionResult<ITicket>;
 export const updateTicket = async (
   data: UpdateTicketData
 ): Promise<UpdateTicketResult> => {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    return {
-      success: false,
-      message: "User not authenticated",
-    };
-  }
-
   try {
-    const adminCheck = await checkAdmin();
-    const isAdmin = adminCheck.success && adminCheck.data;
+    const isAdmin = await checkAdmin();
 
-    let existingTicket;
-    if (isAdmin) {
-      existingTicket = await mongodb
-        .collection<ITicket>(ticketCollectionName)
-        .findOne({
-          ticketId: data.ticketId,
-        });
-    } else {
-      existingTicket = await mongodb
-        .collection<ITicket>(ticketCollectionName)
-        .findOne({
-          ticketId: data.ticketId,
-          email: session.user.email,
-        });
-    }
-
-    if (!existingTicket) {
+    if (!isAdmin.success) {
       return {
         success: false,
-        message: "Ticket not found or you don't have permission to update it",
+        message: "You are not authorized to update tickets",
       };
     }
 
-    // Prepare update data
-    const updateData: Partial<ITicket> = {
-      updatedAt: new Date(),
-    };
-
-    if (data.message !== undefined) {
-      updateData.message = data.message;
-    }
-
-    if (data.status !== undefined) {
-      updateData.status = data.status;
-    }
-
-    // Update the ticket
-    const updateFilter = isAdmin
-      ? { ticketId: data.ticketId }
-      : { ticketId: data.ticketId, email: session.user.email };
-
     const result = await mongodb
       .collection<ITicket>(ticketCollectionName)
-      .updateOne(updateFilter, {
-        $set: updateData,
-      });
+      .updateOne(
+        { _id: new ObjectId(data._id) },
+        {
+          $set: {
+            status: data.status,
+          },
+        }
+      );
 
     if (result.modifiedCount === 0) {
       return {
@@ -86,10 +47,9 @@ export const updateTicket = async (
       };
     }
 
-    // Fetch the updated ticket
     const updatedTicket = await mongodb
       .collection<ITicket>(ticketCollectionName)
-      .findOne(updateFilter);
+      .findOne({ _id: new ObjectId(data._id) });
 
     if (!updatedTicket) {
       return {
@@ -101,6 +61,7 @@ export const updateTicket = async (
     return {
       success: true,
       data: updatedTicket,
+      message: "Ticket status updated",
     };
   } catch (error) {
     return {

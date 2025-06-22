@@ -1,3 +1,5 @@
+"use server";
+
 import { mongodb } from "@/lib/mongodb";
 import { ITicket, ticketCollectionName } from "@/models/ticket";
 import { ServerActionResult } from "@/types";
@@ -10,6 +12,7 @@ type GetTicketsData = {
   page?: number;
   limit?: number;
   search?: string;
+  status?: "open" | "closed" | "all";
 };
 
 export const getTickets = async (
@@ -25,10 +28,10 @@ export const getTickets = async (
   }
 
   const adminCheck = await checkAdmin();
-  const isAdmin = adminCheck.success && adminCheck.data;
+  const isAdmin = adminCheck.success;
 
   try {
-    const { page = 1, limit = 10, search = "" } = data || {};
+    const { page = 1, limit = 10, search = "", status = "all" } = data || {};
 
     const baseFilter = isAdmin ? {} : { email: session.user.email };
 
@@ -45,10 +48,20 @@ export const getTickets = async (
       };
     }
 
-    const finalFilter =
-      search && search.trim()
-        ? { $and: [baseFilter, searchFilter] }
-        : baseFilter;
+    let statusFilter = {};
+    if (status && status !== "all") {
+      statusFilter = { status };
+    }
+
+    const filters = [baseFilter];
+    if (search && search.trim()) {
+      filters.push(searchFilter);
+    }
+    if (status && status !== "all") {
+      filters.push(statusFilter);
+    }
+
+    const finalFilter = filters.length > 1 ? { $and: filters } : filters[0];
 
     const skip = (page - 1) * limit;
 

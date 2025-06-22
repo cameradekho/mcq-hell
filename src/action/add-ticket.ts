@@ -1,3 +1,5 @@
+"use server";
+
 import { mongodb } from "@/lib/mongodb";
 import { ITicket, ticketCollectionName } from "@/models/ticket";
 import { v4 as uuidv4 } from "uuid";
@@ -6,7 +8,7 @@ import { z } from "zod";
 import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
 
-export const addTicketSchema = z.object({
+const addTicketSchema = z.object({
   message: z.string(),
 });
 

@@ -1,3 +1,5 @@
+"use server";
+
 import { mongodb } from "@/lib/mongodb";
 import { ITicket, ticketCollectionName } from "@/models/ticket";
 import { ObjectId } from "mongodb";
@@ -6,7 +8,7 @@ import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
 import { checkAdmin } from "./check-admin";
 
-export const deleteTicketSchema = z.object({
+const deleteTicketSchema = z.object({
   _id: z.string(),
 });
 
@@ -28,7 +30,7 @@ export const deleteTicket = async (
 
   try {
     const adminCheck = await checkAdmin();
-    const isAdmin = adminCheck.success && adminCheck.data;
+    const isAdmin = adminCheck.success
 
     let existingTicket;
     if (isAdmin) {

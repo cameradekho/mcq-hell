@@ -1,3 +1,5 @@
+"use server";
+
 import { ITicket, ticketCollectionName } from "@/models/ticket";
 import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
@@ -6,7 +8,7 @@ import { ObjectId } from "mongodb";
 import { mongodb } from "@/lib/mongodb";
 import { checkAdmin } from "./check-admin";
 
-export const getTicketSchema = z.object({
+const getTicketSchema = z.object({
   _id: z.string(),
 });
 
@@ -28,7 +30,7 @@ export const getTicket = async (
 
   try {
     const adminCheck = await checkAdmin();
-    const isAdmin = adminCheck.success && adminCheck.data;
+    const isAdmin = adminCheck.success
 
     const ticket = await mongodb
       .collection<ITicket>(ticketCollectionName)
