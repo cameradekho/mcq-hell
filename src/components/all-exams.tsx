@@ -3,7 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { fetchExams } from "../action/fetch-exams";
 import { IExam } from "@/models/exam";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Clapperboard, Copy, Edit2, Trash2, Plus, Search } from "lucide-react";
@@ -43,7 +49,7 @@ export const AllExams = (params: Props) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [teacher, setTeacher] =
-    useState<Pick<ITeacher, "id" | "name" | "email" | "avatar">>();
+    useState<Pick<ITeacher, "_id" | "name" | "email" | "avatar">>();
   const [examToDelete, setExamToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -143,7 +149,7 @@ export const AllExams = (params: Props) => {
   }
 
   return (
-    <div className="w-full min-h-[65vh] space-y-4">
+    <div className="w-full min-h-[45vh] max-h-max space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="relative w-full sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -163,114 +169,110 @@ export const AllExams = (params: Props) => {
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Exam Name</TableHead>
-              <TableHead className="hidden md:table-cell">
-                Description
-              </TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredExams.length > 0 ? (
-              filteredExams.map((exam) => (
-                <TableRow key={exam.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      {exam.name}
-                      <p className="md:hidden text-sm text-muted-foreground mt-1 line-clamp-1">
-                        {exam.description}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {exam.description}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2 md:gap-4">
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <button
-                            onClick={() => {
-                              const examLink = `${window.location.origin}/exam/${teacher?.id}/${exam.id}`;
-                              navigator.clipboard.writeText(examLink);
-                              toast.success("Exam link copied to clipboard!");
-                            }}
-                            className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors p-2"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Copy</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Link
-                            href={`/result/${teacher?.id}/${exam.id}`}
-                            rel="noopener noreferrer"
-                            className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors p-2"
-                          >
-                            <HiAcademicCap className="w-4 h-4" />
-                            <span className="sr-only">Results</span>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Results</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Link
-                            href={`/update-exam/${teacher?.id}/${exam.id}`}
-                            rel="noopener noreferrer"
-                            className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors p-2"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            <span className="sr-only">Edit</span>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <button
-                            onClick={() => handleDeleteClick(exam.name)}
-                            className="flex items-center text-sm text-muted-foreground hover:text-red-500 transition-colors p-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span className="sr-only">Delete</span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={3}
-                  className="text-center text-muted-foreground"
-                >
-                  {searchQuery
-                    ? "No exams found matching your search."
-                    : "No exams found. Create your first exam!"}
-                </TableCell>
-              </TableRow>
+      {filteredExams.length > 0 ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {filteredExams.map((exam) => (
+            <Card
+              key={exam.id}
+              className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-border hover:border-primary/20"
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm md:text-base font-semibold text-foreground line-clamp-2 leading-tight">
+                  {exam.name}
+                </CardTitle>
+                <CardDescription className="text-xs md:text-sm line-clamp-3 text-muted-foreground">
+                  {exam.description}
+                </CardDescription>
+              </CardHeader>
+
+              {/* Action Buttons Overlay */}
+              <div className="absolute inset-0 bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                <div className="flex items-center gap-2 md:gap-3">
+                  {/* Copy Link */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-110"
+                    onClick={() => {
+                      const examLink = `${
+                        window.location.origin
+                      }/exam/${teacher?._id?.toString()}/${exam.id}`;
+                      navigator.clipboard.writeText(examLink);
+                      toast.success("Exam link copied to clipboard!");
+                    }}
+                    title="Copy exam link"
+                  >
+                    <Copy className="h-3 w-3 md:h-4 md:w-4" />
+                  </Button>
+
+                  {/* Results */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-110"
+                    asChild
+                    title="View results"
+                  >
+                    <Link
+                      href={`/result/${teacher?._id?.toString()}/${exam.id}`}
+                      rel="noopener noreferrer"
+                    >
+                      <HiAcademicCap className="h-3 w-3 md:h-4 md:w-4" />
+                    </Link>
+                  </Button>
+
+                  {/* Edit */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-110"
+                    asChild
+                    title="Edit exam"
+                  >
+                    <Link
+                      href={`/update-exam/${teacher?._id?.toString()}/${
+                        exam.id
+                      }`}
+                      rel="noopener noreferrer"
+                    >
+                      <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
+                    </Link>
+                  </Button>
+
+                  {/* Delete */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
+                    onClick={() => handleDeleteClick(exam.name)}
+                    title="Delete exam"
+                  >
+                    <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card className="w-full">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="text-muted-foreground">
+              {searchQuery
+                ? "No exams found matching your search."
+                : "No exams found. Create your first exam!"}
+            </div>
+            {!searchQuery && (
+              <Button className="mt-4" asChild>
+                <a href="/add-exam" target="_blank" rel="noopener noreferrer">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Exam
+                </a>
+              </Button>
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

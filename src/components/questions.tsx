@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { addExamByUser } from "../action/add-exam-by-user";
-import { addExam } from "../action/demo/add-exam";
+import { addExam } from "../action/global-data/add-exam";
 import { useSession } from "next-auth/react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -125,7 +125,7 @@ export const Questions = () => {
       });
 
       if (result.success) {
-       // toast.success("Exam added successfully!");
+        // toast.success("Exam added successfully!");
 
         const res = await addExam({
           name: data.title,
@@ -153,8 +153,8 @@ export const Questions = () => {
       } else {
         toast.error(result.message);
       }
-    } catch (error:any) {
-      toast.error(error)
+    } catch (error: any) {
+      toast.error(error);
     }
   };
 
@@ -199,7 +199,7 @@ export const Questions = () => {
                 <Label htmlFor="duration">
                   Duration <span className="text-destructive">*</span>
                 </Label>
-                
+
                 <div className="flex items-center gap-2">
                   <Input
                     id="duration"
@@ -210,8 +210,9 @@ export const Questions = () => {
                   />
                   <span className="text-muted-foreground">minutes</span>
                 </div>
-                
-                <span className=" text-sm text-gray-400/65 font-medium">If the time is set to 0, the exam will have no time limit.
+
+                <span className=" text-sm text-gray-400/65 font-medium">
+                  If the time is set to 0, the exam will have no time limit.
                 </span>
                 {errors.duration && (
                   <p className="text-sm text-destructive">
@@ -560,7 +561,9 @@ export const Questions = () => {
             Save Draft
           </Button> */}
 
-          <Button type="submit" disabled={isSubmitting}>Submit Exam</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            Submit Exam
+          </Button>
         </CardFooter>
       </form>
     </Card>

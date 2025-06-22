@@ -5,7 +5,7 @@ import { teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
 import { logger } from "@/models/logger";
-import { nanoid } from "nanoid";
+import { studentCollectionName } from "@/models/student";
 
 export type AddUserResult = ServerActionResult<undefined>;
 
@@ -13,6 +13,7 @@ type AddUserData = {
   name: string;
   email: string;
   avatar: string;
+  role: "teacher" | "student";
 };
 
 export const addUser = async (data: AddUserData): Promise<AddUserResult> => {
@@ -21,45 +22,104 @@ export const addUser = async (data: AddUserData): Promise<AddUserResult> => {
     if (!session?.user) {
       return {
         success: false,
-        message: "You must be logged in to add a user",
+        message: "You must be logged in.",
       };
     }
 
     await mongodb.connect();
-    const userData = await mongodb
-      .collection(teacherCollectionName)
-      .findOne({ email: session?.user.email });
+    console.log("connected hubba");
 
-    if (userData) {
+    // as student present or not
+    if (data.role === "student") {
+      const studentData = await mongodb
+        .collection(studentCollectionName)
+        .findOne({ email: data.email });
+
+      if (studentData) {
+        return {
+          success: false,
+          message: "Student already exists",
+        };
+      }
+    }
+
+    //as teacher present or not
+    if (data.role === "teacher") {
+      const teacherData = await mongodb
+        .collection(teacherCollectionName)
+        .findOne({ email: data.email });
+
+      if (teacherData) {
+        return {
+          success: false,
+          message: "Teacher already exists",
+        };
+      }
+    }
+
+    // if role is student enter at DB as student
+    if (data.role === "student") {
+      const studentData = await mongodb
+        .collection(studentCollectionName)
+        .insertOne({
+          name: data.name,
+          email: data.email,
+          avatar: data.avatar,
+          role: "student",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+
+      if (!studentData.acknowledged) {
+        return {
+          success: false,
+          message: "Error adding student",
+        };
+      }
       return {
-        success: false,
-        message: "User already exists",
+        success: true,
+        data: studentData.acknowledged as any,
+        message: "Student added successfully",
       };
     }
 
-    console.log("data is : ", data);
+    // if role is teacher enter at DB as teacher
+    if (data.role === "teacher") {
+      const teacherData = await mongodb
+        .collection(teacherCollectionName)
+        .insertOne({
+          name: data.name,
+          email: data.email,
+          avatar: data.avatar,
+          role: "teacher",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
 
-    const res = await mongodb.collection(teacherCollectionName).insertOne({
-      id: nanoid(),
-      name: data.name,
-      email: data.email,
-      avatar: data.avatar,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
-    console.log("result is : ", res.acknowledged);
-
-    if (!res.acknowledged) {
+      if (!teacherData.acknowledged) {
+        return {
+          success: false,
+          message: "Error adding teacher",
+        };
+      }
       return {
-        success: false,
-        message: "Error adding user one",
+        success: true,
+        data: teacherData.acknowledged as any,
+        message: "Teacher added successfully",
+      };
+    }
+
+    if (data.role === "student") {
+      return {
+        success: true,
+        data: undefined,
+        message: "Student added successfully",
       };
     }
     return {
       success: true,
-      data: res.acknowledged as any,
-      message: "User added successfully",
+      data: undefined,
+      message: "Teacher added successfully",
     };
   } catch (error: any) {
     await logger({

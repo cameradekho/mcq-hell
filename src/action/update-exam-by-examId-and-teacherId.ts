@@ -5,6 +5,7 @@ import { ServerActionResult } from "@/types";
 import { mongodb } from "@/lib/mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 import { nanoid } from "nanoid";
+import { ObjectId } from "mongodb";
 
 export type IUpdateExamResult = ServerActionResult<undefined>;
 
@@ -59,9 +60,11 @@ export async function updateExamByExamIdAndTeacherId(
     //   return processedQuestion;
     // });
 
+    const teacherId = new ObjectId(data.teacherId);
+
     const updatedExam = await mongodb.collection("teacher").updateOne(
       {
-        id: data.teacherId,
+        _id: teacherId,
         "exam.id": data.examId,
       },
       {

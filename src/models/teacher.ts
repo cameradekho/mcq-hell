@@ -1,16 +1,10 @@
+import { ObjectId } from "mongodb";
 import { IExam } from "./exam";
-
-export type IStudents = {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import { IStudents } from "./student";
 
 export type ITeacher = {
-  id: string;
+  _id?: ObjectId;
+  role: "teacher";
   name: string;
   email: string;
   avatar: string;
@@ -19,5 +13,9 @@ export type ITeacher = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type IUser<T extends "teacher" | "student"> = T extends "teacher"
+  ? ITeacher & { role: "teacher" }
+  : IStudents & { role: "student" };
 
 export const teacherCollectionName = "teacher";

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
@@ -30,6 +30,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { signOut, useSession } from "next-auth/react";
+import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
+import { ObjectId } from "mongodb";
 
 type PageProps = {
   params: {
@@ -43,6 +46,7 @@ type StudentDetails = {
 };
 
 const Page = ({ params }: PageProps) => {
+  const { data: session, status } = useSession();
   const [exam, setExam] = useState<IExam>();
   const [answers, setAnswers] = useState<
     Record<
@@ -58,7 +62,7 @@ const Page = ({ params }: PageProps) => {
   >({});
 
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<number>(0);
   const [teacherEmail, setTeacherEmail] = useState<string>();
   const [step, setStep] = useState<number>(0);
@@ -109,12 +113,12 @@ const Page = ({ params }: PageProps) => {
           toast.error(data.message);
         }
 
-        const fetchTeacherEmail = await fetchTeacherById({
+        const teacherData = await fetchTeacherById({
           teacherId: params.teacherId,
         });
 
-        if (fetchTeacherEmail.success) {
-          setTeacherEmail(fetchTeacherEmail.data.email || "");
+        if (teacherData.success) {
+          setTeacherEmail(teacherData.data.email || "");
         }
       } catch (error: any) {
         toast.error("Error fetching exam");
@@ -156,6 +160,22 @@ const Page = ({ params }: PageProps) => {
       setShuffledQuestions(shuffled);
     }
   }, [exam]);
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setStudentDetails((prev) => ({
+        ...prev,
+        studentName: session.user.name,
+      }));
+    }
+
+    if (session?.user?.email) {
+      setStudentDetails((prev) => ({
+        ...prev,
+        studentEmail: session.user.email,
+      }));
+    }
+  }, [session?.user.name, session?.user.email]);
 
   const handleAutoSubmit = () => {
     if (!exam) return;
@@ -215,22 +235,22 @@ const Page = ({ params }: PageProps) => {
 
   const handleFetchStudentData = async () => {
     // Validate student details
-    if (
-      !studentDetails.studentName.trim() ||
-      !studentDetails.studentEmail.trim()
-    ) {
-      toast.error("Please provide both student name and email");
+    if (!studentDetails.studentName.trim()) {
+      toast.error("Please provide student name");
       return;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(studentDetails.studentEmail)) {
-      toast.error("Please provide a valid email address");
+    if (session?.user?.email) {
+      setStudentDetails((prev) => ({
+        ...prev,
+        studentEmail: session?.user.email,
+      }));
+    } else {
+      toast.error("Please Login again");
       return;
     }
 
-    setOpen(true); // Show confirmation dialog
+    setOpen(true);
   };
 
   const handleStartExam = () => {
@@ -317,15 +337,15 @@ const Page = ({ params }: PageProps) => {
         setAutoSubmit(false);
         setExamStarted(false);
         setTimeLeft(0);
-        setDuration(0)
+        setDuration(0);
       } else {
         toast.error(result.message);
-        setSubmitting(false)
+        setSubmitting(false);
       }
 
       setSubmitted(true);
     } catch (error) {
-      setSubmitting(true)
+      setSubmitting(true);
       toast.error("Error submitting answers");
       console.error(error);
     }
@@ -353,430 +373,544 @@ const Page = ({ params }: PageProps) => {
     return `${min}:${sec}`;
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl font-bold">
-              {exam?.name || "Loading Exam..."}
-            </CardTitle>
-            {exam?.description && (
-              <p className="text-muted-foreground mt-2">{exam.description}</p>
-            )}
-            {examStarted && timeLeft > 0 && (
-              <div className="mt-4 flex items-center gap-2 text-primary">
-                <AlarmClock className="h-5 w-5" />
-                <span className="font-semibold">{formatTime(timeLeft)}</span>
-              </div>
-            )}
-          </CardHeader>
+  // checking if session is present or not
 
-          {step === 0 && (
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Student Details</h2>
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="student-name"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Student Name
-                    </label>
-                    <input
-                      id="student-name"
-                      type="text"
-                      placeholder="Enter your full name"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      value={studentDetails.studentName}
-                      onChange={(e) =>
-                        setStudentDetails({
-                          ...studentDetails,
-                          studentName: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="student-email"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Student Email
-                    </label>
-                    <input
-                      id="student-email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      value={studentDetails.studentEmail}
-                      onChange={(e) =>
-                        setStudentDetails({
-                          ...studentDetails,
-                          studentEmail: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={handleFetchStudentData}
-                  className="w-full sm:w-auto"
-                  size="lg"
-                >
-                  Proceed
-                </Button>
-              </div>
-            </CardContent>
-          )}
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <svg
+            className="animate-spin h-8 w-8 text-primary"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span className="text-sm text-muted-foreground">
+            Checking your session....
+          </span>
+        </div>
+      </div>
+    );
+  }
 
-          {step === 1 && (
-            <>
-              <CardContent className="space-y-8">
-                {examStarted && (
-                  <div className="rounded-lg bg-primary/5 p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        Hello, {studentDetails.studentName}
-                      </span>
-                    </div>
-                    {
-                      !examStarted &&
-                    (<div className="flex items-center gap-2 text-primary">
-                      <AlarmClock className="h-5 w-5" />
-                      <span className="font-semibold">
-                        {formatTime(timeLeft)}
-                      </span>
-                    </div>)
-                    }
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+        <div className="max-w-md w-full bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-8 space-y-6 border border-gray-200 dark:border-gray-700 text-center">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+            Student Exam Access
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 text-sm">
+            You must be signed in to access the exam. Click the button below to
+            sign in with your student account.
+          </p>
+          <StudentExamAuthButton
+            props={{
+              teacherId: params.teacherId,
+              examId: params.examId,
+            }}
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Your email will be used to identify your submission.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "authenticated") {
+    return (
+      <div className="min-h-screen bg-background">
+        {session && (
+          <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-2xl md:text-3xl font-bold">
+                  {exam?.name || "Loading Exam..."}
+                </CardTitle>
+                {exam?.description && (
+                  <p className="text-muted-foreground mt-2">
+                    {exam.description}
+                  </p>
+                )}
+                {examStarted && timeLeft > 0 && (
+                  <div className="mt-4 flex items-center gap-2 text-primary">
+                    <AlarmClock className="h-5 w-5" />
+                    <span className="font-semibold">
+                      {formatTime(timeLeft)}
+                    </span>
                   </div>
                 )}
+              </CardHeader>
 
-                {!submitted &&
-                  exam?.questions &&
-                  shuffledQuestions.map((question, qIndex) => (
-                    <div
-                      key={qIndex}
-                      className="rounded-lg border bg-card p-6 shadow-sm transition-colors"
-                    >
-                      <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
-                            {qIndex + 1}
+              {step === 0 && (
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold">Student Details</h2>
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="student-name"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Student Name
+                        </label>
+                        <input
+                          id="student-name"
+                          type="text"
+                          placeholder="Enter your full name"
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          value={studentDetails.studentName}
+                          onChange={(e) =>
+                            setStudentDetails({
+                              ...studentDetails,
+                              studentName: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="student-email"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Student Email
+                        </label>
+                        <input
+                          id="student-email"
+                          type="email"
+                          placeholder="Enter your email address"
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          value={session.user.email}
+                          readOnly={true}
+                        />
+                      </div>
+                    </div>
+                    <div className=" w-full flex items-center justify-between gap-2 text-primary">
+                      <Button
+                        className="w-full sm:w-auto "
+                        size="lg"
+                        variant="outline"
+                        onClick={() =>
+                          signOut({
+                            callbackUrl: `/exam/${params.teacherId.toString()}/${
+                              params.examId
+                            }`,
+                          })
+                        }
+                      >
+                        Back
+                      </Button>
+
+                      <Button
+                        onClick={handleFetchStudentData}
+                        className="w-full sm:w-auto"
+                        size="lg"
+                      >
+                        Proceed
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+
+              {step === 1 && (
+                <>
+                  <CardContent className="space-y-8">
+                    {examStarted && (
+                      <div className="rounded-lg bg-primary/5 p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            Hello, {studentDetails.studentName}
                           </span>
-                          <h3 className="text-lg font-medium leading-none pt-1">
-                            {question.question}
-                          </h3>
                         </div>
-
-                        {question.image && (
-                          <div className="mt-4">
-                            <Image
-                              src={question.image}
-                              alt="Question Image"
-                              width={400}
-                              height={300}
-                              className="rounded-lg object-cover mx-auto"
-                            />
+                        {!examStarted && (
+                          <div className="flex items-center gap-2 text-primary">
+                            <AlarmClock className="h-5 w-5" />
+                            <span className="font-semibold">
+                              {formatTime(timeLeft)}
+                            </span>
                           </div>
                         )}
+                      </div>
+                    )}
 
-                        <div className="space-y-3 pt-4">
-                          {question.options.map((option, j) => (
-                            <label
-                              key={j}
-                              className={cn(
-                                "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
-                                (question.answer.length > 1
-                                  ? answers[question.id]?.some(
-                                      (ans) => ans.id === option.id
-                                    )
-                                  : answers[question.id]?.[0]?.id ===
-                                    option.id) && "ring-2 ring-primary"
-                              )}
-                            >
-                              <div className="flex items-start gap-3">
-                                <input
-                                  type={
-                                    question.answer.length > 1
-                                      ? "checkbox"
-                                      : "radio"
-                                  }
-                                  name={`question-${qIndex}`}
-                                  value={option.id}
-                                  checked={
-                                    question.answer.length > 1
+                    {!submitted &&
+                      exam?.questions &&
+                      shuffledQuestions.map((question, qIndex) => (
+                        <div
+                          key={qIndex}
+                          className="rounded-lg border bg-card p-6 shadow-sm transition-colors"
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
+                                {qIndex + 1}
+                              </span>
+                              <h3 className="text-lg font-medium leading-none pt-1">
+                                {question.question}
+                              </h3>
+                            </div>
+
+                            {question.image && (
+                              <div className="mt-4">
+                                <Image
+                                  src={question.image}
+                                  alt="Question Image"
+                                  width={400}
+                                  height={300}
+                                  className="rounded-lg object-cover mx-auto"
+                                />
+                              </div>
+                            )}
+
+                            <div className="space-y-3 pt-4">
+                              {question.options.map((option, j) => (
+                                <label
+                                  key={j}
+                                  className={cn(
+                                    "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
+                                    (question.answer.length > 1
                                       ? answers[question.id]?.some(
                                           (ans) => ans.id === option.id
                                         )
                                       : answers[question.id]?.[0]?.id ===
-                                        option.id
-                                  }
-                                  onChange={(e) =>
-                                    question.answer.length > 1
-                                      ? handleMultipleAnswerChange(
-                                          question.id,
-                                          {
-                                            id: option.id,
-                                            content: {
-                                              text: option.textAnswer
-                                                ? [option.textAnswer]
-                                                : [],
-                                              image: option.image
-                                                ? [option.image]
-                                                : [],
-                                            },
-                                          },
-                                          e.target.checked
-                                        )
-                                      : handleSingleAnswerChange(question.id, {
-                                          id: option.id,
-                                          content: {
-                                            text: option.textAnswer
-                                              ? [option.textAnswer]
-                                              : [],
-                                            image: option.image
-                                              ? [option.image]
-                                              : [],
-                                          },
-                                        })
-                                  }
-                                  className="mt-1"
-                                />
-                                <div className="flex-1 space-y-3">
-                                  {option.textAnswer && (
-                                    <span className="text-sm">
-                                      {option.textAnswer}
-                                    </span>
+                                        option.id) && "ring-2 ring-primary"
                                   )}
-                                  {option.image && (
-                                    <Image
-                                      src={option.image}
-                                      alt="Option Image"
-                                      width={300}
-                                      height={200}
-                                      className="rounded-lg object-cover"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <input
+                                      type={
+                                        question.answer.length > 1
+                                          ? "checkbox"
+                                          : "radio"
+                                      }
+                                      name={`question-${qIndex}`}
+                                      value={option.id}
+                                      checked={
+                                        question.answer.length > 1
+                                          ? answers[question.id]?.some(
+                                              (ans) => ans.id === option.id
+                                            )
+                                          : answers[question.id]?.[0]?.id ===
+                                            option.id
+                                      }
+                                      onChange={(e) =>
+                                        question.answer.length > 1
+                                          ? handleMultipleAnswerChange(
+                                              question.id,
+                                              {
+                                                id: option.id,
+                                                content: {
+                                                  text: option.textAnswer
+                                                    ? [option.textAnswer]
+                                                    : [],
+                                                  image: option.image
+                                                    ? [option.image]
+                                                    : [],
+                                                },
+                                              },
+                                              e.target.checked
+                                            )
+                                          : handleSingleAnswerChange(
+                                              question.id,
+                                              {
+                                                id: option.id,
+                                                content: {
+                                                  text: option.textAnswer
+                                                    ? [option.textAnswer]
+                                                    : [],
+                                                  image: option.image
+                                                    ? [option.image]
+                                                    : [],
+                                                },
+                                              }
+                                            )
+                                      }
+                                      className="mt-1"
                                     />
-                                  )}
-                                </div>
-                              </div>
-                            </label>
-                          ))}
+                                    <div className="flex-1 space-y-3">
+                                      {option.textAnswer && (
+                                        <span className="text-sm">
+                                          {option.textAnswer}
+                                        </span>
+                                      )}
+                                      {option.image && (
+                                        <Image
+                                          src={option.image}
+                                          alt="Option Image"
+                                          width={300}
+                                          height={200}
+                                          className="rounded-lg object-cover"
+                                        />
+                                      )}
+                                    </div>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                    {!submitted && (
+                      <Button
+                        onClick={handleSubmit}
+                        size="lg"
+                        disabled={submitting}
+                        className="w-full sm:w-auto flex items-center gap-2"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          "Submit Exam"
+                        )}
+                      </Button>
+                    )}
+
+                    {submitted && (
+                      <div className="space-y-6">
+                        <div className="rounded-lg bg-card p-6 shadow-sm">
+                          <h3 className="text-xl font-semibold mb-4">
+                            Exam Results..
+                          </h3>
+                          <div className="flex items-center gap-4">
+                            <div className="text-4xl font-bold text-primary">
+                              {result}
+                              <span className="text-muted-foreground text-lg">
+                                /{exam?.questions.length}
+                              </span>
+                            </div>
+                            <div className="text-muted-foreground">
+                              Questions Answered Correctly
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border shadow-sm">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[50px]">#</TableHead>
+                                <TableHead>Question</TableHead>
+                                <TableHead>Your Answer</TableHead>
+                                <TableHead>Correct Answer</TableHead>
+                                <TableHead className="w-[100px]">
+                                  Status
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {exam?.questions.map((question, index) => {
+                                const selectedIds = answers[question.id] || [];
+                                const isCorrect = arraysEqual(
+                                  selectedIds.map((item) => item.id).sort(),
+                                  question.answer.sort()
+                                );
+
+                                return (
+                                  <TableRow
+                                    key={index}
+                                    className={cn(
+                                      isCorrect ? "bg-green-50" : "bg-red-50"
+                                    )}
+                                  >
+                                    {/* Question Number */}
+                                    <TableCell className="font-medium">
+                                      {index + 1}
+                                    </TableCell>
+
+                                    {/* Question Text + Optional Image */}
+                                    <TableCell>
+                                      <div className="flex flex-col items-start gap-2">
+                                        <span>{question.question}</span>
+                                        {question.image && (
+                                          <Image
+                                            src={question.image}
+                                            alt="question"
+                                            width={200}
+                                            height={200}
+                                            className="w-32 h-auto rounded-lg"
+                                          />
+                                        )}
+                                      </div>
+                                    </TableCell>
+
+                                    {/* Your Answer */}
+                                    <TableCell>
+                                      <div className="flex flex-wrap items-center gap-4">
+                                        {selectedIds.length > 0 ? (
+                                          selectedIds.map(({ id }) => {
+                                            const option =
+                                              question.options.find(
+                                                (opt) => opt.id === id
+                                              );
+                                            if (!option)
+                                              return (
+                                                <span key={id}>Not found</span>
+                                              );
+
+                                            return (
+                                              <div
+                                                key={id}
+                                                className="flex items-center gap-2"
+                                              >
+                                                {option.image && (
+                                                  <img
+                                                    src={option.image}
+                                                    alt="Option"
+                                                    className="h-12 w-12 object-cover rounded"
+                                                  />
+                                                )}
+                                                {option.textAnswer && (
+                                                  <span>
+                                                    {option.textAnswer}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            );
+                                          })
+                                        ) : (
+                                          <span>Not Answered</span>
+                                        )}
+                                      </div>
+                                    </TableCell>
+
+                                    {/* Correct Answer */}
+                                    <TableCell>
+                                      <div className="flex flex-wrap items-center gap-4">
+                                        {question.answer.map((id: string) => {
+                                          const option = question.options.find(
+                                            (opt) => opt.id === id
+                                          );
+                                          if (!option)
+                                            return (
+                                              <span key={id}>Not found</span>
+                                            );
+
+                                          return (
+                                            <div
+                                              key={id}
+                                              className="flex items-center gap-2"
+                                            >
+                                              {option.image && (
+                                                <Image
+                                                  src={option.image}
+                                                  alt="Option"
+                                                  height={48}
+                                                  width={48}
+                                                  className="h-12 w-12 object-cover rounded"
+                                                />
+                                              )}
+                                              {option.textAnswer && (
+                                                <span>{option.textAnswer}</span>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </TableCell>
+
+                                    {/* Result */}
+                                    <TableCell>
+                                      {isCorrect ? (
+                                        <span className="inline-flex items-center gap-1 text-green-600">
+                                          <CheckCircle className="h-4 w-4" />
+                                          <span>Correct</span>
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 text-red-600">
+                                          <span className="text-xl leading-none">
+                                            ✗
+                                          </span>
+                                          <span>Incorrect</span>
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
                         </div>
                       </div>
-                    </div>
-                  ))}
-
-              {!submitted && (
-                <Button
-                  onClick={handleSubmit}
-                  size="lg"
-                  disabled={submitting}
-                  className="w-full sm:w-auto flex items-center gap-2"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Submit Exam"
-                  )}
-                </Button>
+                    )}
+                  </CardContent>
+                </>
               )}
+            </Card>
 
-                {submitted && (
-                  <div className="space-y-6">
-                    <div className="rounded-lg bg-card p-6 shadow-sm">
-                      <h3 className="text-xl font-semibold mb-4">
-                        Exam Results..
-                      </h3>
-                      <div className="flex items-center gap-4">
-                        <div className="text-4xl font-bold text-primary">
-                          {result}
-                          <span className="text-muted-foreground text-lg">
-                            /{exam?.questions.length}
-                          </span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          Questions Answered Correctly
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border shadow-sm">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[50px]">#</TableHead>
-                            <TableHead>Question</TableHead>
-                            <TableHead>Your Answer</TableHead>
-                            <TableHead>Correct Answer</TableHead>
-                            <TableHead className="w-[100px]">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {exam?.questions.map((question, index) => {
-                            const selectedIds = answers[question.id] || [];
-                            const isCorrect = arraysEqual(
-                              selectedIds.map((item) => item.id).sort(),
-                              question.answer.sort()
-                            );
-
-                            return (
-                              <TableRow
-  key={index}
-  className={cn(isCorrect ? "bg-green-50" : "bg-red-50")}
->
-  {/* Question Number */}
-  <TableCell className="font-medium">{index + 1}</TableCell>
-
-  {/* Question Text + Optional Image */}
-  <TableCell>
-    <div className="flex flex-col items-start gap-2">
-      <span>{question.question}</span>
-      {question.image && (
-        <Image
-          src={question.image}
-          alt="question"
-          width={200}
-          height={200}
-          className="w-32 h-auto rounded-lg"
-        />
-      )}
-    </div>
-  </TableCell>
-
-  {/* Your Answer */}
-  <TableCell>
-    <div className="flex flex-wrap items-center gap-4">
-      {selectedIds.length > 0 ? (
-        selectedIds.map(({ id }) => {
-          const option = question.options.find((opt) => opt.id === id);
-          if (!option) return <span key={id}>Not found</span>;
-
-          return (
-            <div key={id} className="flex items-center gap-2">
-              {option.image && (
-                <img
-                  src={option.image}
-                  alt="Option"
-                  className="h-12 w-12 object-cover rounded"
-                />
-              )}
-              {option.textAnswer && <span>{option.textAnswer}</span>}
-            </div>
-          );
-        })
-      ) : (
-        <span>Not Answered</span>
-      )}
-    </div>
-  </TableCell>
-
-  {/* Correct Answer */}
-  <TableCell>
-    <div className="flex flex-wrap items-center gap-4">
-      {question.answer.map((id: string) => {
-        const option = question.options.find((opt) => opt.id === id);
-        if (!option) return <span key={id}>Not found</span>;
-
-        return (
-          <div key={id} className="flex items-center gap-2">
-            {option.image && (
-              <Image
-                src={option.image}
-                alt="Option"
-                height={48}
-                width={48}
-                className="h-12 w-12 object-cover rounded"
-              />
-            )}
-            {option.textAnswer && <span>{option.textAnswer}</span>}
-          </div>
-        );
-      })}
-    </div>
-  </TableCell>
-
-  {/* Result */}
-  <TableCell>
-    {isCorrect ? (
-      <span className="inline-flex items-center gap-1 text-green-600">
-        <CheckCircle className="h-4 w-4" />
-        <span>Correct</span>
-      </span>
-    ) : (
-      <span className="inline-flex items-center gap-1 text-red-600">
-        <span className="text-xl leading-none">✗</span>
-        <span>Incorrect</span>
-      </span>
-    )}
-  </TableCell>
-</TableRow>
-
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
+            <Dialog open={open} onOpenChange={setOpen} modal={true}>
+              <DialogContent
+                className="sm:max-w-md"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+              >
+                <DialogHeader>
+                  <DialogTitle>Confirm Student Details</DialogTitle>
+                  <DialogDescription>
+                    Please verify your information before proceeding to the
+                    exam.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 py-4">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Name:
+                    </span>
+                    <span className="font-medium">
+                      {studentDetails.studentName}
+                    </span>
                   </div>
-                )}
-              </CardContent>
-            </>
-          )}
-        </Card>
-
-        <Dialog open={open} onOpenChange={setOpen} modal={true}>
-          <DialogContent
-            className="sm:max-w-md"
-            onPointerDownOutside={(e) => e.preventDefault()}
-            onInteractOutside={(e) => e.preventDefault()}
-          >
-            <DialogHeader>
-              <DialogTitle>Confirm Student Details</DialogTitle>
-              <DialogDescription>
-                Please verify your information before proceeding to the exam.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-4 py-4">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Name:
-                </span>
-                <span className="font-medium">
-                  {studentDetails.studentName}
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Email:
-                </span>
-                <span className="font-medium">
-                  {studentDetails.studentEmail}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <AlarmClock className="h-5 w-5" />
-                <span>Duration: {exam?.duration} minutes</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CheckCircle className="h-5 w-5" />
-                <span>Questions: {exam?.questions?.length || 0}</span>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Edit Details
-              </Button>
-              <Button onClick={handleStartExam}>Confirm & Start Exam</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Email:
+                    </span>
+                    <span className="font-medium">
+                      {studentDetails.studentEmail}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlarmClock className="h-5 w-5" />
+                    <span>Duration: {exam?.duration} minutes</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <CheckCircle className="h-5 w-5" />
+                    <span>Questions: {exam?.questions?.length || 0}</span>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setOpen(false)}>
+                    Edit Details
+                  </Button>
+                  <Button onClick={handleStartExam}>
+                    Confirm & Start Exam
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  }
 };
 
 export default Page;

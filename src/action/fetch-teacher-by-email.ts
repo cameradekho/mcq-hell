@@ -5,7 +5,7 @@ import { ITeacher, teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
 
 export type FetchTeacherByEmailResult = ServerActionResult<
-  Pick<ITeacher, "id" | "name" | "email" | "avatar">
+  Pick<ITeacher, "_id" | "name" | "email" | "avatar">
 >;
 
 export type FetchTeacherByEmailData = {
@@ -38,7 +38,7 @@ export const fetchTeacherByEmail = async (
     return {
       success: true,
       data: {
-        id: teacher?.id,
+        _id: teacher?._id,
         name: teacher?.name,
         email: teacher?.email,
         avatar: teacher?.avatar,

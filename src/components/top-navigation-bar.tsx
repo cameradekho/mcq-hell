@@ -4,6 +4,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import AuthButtons from "./auth/auth-buttons";
 
 export function TopNavigationBar() {
   const { data: session } = useSession();
@@ -48,12 +49,7 @@ export function TopNavigationBar() {
                 </Button>
               </div>
             ) : (
-              <Button
-                onClick={() => signIn()}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Sign In
-              </Button>
+              <AuthButtons />
             )}
           </div>
         </div>
