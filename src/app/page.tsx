@@ -13,7 +13,6 @@ import { TopNavigationBar } from "@/components/top-navigation-bar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Settings, Activity } from "lucide-react";
-import Link from "next/link";
 import { fetchDashboardStats } from "../action/fetch-dashboard-stats";
 import AuthButtons from "@/components/auth/auth-buttons";
 
@@ -33,16 +32,12 @@ export default function Home() {
       hasRun.current = true;
       try {
         if (session) {
-          const result = await addUser({
+          await addUser({
             name: session.user.name,
             email: session.user.email,
             avatar: session.user.avatar,
             role: session.user.role,
           });
-
-          if (result.success) {
-            toast.success("User added successfully!");
-          }
         }
       } catch (error) {
         toast.error("Error adding user: " + error);
