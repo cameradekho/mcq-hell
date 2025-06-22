@@ -6,11 +6,11 @@ import { AdminSidebar } from "./admin-sidebar";
 import { TicketsClient } from "./tickets-client";
 import { ITicket } from "@/models/ticket";
 
-interface AdminLayoutClientProps {
+type AdminLayoutClientProps = {
   initialTickets: ITicket[];
   initialTotalPages: number;
   currentPage: number;
-}
+};
 
 export function AdminLayoutClient({
   initialTickets,

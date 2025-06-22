@@ -12,10 +12,10 @@ import {
 import { LogOut, Ticket } from "lucide-react";
 import { signOut } from "next-auth/react";
 
-interface AdminSidebarProps {
+type AdminSidebarProps = {
   activeTab: string;
   onTabChange: (tab: string) => void;
-}
+};
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   return (
