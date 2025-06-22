@@ -4,6 +4,12 @@ export type ServerActionResult<T> =
       success: true;
       data: T;
       message?: string;
+      pagination?: {
+        page: number;
+        limit: number;
+        totalPages: number;
+        totalCount: number;
+      };
     }
   | {
       success: false;

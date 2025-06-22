@@ -1,6 +1,5 @@
 "use client";
 
-import { auth } from "../../../auth";
 import {
   Sidebar,
   SidebarContent,
@@ -12,10 +11,17 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Ticket } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("tickets");
+
+  const { data: session } = useSession();
+
+  if (!session?.user?.email) {
+    return <div>You are not authorized to access this page</div>;
+  }
 
   return (
     <>
