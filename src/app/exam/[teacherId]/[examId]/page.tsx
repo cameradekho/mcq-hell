@@ -1,5 +1,5 @@
 "use client";
-
+import { format } from "date-fns";
 import React, { use, useEffect, useState } from "react";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { IAnswer, IExam, IQuestion } from "@/models/exam";
@@ -33,6 +33,7 @@ import {
 import { signOut, useSession } from "next-auth/react";
 import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
 import { ObjectId } from "mongodb";
+import { useSearchParams } from "next/navigation";
 
 type PageProps = {
   params: {
@@ -47,6 +48,7 @@ type StudentDetails = {
 
 const Page = ({ params }: PageProps) => {
   const { data: session, status } = useSession();
+
   const [exam, setExam] = useState<IExam>();
   const [answers, setAnswers] = useState<
     Record<
@@ -76,7 +78,6 @@ const Page = ({ params }: PageProps) => {
   const [open, setOpen] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [shuffledQuestions, setShuffledQuestions] = useState<IQuestion[]>([]);
-  const [shuffledAnswers, setShuffledAnswers] = useState<IAnswer[]>([]);
 
   useEffect(() => {
     async function fetchExamData() {
@@ -360,11 +361,6 @@ const Page = ({ params }: PageProps) => {
     return true;
   }
 
-  function getOptionTextById(question: IQuestion, optionId: string) {
-    const option = question.options.find((opt) => opt.id === optionId);
-    return option ? option.textAnswer || "Image option" : "Not found";
-  }
-
   const formatTime = (seconds: number) => {
     const min = Math.floor(seconds / 60)
       .toString()
@@ -374,7 +370,6 @@ const Page = ({ params }: PageProps) => {
   };
 
   // checking if session is present or not
-
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

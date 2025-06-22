@@ -4,11 +4,12 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
 import { teacherCollectionName } from "@/models/teacher";
+import { ObjectId } from "mongodb";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
 type DeleteExamByIdData = {
-  examName: string;
+  examId: string;
 };
 
 export const deleteExamById = async (
@@ -22,8 +23,8 @@ export const deleteExamById = async (
         message: "You must be logged in to delete an exam",
       };
     }
-    console.log(props.examName);
-    if (!props.examName) {
+    console.log(props.examId);
+    if (!props.examId) {
       return {
         success: false,
         message: "Please provide examId",
@@ -42,14 +43,13 @@ export const deleteExamById = async (
       };
     }
 
-    const result = await mongodb.collection(teacherCollectionName).updateOne(
-      { email: session.user.email },
+    const examObjectId = new ObjectId(props.examId);
+    const result = await mongodb.collection("exam").updateOne(
+      { _id: examObjectId },
       {
-        $pull: {
-          exam: {
-            name: props.examName,
-          },
-        } as any,
+        $unset: {
+          session: "",
+        },
       }
     );
 

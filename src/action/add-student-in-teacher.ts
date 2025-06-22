@@ -1,7 +1,8 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
-import { IStudents, teacherCollectionName } from "@/models/teacher";
+import { IStudents } from "@/models/student";
+import { teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
 
 export type AddStudentInTeacherResult = ServerActionResult<undefined>;
@@ -44,7 +45,7 @@ export const addStudentInTeacher = async (
     }
 
     const existingStudent = existingTeacher.students.find(
-      (student: IStudents) => student.id === data.studentId
+      (student: IStudents) => student._id === data.studentId
     );
     if (existingStudent) {
       return {

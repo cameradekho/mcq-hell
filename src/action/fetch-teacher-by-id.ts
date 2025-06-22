@@ -1,4 +1,5 @@
 "use server";
+
 import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 import { ITeacher } from "@/models/teacher";
@@ -27,7 +28,9 @@ export const fetchTeacherById = async (
   data: FetchTeacherByIdData
 ): Promise<FetchTeacherByIdResult> => {
   try {
-    if (!data.teacherId) {
+    const { teacherId } = data;
+
+    if (!teacherId) {
       return {
         success: false,
         message: "Please provide teacherId",
@@ -37,7 +40,7 @@ export const fetchTeacherById = async (
     await mongodb.connect();
 
     const teacherData = await mongodb.collection("teacher").findOne({
-      _id: new ObjectId(data.teacherId),
+      _id: new ObjectId(teacherId),
     });
 
     if (!teacherData) {
@@ -47,11 +50,10 @@ export const fetchTeacherById = async (
       };
     }
 
-    console.log(teacherData);
     return {
       success: true,
       data: {
-        _id: teacherData.id,
+        _id: teacherData._id, // ✅ fixed
         name: teacherData.name,
         email: teacherData.email,
         avatar: teacherData.avatar,

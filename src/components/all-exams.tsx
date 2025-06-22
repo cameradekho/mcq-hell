@@ -12,7 +12,16 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Copy, Edit2, Trash2, Plus, Search } from "lucide-react";
+import {
+  Clapperboard,
+  Copy,
+  Edit2,
+  Trash2,
+  Plus,
+  Search,
+  CalendarIcon,
+  ChevronDownIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { deleteExamById } from "../action/delete-exam-by-id";
 import { ITeacher } from "@/models/teacher";
@@ -35,7 +44,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Label } from "./ui/label";
+// import SimpleCalendarTest from "./exam-session-date";
 
 type Props = {
   teacherEmail: string;
@@ -189,20 +202,23 @@ export const AllExams = (params: Props) => {
               <div className="absolute inset-0 bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                 <div className="flex items-center gap-2 md:gap-3">
                   {/* Copy Link */}
+
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-110"
-                    onClick={() => {
-                      const examLink = `${
-                        window.location.origin
-                      }/exam/${teacher?._id?.toString()}/${exam.id}`;
-                      navigator.clipboard.writeText(examLink);
-                      toast.success("Exam link copied to clipboard!");
-                    }}
-                    title="Copy exam link"
+                    asChild
+                    title="View results"
                   >
-                    <Copy className="h-3 w-3 md:h-4 md:w-4" />
+                    <Link
+                      href={`/copy-exam-link/${teacher?._id?.toString()}/${
+                        exam.id
+                      }`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Copy className="h-3 w-3 md:h-4 md:w-4" />
+                    </Link>
                   </Button>
 
                   {/* Results */}
