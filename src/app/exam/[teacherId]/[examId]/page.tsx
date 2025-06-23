@@ -924,7 +924,6 @@ const Page = ({ params }: PageProps) => {
                           type="text"
                           placeholder="Enter your full name"
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          value={session?.user.name}
                           onChange={(e) =>
                             setStudentDetails({
                               ...studentDetails,
