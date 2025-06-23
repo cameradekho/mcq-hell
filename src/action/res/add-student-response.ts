@@ -45,12 +45,12 @@ export const addStudentResponse = async (
       };
     }
 
-    if (!data.teacherEmail) {
-      return {
-        success: false,
-        message: "Please provide teacherEmail",
-      };
-    }
+    // if (!data.teacherEmail) {
+    //   return {
+    //     success: false,
+    //     message: "Please provide teacherEmail",
+    //   };
+    // }
 
     if (!data.studentName) {
       return {

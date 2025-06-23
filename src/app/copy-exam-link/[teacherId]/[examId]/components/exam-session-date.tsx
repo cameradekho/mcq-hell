@@ -24,7 +24,6 @@ type ExamSessionDateProps = {
   teacher?: {
     _id?: string;
   };
-  handleCopyExamLink: (params: { examId: string; teacherId: string }) => void;
   sessionDate: Date | undefined;
   setSessionDate: (date: Date | undefined) => void;
 };
