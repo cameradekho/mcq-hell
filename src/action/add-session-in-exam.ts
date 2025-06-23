@@ -41,8 +41,6 @@ export const addSessionInExam = async (
     // Convert sessionDate to dayjs object for date manipulation
     const sessionDay = dayjs(data.sessionDate);
 
-    // Parse time strings and combine with session date
-    // Try multiple formats to handle different time formats
     let formattedStartTime: string;
     let formattedEndTime: string;
 

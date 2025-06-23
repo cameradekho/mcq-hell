@@ -79,6 +79,15 @@ const Page = ({ params }: PageProps) => {
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [shuffledQuestions, setShuffledQuestions] = useState<IQuestion[]>([]);
 
+  const [currentDate, setCurrentDate] = useState<string>(
+    format(new Date(), "yyyy-MM-dd")
+  );
+  const [currentTime, setCurrentTime] = useState<string>(
+    format(new Date(), "HH:mm")
+  );
+
+  const [isDateTimeMatched, setIsDateTimeMatched] = useState<boolean>(false);
+
   useEffect(() => {
     async function fetchExamData() {
       try {
@@ -121,6 +130,10 @@ const Page = ({ params }: PageProps) => {
         if (teacherData.success) {
           setTeacherEmail(teacherData.data.email || "");
         }
+
+        const date = new Date();
+        setCurrentDate(format(date, "yyyy-MM-dd"));
+        setCurrentTime(format(date, "hh:mm a"));
       } catch (error: any) {
         toast.error("Error fetching exam");
         console.error(error);
@@ -133,7 +146,6 @@ const Page = ({ params }: PageProps) => {
   useEffect(() => {
     if (!examStarted || !exam || exam.duration === 0) return;
 
-    // Initialize timeLeft when exam starts
     setTimeLeft(exam.duration * 60); // convert minutes to seconds
 
     const interval = setInterval(() => {
@@ -161,6 +173,76 @@ const Page = ({ params }: PageProps) => {
       setShuffledQuestions(shuffled);
     }
   }, [exam]);
+
+  // exam session date and time validation before starting the exam
+  // This will check if the current date and time matches the exam session date and time
+  useEffect(() => {
+    if (
+      !exam?.session?.sessionDate ||
+      !exam?.session?.startTime ||
+      !exam?.session?.endTime
+    ) {
+      console.log("Exam session details are not set");
+      return;
+    }
+    const now = new Date();
+    const sessionDate = new Date(exam?.session?.sessionDate);
+    const startTime = new Date(exam.session.startTime);
+    const endTime = new Date(exam.session.endTime);
+
+    const sameDate =
+      now.getFullYear() === sessionDate.getFullYear() &&
+      now.getMonth() === sessionDate.getMonth() &&
+      now.getDate() === sessionDate.getDate();
+
+    if (!sameDate) {
+      toast.error("Sorry, Today is not the exam date");
+      setExamStarted(false);
+      setIsDateTimeMatched(false);
+      return;
+    } else if (now < startTime) {
+      toast.error("Sorry, the exam hasn't started yet");
+      setIsDateTimeMatched(false);
+      setExamStarted(false);
+    } else if (now > endTime) {
+      toast.error("Sorry, the exam time is over");
+      setIsDateTimeMatched(false);
+      false;
+      setExamStarted(false);
+      return;
+    } else {
+      setIsDateTimeMatched(true);
+      return;
+    }
+  }, [exam]);
+
+  // Auto-submit exam if time is over
+  // This will check every minute if the current time is within the exam session time range
+  useEffect(() => {
+    const setIntervalId = setInterval(() => {
+      if (
+        !exam?.session?.sessionDate ||
+        !exam?.session?.startTime ||
+        !exam?.session?.endTime
+      ) {
+        console.log("Exam session details are not set");
+        return;
+      }
+      const now = new Date();
+      const startTime = new Date(exam.session.startTime);
+      const endTime = new Date(exam.session.endTime);
+
+      const withinTimeRange = now >= startTime && now <= endTime;
+
+      if (!withinTimeRange) {
+        toast.error("Sorry, the exam time is over");
+        setAutoSubmit(true);
+        handleAutoSubmit();
+      }
+    }, 60000);
+
+    return () => clearInterval(setIntervalId); // Cleanup interval on unmount
+  }, [exam, isDateTimeMatched === true]);
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -456,6 +538,69 @@ const Page = ({ params }: PageProps) => {
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold">Student Details</h2>
+                    <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted text-center shadow-md">
+                      <div className="text-lg font-semibold text-primary">
+                        Exam Session Details
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted text-center shadow-md">
+                        <div className="text-lg font-semibold text-primary">
+                          Exam Session Details
+                        </div>
+
+                        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Date:
+                            </span>{" "}
+                            {exam?.session?.sessionDate
+                              ? new Date(
+                                  exam.session.sessionDate
+                                ).toLocaleDateString()
+                              : "Not set"}
+                          </div>
+
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Start Time:
+                            </span>{" "}
+                            {exam?.session?.startTime
+                              ? new Date(
+                                  exam.session.startTime
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true, // this gives AM/PM format
+                                })
+                              : "Not set"}
+                          </div>
+
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Start Time:
+                            </span>{" "}
+                            {exam?.session?.endTime
+                              ? new Date(
+                                  exam.session.endTime
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true, // this gives AM/PM format
+                                })
+                              : "Not set"}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <span className="font-medium text-accent-foreground">
+                            CurrentDate: {currentDate}
+                          </span>
+                          <span className="font-medium text-accent-foreground">
+                            CurrentTime: {currentTime}
+                          </span>{" "}
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid gap-4">
                       <div className="space-y-2">
                         <label
@@ -515,6 +660,7 @@ const Page = ({ params }: PageProps) => {
                         onClick={handleFetchStudentData}
                         className="w-full sm:w-auto"
                         size="lg"
+                        disabled={isDateTimeMatched === false}
                       >
                         Proceed
                       </Button>

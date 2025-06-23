@@ -40,8 +40,6 @@ export const fetchExamById = async (
       };
     }
 
-    console.log("pro-start ", teacherData);
-
     const exam = teacherData.exam.find(
       (exam: IExam) => exam.id === data.examId
     );
