@@ -49,11 +49,12 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
     endTime: endTime || null,
   });
   const [basicExamDetails, setBasicExamDetails] = useState<
-    Pick<IExam, "name" | "description" | "duration">
+    Pick<IExam, "name" | "description" | "duration" | "session">
   >({
     name: "",
     description: "",
     duration: 0,
+    //session: { startTime: "", endTime: "", date:"" }
   });
 
   useEffect(() => {

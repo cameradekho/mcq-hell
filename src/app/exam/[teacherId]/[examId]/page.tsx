@@ -1,6 +1,6 @@
 "use client";
 import { format } from "date-fns";
-import React, { use, useEffect, useState } from "react";
+import React, { use, useCallback, useEffect, useState } from "react";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
@@ -32,8 +32,6 @@ import {
 } from "@/components/ui/table";
 import { signOut, useSession } from "next-auth/react";
 import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
-import { ObjectId } from "mongodb";
-import { useSearchParams } from "next/navigation";
 
 type PageProps = {
   params: {
@@ -66,7 +64,7 @@ const Page = ({ params }: PageProps) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<number>(0);
-  const [teacherEmail, setTeacherEmail] = useState<string>();
+  const [teacherEmail, setTeacherEmail] = useState<string>("");
   const [step, setStep] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [studentDetails, setStudentDetails] = useState<StudentDetails>({
@@ -128,7 +126,7 @@ const Page = ({ params }: PageProps) => {
         });
 
         if (teacherData.success) {
-          setTeacherEmail(teacherData.data.email || "");
+          setTeacherEmail(teacherData.data.email);
         }
 
         const date = new Date();
@@ -141,7 +139,7 @@ const Page = ({ params }: PageProps) => {
     }
 
     fetchExamData();
-  }, [params.teacherId, params.examId]);
+  }, [params.teacherId, params.examId, isDateTimeMatched === true]);
 
   useEffect(() => {
     if (!examStarted || !exam || exam.duration === 0) return;
@@ -174,8 +172,16 @@ const Page = ({ params }: PageProps) => {
     }
   }, [exam]);
 
-  // exam session date and time validation before starting the exam
-  // This will check if the current date and time matches the exam session date and time
+  // const handleAutoSubmit = () => {
+  //   if (!exam) return;
+  //   setAutoSubmit(true);
+  //   console.log("answers ", answers);
+  //   // Submit exam
+  //   handleSubmit();
+  // };
+
+  // // exam session date and time validation before starting the exam
+  // // This will check if the current date and time matches the exam session date and time
   useEffect(() => {
     if (
       !exam?.session?.sessionDate ||
@@ -216,111 +222,111 @@ const Page = ({ params }: PageProps) => {
     }
   }, [exam]);
 
-  // Auto-submit exam if time is over
-  // This will check every minute if the current time is within the exam session time range
-  useEffect(() => {
-    const setIntervalId = setInterval(() => {
-      if (
-        !exam?.session?.sessionDate ||
-        !exam?.session?.startTime ||
-        !exam?.session?.endTime
-      ) {
-        console.log("Exam session details are not set");
-        return;
-      }
-      const now = new Date();
-      const startTime = new Date(exam.session.startTime);
-      const endTime = new Date(exam.session.endTime);
+  // // Auto-submit exam if time is over
+  // // This will check every minute if the current time is within the exam session time range
+  // useEffect(() => {
+  //   const setIntervalId = setInterval(() => {
+  //     if (
+  //       !exam?.session?.sessionDate ||
+  //       !exam?.session?.startTime ||
+  //       !exam?.session?.endTime
+  //     ) {
+  //       console.log("Exam session details are not set");
+  //       return;
+  //     }
+  //     const now = new Date();
+  //     const startTime = new Date(exam.session.startTime);
+  //     const endTime = new Date(exam.session.endTime);
 
-      const withinTimeRange = now >= startTime && now <= endTime;
+  //     const withinTimeRange = now >= startTime && now <= endTime;
 
-      if (!withinTimeRange) {
-        toast.error("Sorry, the exam time is over");
-        setAutoSubmit(true);
-        handleAutoSubmit();
-      }
-    }, 60000);
+  //     if (!withinTimeRange) {
+  //       toast.error("Sorry, the exam time is over");
+  //       handleAutoSubmit();
+  //     }
+  //   }, 60000);
 
-    return () => clearInterval(setIntervalId); // Cleanup interval on unmount
-  }, [exam, isDateTimeMatched === true]);
+  //   return () => clearInterval(setIntervalId); // Cleanup interval on unmount
+  // }, [exam, isDateTimeMatched === true]);
 
-  useEffect(() => {
-    if (session?.user?.name) {
-      setStudentDetails((prev) => ({
-        ...prev,
-        studentName: session.user.name,
-      }));
-    }
+  // useEffect(() => {
+  //   if (session?.user?.name) {
+  //     setStudentDetails((prev) => ({
+  //       ...prev,
+  //       studentName: session.user.name,
+  //     }));
+  //   }
 
-    if (session?.user?.email) {
-      setStudentDetails((prev) => ({
-        ...prev,
-        studentEmail: session.user.email,
-      }));
-    }
-  }, [session?.user.name, session?.user.email]);
+  //   if (session?.user?.email) {
+  //     setStudentDetails((prev) => ({
+  //       ...prev,
+  //       studentEmail: session.user.email,
+  //     }));
+  //   }
+  // }, [session?.user.name, session?.user.email]);
 
-  const handleAutoSubmit = () => {
-    if (!exam) return;
-    setAutoSubmit(true);
+  // // Handle single choice (radio button) selection
+  // const handleSingleAnswerChange = (
+  //   questionId: string,
+  //   selectedOption: {
+  //     id: string; // not optionId
+  //     content: {
+  //       text?: string[];
+  //       image?: string[];
+  //     };
+  //   }
+  // ) => {
+  //   setAnswers((prev) => ({
+  //     ...prev,
+  //     [questionId]: [selectedOption],
+  //   }));
+  // };
 
-    // Submit exam
-    handleSubmit();
-  };
+  // // Handle multiple choice (checkbox) selection
+  // const handleMultipleAnswerChange = (
+  //   questionId: string,
+  //   selectedOption: {
+  //     id: string;
+  //     content: {
+  //       text?: string[];
+  //       image?: string[];
+  //     };
+  //   },
+  //   isChecked: boolean
+  // ) => {
+  //   setAnswers((prev) => {
+  //     const currentSelections = prev[questionId];
 
-  // Handle single choice (radio button) selection
-  const handleSingleAnswerChange = (
-    questionId: string,
-    selectedOption: {
-      id: string; // not optionId
-      content: {
-        text?: string[];
-        image?: string[];
-      };
-    }
-  ) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: [selectedOption],
-    }));
-  };
-
-  // Handle multiple choice (checkbox) selection
-  const handleMultipleAnswerChange = (
-    questionId: string,
-    selectedOption: {
-      id: string;
-      content: {
-        text?: string[];
-        image?: string[];
-      };
-    },
-    isChecked: boolean
-  ) => {
-    setAnswers((prev) => {
-      const currentSelections = prev[questionId] || [];
-
-      if (isChecked) {
-        return {
-          ...prev,
-          [questionId]: [...currentSelections, selectedOption],
-        };
-      } else {
-        return {
-          ...prev,
-          [questionId]: currentSelections.filter(
-            (opt) => opt.id !== selectedOption.id
-          ),
-        };
-      }
-    });
-  };
+  //     if (isChecked) {
+  //       return {
+  //         ...prev,
+  //         [questionId]: [...currentSelections, selectedOption],
+  //       };
+  //     } else {
+  //       return {
+  //         ...prev,
+  //         [questionId]: currentSelections.filter(
+  //           (opt) => opt.id !== selectedOption.id
+  //         ),
+  //       };
+  //     }
+  //   });
+  // };
 
   const handleFetchStudentData = async () => {
     // Validate student details
     if (!studentDetails.studentName.trim()) {
       toast.error("Please provide student name");
       return;
+    }
+
+    console.log(session?.user.name);
+
+    if (session?.user?.name) {
+      setStudentDetails((prev) => ({
+        ...prev,
+        studentName: session?.user.name,
+      }));
     }
 
     if (session?.user?.email) {
@@ -342,29 +348,242 @@ const Page = ({ params }: PageProps) => {
     setExamStarted(true); // Start the exam
   };
 
+  // const handleSubmit = async () => {
+  //   try {
+  //     setSubmitting(true);
+  //     if (!exam) return;
+
+  //     console.log("hubba one", answers);
+  //     // Check if all questions are answered
+  //     const unansweredQuestions = exam.questions.filter(
+  //       (q) => answers[q.id]?.length === 0
+  //     );
+
+  //     if (timeLeft > 0 && unansweredQuestions.length > 0) {
+  //       if (
+  //         !confirm(
+  //           `You have ${unansweredQuestions.length} unanswered questions. Do you want to submit anyway?`
+  //         )
+  //       ) {
+  //         return;
+  //       }
+  //     }
+
+  //     // Format responses for submission
+  //     const formattedResponses = exam.questions.map((question) => {
+  //       console.log("hubba one point five");
+  //       const selectedOptions = answers[question.id];
+  //       console.log("selectedOptions");
+
+  //       const isCorrect = arraysEqual(
+  //         selectedOptions.map((item) => item.id).sort(),
+  //         question.answer.sort()
+  //       );
+
+  //       return {
+  //         questionId: question.id,
+  //         question: question.question,
+  //         image: question.image || "",
+  //         correctOption: question.options
+  //           .filter((opt) => question.answer.includes(opt.id))
+  //           .map((opt) => ({
+  //             id: opt.id, // ✅ Corrected key
+  //             content: {
+  //               // ✅ Corrected key
+  //               text: opt.textAnswer ? [opt.textAnswer] : [],
+  //               image: opt.image ? [opt.image] : [],
+  //             },
+  //           })),
+  //         selectedOption: selectedOptions.map((opt) => ({
+  //           id: opt.id, // ✅ Corrected key
+  //           content: {
+  //             text: opt.content.text || [],
+  //             image: opt.content.image || [],
+  //           },
+  //         })),
+  //         isCorrect: isCorrect,
+  //       };
+  //     });
+  //     console.log("hubba two");
+  //     console.log(
+  //       "CorrectOption Responses:",
+  //       formattedResponses.map((item) =>
+  //         item.correctOption.map((item1) => item1.content)
+  //       )
+  //     );
+  //     console.log(
+  //       "SelectedOption Responses:",
+  //       formattedResponses.map((item) =>
+  //         item.selectedOption.map((item1) => item1.content)
+  //       )
+  //     );
+  //     // Calculate score
+  //     const correctCount = formattedResponses.filter((r) => r.isCorrect).length;
+  //     setResult(correctCount);
+
+  //     // Submit to server
+  //     const result = await addStudentResponse({
+  //       teacherId: params.teacherId,
+  //       teacherEmail: teacherEmail || "",
+  //       studentName: studentDetails.studentName,
+  //       studentEmail: studentDetails.studentEmail,
+  //       studentAvatar: "",
+  //       examId: params.examId,
+  //       response: formattedResponses,
+  //       score: {
+  //         scored: correctCount,
+  //         submittedAt: new Date(),
+  //       },
+  //     });
+
+  //     console.log("hubba three");
+
+  //     if (result.success) {
+  //       toast.success(result.message);
+  //       setAutoSubmit(false);
+  //       setExamStarted(false);
+  //       setTimeLeft(0);
+  //       setDuration(0);
+  //     } else {
+  //       toast.error(result.message);
+  //       setSubmitting(false);
+  //     }
+  //     console.log("hubba five");
+  //     setSubmitted(true);
+  //   } catch (error) {
+  //     setSubmitting(true);
+  //     toast.error("Error submitting answers");
+  //     console.error(error);
+  //   }
+  // };
+
+  // Helper function to compare arrays
+
+  // Fix 1: Create handleAutoSubmit with useCallback to avoid stale closure
+  const handleAutoSubmit = useCallback(() => {
+    if (!exam) return;
+
+    console.log("=== AUTO-SUBMIT TRIGGERED ===");
+    console.log("Current answers state:", answers);
+    console.log(
+      "Number of questions with answers:",
+      Object.keys(answers).filter((key) => answers[key]?.length > 0).length
+    );
+    console.log("Total questions:", exam?.questions?.length);
+
+    setAutoSubmit(true);
+
+    // Use current answers state directly in handleSubmit
+    handleSubmit();
+  }, [exam, answers]);
+
+  // Fix 2: Update timer useEffect with proper dependencies
+  useEffect(() => {
+    if (!examStarted || !exam || exam.duration === 0) return;
+
+    setTimeLeft(exam.duration * 60); // convert minutes to seconds
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+
+          // Log the current state when timer expires
+          console.log("=== TIMER EXPIRED ===");
+          console.log("Triggering auto-submit...");
+
+          handleAutoSubmit(); // Now uses fresh state via useCallback
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [examStarted, exam, handleAutoSubmit]); // Include handleAutoSubmit in dependencies
+
+  // Fix 3: Update session time validation useEffect
+  useEffect(() => {
+    // Only run if exam is started and has valid session times
+    if (
+      !examStarted ||
+      !exam?.session?.sessionDate ||
+      !exam?.session?.startTime ||
+      !exam?.session?.endTime
+    ) {
+      return;
+    }
+
+    const setIntervalId = setInterval(() => {
+      if (
+        !exam?.session?.sessionDate ||
+        !exam?.session?.startTime ||
+        !exam?.session?.endTime
+      ) {
+        console.log("Exam session details are not set");
+        return;
+      }
+      const now = new Date();
+      const startTime = new Date(exam.session.startTime);
+      const endTime = new Date(exam.session.endTime);
+
+      const withinTimeRange = now >= startTime && now <= endTime;
+
+      if (!withinTimeRange) {
+        console.log("=== SESSION TIME EXPIRED ===");
+        toast.error("Sorry, the exam time is over");
+        handleAutoSubmit();
+        clearInterval(setIntervalId); // Clear this interval after triggering
+      }
+    }, 60000);
+
+    return () => clearInterval(setIntervalId);
+  }, [exam, examStarted, handleAutoSubmit]); // Add examStarted and handleAutoSubmit
+
+  // Fix 4: Update handleSubmit to better handle auto-submit scenarios
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
       if (!exam) return;
 
+      console.log("=== HANDLE SUBMIT CALLED ===");
+      console.log("Auto-submit mode:", autoSubmit);
+      console.log("Current answers:", JSON.stringify(answers, null, 2));
+
       // Check if all questions are answered
       const unansweredQuestions = exam.questions.filter(
-        (q) => answers[q.id]?.length === 0
+        (q) => !answers[q.id] || answers[q.id]?.length === 0
       );
 
-      if (timeLeft > 0 && unansweredQuestions.length > 0) {
+      console.log("Unanswered questions count:", unansweredQuestions.length);
+
+      // Only show confirmation for manual submit with unanswered questions
+      if (timeLeft > 0 && unansweredQuestions.length > 0 && !autoSubmit) {
         if (
           !confirm(
             `You have ${unansweredQuestions.length} unanswered questions. Do you want to submit anyway?`
           )
         ) {
+          setSubmitting(false);
           return;
         }
+      }
+
+      // For auto-submit, log the situation but proceed
+      if (autoSubmit && unansweredQuestions.length > 0) {
+        console.log(
+          "Auto-submit with unanswered questions - proceeding anyway"
+        );
       }
 
       // Format responses for submission
       const formattedResponses = exam.questions.map((question) => {
         const selectedOptions = answers[question.id] || [];
+
+        console.log(`Question ${question.id}:`, {
+          hasAnswers: selectedOptions.length > 0,
+          selectedOptions: selectedOptions,
+        });
 
         const isCorrect = arraysEqual(
           selectedOptions.map((item) => item.id).sort(),
@@ -378,15 +597,14 @@ const Page = ({ params }: PageProps) => {
           correctOption: question.options
             .filter((opt) => question.answer.includes(opt.id))
             .map((opt) => ({
-              id: opt.id, // ✅ Corrected key
+              id: opt.id,
               content: {
-                // ✅ Corrected key
                 text: opt.textAnswer ? [opt.textAnswer] : [],
                 image: opt.image ? [opt.image] : [],
               },
             })),
           selectedOption: selectedOptions.map((opt) => ({
-            id: opt.id, // ✅ Corrected key
+            id: opt.id,
             content: {
               text: opt.content.text || [],
               image: opt.content.image || [],
@@ -394,6 +612,14 @@ const Page = ({ params }: PageProps) => {
           })),
           isCorrect: isCorrect,
         };
+      });
+
+      console.log("Formatted responses summary:", {
+        totalQuestions: formattedResponses.length,
+        questionsWithAnswers: formattedResponses.filter(
+          (r) => r.selectedOption.length > 0
+        ).length,
+        correctAnswers: formattedResponses.filter((r) => r.isCorrect).length,
       });
 
       // Calculate score
@@ -415,26 +641,110 @@ const Page = ({ params }: PageProps) => {
         },
       });
 
+      console.log("Server response:", result);
+
       if (result.success) {
         toast.success(result.message);
-        setAutoSubmit(false);
-        setExamStarted(false);
-        setTimeLeft(0);
-        setDuration(0);
+        setSubmitted(true);
       } else {
         toast.error(result.message);
-        setSubmitting(false);
       }
 
-      setSubmitted(true);
+      // Reset states after successful submission
+      setAutoSubmit(false);
+      setExamStarted(false);
+      setTimeLeft(0);
+      setDuration(0);
     } catch (error) {
-      setSubmitting(true);
+      console.error("Submit error:", error);
       toast.error("Error submitting answers");
-      console.error(error);
+    } finally {
+      setSubmitting(false); // Always reset submitting state
     }
   };
 
-  // Helper function to compare arrays
+  // Fix 5: Add debugging to answer handlers to verify state updates
+  const handleSingleAnswerChange = (
+    questionId: string,
+    selectedOption: {
+      id: string;
+      content: {
+        text?: string[];
+        image?: string[];
+      };
+    }
+  ) => {
+    console.log(
+      "Setting single answer for question:",
+      questionId,
+      selectedOption
+    );
+
+    setAnswers((prev) => {
+      const newAnswers = {
+        ...prev,
+        [questionId]: [selectedOption],
+      };
+
+      console.log("Updated answers state:", {
+        questionId,
+        previousCount: prev[questionId]?.length || 0,
+        newCount: newAnswers[questionId].length,
+        totalAnsweredQuestions: Object.keys(newAnswers).filter(
+          (key) => newAnswers[key]?.length > 0
+        ).length,
+      });
+
+      return newAnswers;
+    });
+  };
+
+  const handleMultipleAnswerChange = (
+    questionId: string,
+    selectedOption: {
+      id: string;
+      content: {
+        text?: string[];
+        image?: string[];
+      };
+    },
+    isChecked: boolean
+  ) => {
+    console.log("Setting multiple answer for question:", questionId, {
+      selectedOption,
+      isChecked,
+    });
+
+    setAnswers((prev) => {
+      const currentSelections = prev[questionId] || [];
+      let newSelections;
+
+      if (isChecked) {
+        newSelections = [...currentSelections, selectedOption];
+      } else {
+        newSelections = currentSelections.filter(
+          (opt) => opt.id !== selectedOption.id
+        );
+      }
+
+      const newAnswers = {
+        ...prev,
+        [questionId]: newSelections,
+      };
+
+      console.log("Updated multiple answers state:", {
+        questionId,
+        previousCount: currentSelections.length,
+        newCount: newSelections.length,
+        totalAnsweredQuestions: Object.keys(newAnswers).filter(
+          (key) => newAnswers[key]?.length > 0
+        ).length,
+      });
+
+      return newAnswers;
+    });
+  };
+
   function arraysEqual(a: string[], b: string[]) {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
@@ -903,6 +1213,7 @@ const Page = ({ params }: PageProps) => {
                                               question.options.find(
                                                 (opt) => opt.id === id
                                               );
+
                                             if (!option)
                                               return (
                                                 <span key={id}>Not found</span>
@@ -922,7 +1233,7 @@ const Page = ({ params }: PageProps) => {
                                                 )}
                                                 {option.textAnswer && (
                                                   <span>
-                                                    {option.textAnswer}
+                                                    {option.textAnswer} yooo
                                                   </span>
                                                 )}
                                               </div>

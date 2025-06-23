@@ -37,6 +37,7 @@ export const addStudentResponse = async (
 ): Promise<AddStudentResponseResult> => {
   try {
     // Individual field validation
+    console.log("Adding kutta");
     if (!data.teacherId) {
       return {
         success: false,
@@ -113,6 +114,19 @@ export const addStudentResponse = async (
       ...item,
       image: item.image || "",
     }));
+
+    console.log(
+      "CorrectOption Responses:",
+      normalizedResponses.map((item) =>
+        item.correctOption.map((item1) => item1.content)
+      )
+    );
+    console.log(
+      "SelectedOption Responses:",
+      normalizedResponses.map((item) =>
+        item.selectedOption.map((item1) => item1.content)
+      )
+    );
 
     const result = await mongodb
       .collection(studentResponseCollectionName)
