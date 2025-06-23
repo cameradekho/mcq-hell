@@ -19,17 +19,26 @@ export default function Home() {
   }) => {};
 
   return (
-    <div className="flex items-center justify-center h-screen flex-col gap-2">
-      <h1 className="text-2xl font-bold">ExamHell</h1>
-      <ExamSessionDate
-        data={{
-          exam: { id: examId },
-          teacher: { _id: teacherId },
-          handleCopyExamLink: handleCopyExamLink,
-          sessionDate: sessionDate,
-          setSessionDate: setSessionDate,
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 ">
+      <div className="w-full max-w-2xl space-y-6 text-center">
+        {/* App Title */}
+        <h1 className="text-4xl font-extrabold text-primary tracking-tight">
+          Exam<span className=" text-secondary-foreground">Hell</span>
+        </h1>
+
+        {/* Session Date Card */}
+        <div className="rounded-xl border border-muted bg-muted/40 shadow-sm p-6">
+          <ExamSessionDate
+            data={{
+              exam: { id: examId },
+              teacher: { _id: teacherId },
+              handleCopyExamLink: handleCopyExamLink,
+              sessionDate: sessionDate,
+              setSessionDate: setSessionDate,
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

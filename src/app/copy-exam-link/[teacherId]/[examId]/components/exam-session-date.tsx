@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../../../../../components/ui/button";
 import { ChevronDown, Copy, Calendar as CalendarIcon } from "lucide-react";
 import { Label } from "../../../../../components/ui/label";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { addSessionInExam } from "@/action/add-session-in-exam";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { deleteSessionInExam } from "@/action/delete-session-in-exam";
+import { IExam } from "@/models/exam";
 
 type ExamSessionDateProps = {
   exam: {
@@ -47,6 +48,41 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
     startTime: startTime || null,
     endTime: endTime || null,
   });
+  const [basicExamDetails, setBasicExamDetails] = useState<
+    Pick<IExam, "name" | "description" | "duration">
+  >({
+    name: "",
+    description: "",
+    duration: 0,
+  });
+
+  useEffect(() => {
+    const fetchExamData = async () => {
+      if (!data.exam.id || !data.teacher?._id) return;
+
+      try {
+        const res = await fetchExamById({
+          teacherId: data.teacher._id,
+          examId: data.exam.id,
+        });
+
+        if (!res.success) {
+          toast.error(res.message);
+          return;
+        }
+        setBasicExamDetails({
+          name: res.data.name,
+          description: res.data.description,
+          duration: res.data.duration,
+        });
+      } catch (error) {
+        console.error("Error fetching exam data:", error);
+        toast.error("Failed to fetch exam data");
+      }
+    };
+
+    fetchExamData();
+  }, []);
 
   const handleDateSelect = (date: Date | undefined) => {
     data.setSessionDate(date);
@@ -137,107 +173,135 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
   };
 
   return (
-    <div>
-      <div className="space-y-4">
-        {data.sessionDate && (
-          <div className="p-3 bg-muted rounded-md">
-            <span className="text-sm font-medium">
-              Selected Date:{" "}
-              {data.sessionDate.toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </span>
-          </div>
-        )}
+    <div className="space-y-6 p-4">
+      <div className="space-y-1 mb-6">
+        <h2 className="text-2xl font-bold text-primary tracking-tight">
+          {basicExamDetails.name}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {basicExamDetails.description}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Duration:{" "}
+          <span className="font-medium text-foreground">
+            {basicExamDetails.duration} mins
+          </span>
+        </p>
+      </div>
 
-        <div className="space-y-2">
-          <Label>Select Exam Date</Label>
-
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-                type="button"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {data.sessionDate ? (
-                  data.sessionDate.toLocaleDateString()
-                ) : (
-                  <span>Pick a date</span>
-                )}
-                <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={data.sessionDate}
-                onSelect={handleDateSelect}
-                disabled={(date) => {
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  return date < today;
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+      {/* Selected Date Display */}
+      {data.sessionDate && (
+        <div className="bg-muted rounded-md p-3">
+          <span className="text-sm font-semibold text-primary">
+            Selected Date:{" "}
+            {data.sessionDate.toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </span>
         </div>
+      )}
 
-        <div>
-          <BasicTimePicker
-            data={{
-              label: "Exam Start Time",
-              value: startTime,
-              onChange: setStartTime,
-            }}
-          />
-          <BasicTimePicker
-            data={{
-              label: "Exam End Time",
-              value: endTime,
-              onChange: setEndTime,
-            }}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <span>Selected Date: {data.sessionDate?.toLocaleDateString()}</span>
-          <span>Start Time: {startTime?.format("HH:mm")}</span>
-          <span>End Time: {endTime?.format("HH:mm")}</span>
-          <div className=" flex items-center justify-between gap-4">
-            <Button variant="outline" onClick={handleClickReset}>
-              Reset
+      {/* Date Picker */}
+      <div className="space-y-2">
+        <Label className="text-base font-medium">Select Exam Date</Label>
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+              type="button"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {data.sessionDate ? (
+                data.sessionDate.toLocaleDateString()
+              ) : (
+                <span className="text-muted-foreground">Pick a date</span>
+              )}
+              <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
             </Button>
-            <Button onClick={handleSessionSave}>Save Changes</Button>
-          </div>
-        </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={data.sessionDate}
+              onSelect={handleDateSelect}
+              disabled={(date) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date < today;
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
 
-        <span>
-          Please select the exam date and time, when to live the exam.
-        </span>
+      {/* Time Pickers */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BasicTimePicker
+          data={{
+            label: "Start Time",
+            value: startTime,
+            onChange: setStartTime,
+          }}
+        />
+        <BasicTimePicker
+          data={{
+            label: "End Time",
+            value: endTime,
+            onChange: setEndTime,
+          }}
+        />
+      </div>
 
-        <div className="flex gap-2 pt-4">
-          <Button
-            variant="outline"
-            onClick={() => setDialogOpen(false)}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
+      {/* Selection Summary */}
+      <div className="rounded-md bg-muted p-4 text-sm space-y-1 text-muted-foreground">
+        <p>
+          <strong>Date:</strong>{" "}
+          {data.sessionDate?.toLocaleDateString("en-US") || "Not selected"}
+        </p>
+        <p>
+          <strong>Start Time:</strong>{" "}
+          {startTime?.format("HH:mm") || "Not selected"}
+        </p>
+        <p>
+          <strong>End Time:</strong>{" "}
+          {endTime?.format("HH:mm") || "Not selected"}
+        </p>
+      </div>
 
-          <Button
-            onClick={handleCopyLink}
-            disabled={enableSave === false}
-            className="flex-1"
-          >
-            Copy Exam Link
-          </Button>
-        </div>
+      {/* Actions */}
+      <div className="flex flex-wrap gap-3">
+        <Button variant="outline" onClick={handleClickReset}>
+          Reset
+        </Button>
+        <Button onClick={handleSessionSave}>Save Changes</Button>
+      </div>
+
+      {/* Instruction */}
+      <p className="text-sm text-muted-foreground pt-2">
+        Please select the exam date and time to publish the exam schedule.
+      </p>
+
+      {/* Footer Actions */}
+      <div className="flex gap-3 pt-4">
+        <Button
+          variant="outline"
+          onClick={() => setDialogOpen(false)}
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleCopyLink}
+          disabled={!enableSave}
+          className="flex-1"
+        >
+          Copy Exam Link
+        </Button>
       </div>
     </div>
   );
