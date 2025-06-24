@@ -21,6 +21,7 @@ import {
   Search,
   CalendarIcon,
   ChevronDownIcon,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteExamById } from "../action/delete-exam-by-id";
@@ -115,8 +116,8 @@ export const AllExams = (params: Props) => {
     }
   }, [params.teacherEmail]);
 
-  const handleDeleteClick = (examName: string) => {
-    setExamToDelete(examName);
+  const handleDeleteClick = (examId: string) => {
+    setExamToDelete(examId);
     setIsDeleteDialogOpen(true);
   };
 
@@ -125,7 +126,7 @@ export const AllExams = (params: Props) => {
 
     try {
       const res = await deleteExamById({
-        examName: examToDelete,
+        examId: examToDelete.toString(),
       });
 
       if (res.success) {
@@ -174,12 +175,25 @@ export const AllExams = (params: Props) => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Link href="/add-exam" target="_blank" rel="noopener noreferrer">
-          <Button className="w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Exam
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <Link href="/add-exam" target="_blank" rel="noopener noreferrer">
+            <Button className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Exam
+            </Button>
+          </Link>
+
+          <Link
+            href={`/add-exam-by-ai/${teacher?._id?.toString()}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button className="w-full sm:w-auto">
+              <Bot className="w-4 h-4 mr-2" />
+              Add New Exam By AI
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {filteredExams.length > 0 ? (
@@ -260,7 +274,7 @@ export const AllExams = (params: Props) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
-                    onClick={() => handleDeleteClick(exam.name)}
+                    onClick={() => handleDeleteClick(exam.id)}
                     title="Delete exam"
                   >
                     <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
