@@ -86,6 +86,7 @@ const Page = ({ params }: PageProps) => {
 
   const [isDateTimeMatched, setIsDateTimeMatched] = useState<boolean>(false);
 
+  //fetching exam data
   useEffect(() => {
     async function fetchExamData() {
       try {
@@ -141,6 +142,8 @@ const Page = ({ params }: PageProps) => {
     fetchExamData();
   }, [params.teacherId, params.examId, isDateTimeMatched === true]);
 
+  // calcuing time left for the exam and auto-submit exam if time is over
+  // This will start a timer when the exam starts and auto-submit when time is over
   useEffect(() => {
     if (!examStarted || !exam || exam.duration === 0) return;
 
@@ -160,6 +163,7 @@ const Page = ({ params }: PageProps) => {
     return () => clearInterval(interval); // cleanup
   }, [examStarted, exam]);
 
+  // Shuffle questions and options
   useEffect(() => {
     if (exam?.questions) {
       const shuffled: IQuestion[] = [...exam.questions]
