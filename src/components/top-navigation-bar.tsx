@@ -22,6 +22,12 @@ export function TopNavigationBar() {
           <div className="flex items-center space-x-4">
             {session ? (
               <div className="flex items-center space-x-4">
+                <Link
+                  href="/support"
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  Support
+                </Link>
                 {/* <Link
                   href="/result"
                   className="text-sm font-medium text-foreground hover:text-primary transition-colors"
