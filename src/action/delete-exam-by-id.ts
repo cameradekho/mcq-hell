@@ -45,7 +45,7 @@ export const deleteExamById = async (
 
     const examObjectId = new ObjectId(props.examId);
     const result = await mongodb.collection("exam").updateOne(
-      { _id: examObjectId },
+      { id: examObjectId },
       {
         $unset: {
           session: "",

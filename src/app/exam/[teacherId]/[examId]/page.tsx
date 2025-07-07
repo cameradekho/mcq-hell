@@ -962,7 +962,7 @@ const Page = ({ params }: PageProps) => {
                                                 )}
                                                 {option.textAnswer && (
                                                   <span>
-                                                    {option.textAnswer} yooo
+                                                    {option.textAnswer} 
                                                   </span>
                                                 )}
                                               </div>

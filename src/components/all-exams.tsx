@@ -19,8 +19,6 @@ import {
   Trash2,
   Plus,
   Search,
-  CalendarIcon,
-  ChevronDownIcon,
   Bot,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,16 +26,8 @@ import { deleteExamById } from "../action/delete-exam-by-id";
 import { ITeacher } from "@/models/teacher";
 import { fetchTeacherByEmail } from "../action/fetch-teacher-by-email";
 import { HiAcademicCap } from "react-icons/hi";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -45,10 +35,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Label } from "./ui/label";
+
 // import SimpleCalendarTest from "./exam-session-date";
 
 type Props = {
@@ -126,7 +114,7 @@ export const AllExams = (params: Props) => {
 
     try {
       const res = await deleteExamById({
-        examId: examToDelete.toString(),
+        examId: examToDelete,
       });
 
       if (res.success) {
@@ -274,7 +262,7 @@ export const AllExams = (params: Props) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
-                    onClick={() => handleDeleteClick(exam.id)}
+                    onClick={() => handleDeleteClick(exam.id.toString())}
                     title="Delete exam"
                   >
                     <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
