@@ -1,0 +1,68 @@
+"use client";
+
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect } from "react";
+import { useChatContext } from "@/providers/chat-provider";
+import { ChatInput } from "@/components/chat-input";
+import { useSSE } from "@/hooks/custom/use-sse";
+import { MessageList } from "@/components/message-list";
+import { generateMongoId } from "@/lib/generate-mongo-id";
+import { StreamingMessage } from "@/components/streaming-message";
+
+const ChatPage = () => {
+  const params = useParams<{ _id: string }>();
+  const router = useRouter();
+
+  const { pendingMessage, setPendingMessage } = useChatContext();
+
+  const { messages, isStreaming, submitMessage, currentMessage } = useSSE();
+
+  useEffect(() => {
+    if (params._id !== "new" && pendingMessage) {
+      submitMessage({
+        conversation_id: params._id,
+        user_message: pendingMessage,
+      });
+    }
+    setPendingMessage(null);
+  }, [params._id]);
+
+  const handleSubmit = async (data: { message: string }) => {
+    if (params._id === "new") {
+      setPendingMessage(data.message);
+      const newConversationId = await generateMongoId();
+      router.replace(`/chat/${newConversationId}`);
+    } else {
+      submitMessage({
+        conversation_id: params._id,
+        user_message: data.message,
+      });
+    }
+  };
+
+  if (params._id === "new") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-120px)] mx-auto max-w-2xl px-4 w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold mb-2">Start a New Conversation</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Type your message below to begin
+          </p>
+        </div>
+        <ChatInput onSubmit={handleSubmit} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-120px)] mx-auto max-w-2xl px-4 w-full">
+      <div className="flex-1 overflow-y-auto pb-32">
+        <MessageList messages={messages} />
+        {isStreaming && <StreamingMessage message={currentMessage} />}
+      </div>
+      <ChatInput onSubmit={handleSubmit} />
+    </div>
+  );
+};
+
+export default ChatPage;
