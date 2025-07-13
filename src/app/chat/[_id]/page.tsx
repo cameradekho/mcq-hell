@@ -8,6 +8,7 @@ import { useSSE } from "@/hooks/custom/use-sse";
 import { MessageList } from "@/components/message-list";
 import { generateMongoId } from "@/lib/generate-mongo-id";
 import { StreamingMessage } from "@/components/streaming-message";
+import { Loader2 } from "lucide-react";
 
 const ChatPage = () => {
   const params = useParams<{ _id: string }>();
@@ -59,6 +60,11 @@ const ChatPage = () => {
       <div className="flex-1 overflow-y-auto pb-32">
         <MessageList messages={messages} />
         {isStreaming && <StreamingMessage message={currentMessage} />}
+        {isStreaming && (
+          <div className="flex justify-center items-center h-full">
+            <Loader2 className="size-4 animate-spin" /> 
+          </div>
+        )}
       </div>
       <ChatInput onSubmit={handleSubmit} />
     </div>
