@@ -10,12 +10,12 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "../../../../../components/ui/calendar";
 import BasicTimePicker from "@/components/ui/basic-time-picker";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { toast } from "sonner";
 import { addSessionInExam } from "@/action/add-session-in-exam";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { deleteSessionInExam } from "@/action/delete-session-in-exam";
-import { IExam } from "@/models/exam";
+import { IExam, ISession } from "@/models/exam";
 
 type ExamSessionDateProps = {
   exam: {
@@ -26,6 +26,9 @@ type ExamSessionDateProps = {
   };
   sessionDate: Date | undefined;
   setSessionDate: (date: Date | undefined) => void;
+  existingSessionData?: ISession;
+  enableCopy: boolean;
+  setEnableCopy: (enable: boolean) => void;
 };
 
 type ExamSessionType = {
@@ -40,7 +43,6 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
 
   const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
-  const [enableSave, setEnableSave] = useState(false);
 
   const [examSession, setExamSession] = useState<ExamSessionType>({
     examDate: new Date(),
@@ -83,6 +85,20 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
 
     fetchExamData();
   }, []);
+
+  useEffect(() => {
+    if (data.existingSessionData?.sessionDate) {
+      data.setSessionDate(data.existingSessionData?.sessionDate);
+    }
+
+    if (data.existingSessionData?.startTime) {
+      setStartTime(dayjs(data.existingSessionData?.startTime));
+    }
+
+    if (data.existingSessionData?.endTime) {
+      setEndTime(dayjs(data.existingSessionData?.endTime));
+    }
+  }, [data.existingSessionData]);
 
   const handleDateSelect = (date: Date | undefined) => {
     data.setSessionDate(date);
@@ -136,7 +152,7 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
         toast.error(res.message);
         return;
       }
-      setEnableSave(true);
+      data.setEnableCopy(true);
 
       setExamSession({
         examDate: data.sessionDate,
@@ -165,7 +181,7 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
       setStartTime(null);
       setEndTime(null);
       data.setSessionDate(undefined);
-      setEnableSave(false);
+      data.setEnableCopy(false);
     } catch (error) {
       console.error(error);
       toast.error("Error resetting session");
@@ -191,15 +207,29 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
 
       {/* Selected Date Display */}
       {data.sessionDate && (
-        <div className="bg-muted rounded-md p-3">
+        <div className="bg-muted rounded-md p-3 flex flex-col gap-1">
           <span className="text-sm font-semibold text-primary">
             Selected Date:{" "}
-            {data.sessionDate.toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            <span className=" text-secondary-foreground">
+              {data.sessionDate.toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+          </span>
+          <span className="text-sm font-semibold text-primary">
+            Selected Start Time:{" "}
+            <span className=" text-secondary-foreground">
+              {startTime ? dayjs(startTime).format("hh:mm A") : "Not selected"}
+            </span>
+          </span>
+          <span className="text-sm font-semibold text-primary">
+            Selected End Time:{" "}
+            <span className=" text-secondary-foreground">
+              {endTime ? dayjs(endTime).format("hh:mm A") : "Not selected"}
+            </span>
           </span>
         </div>
       )}
@@ -256,23 +286,6 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
           }}
         />
       </div>
-
-      {/* Selection Summary */}
-      <div className="rounded-md bg-muted p-4 text-sm space-y-1 text-muted-foreground">
-        <p>
-          <strong>Date:</strong>{" "}
-          {data.sessionDate?.toLocaleDateString("en-US") || "Not selected"}
-        </p>
-        <p>
-          <strong>Start Time:</strong>{" "}
-          {startTime?.format("HH:mm") || "Not selected"}
-        </p>
-        <p>
-          <strong>End Time:</strong>{" "}
-          {endTime?.format("HH:mm") || "Not selected"}
-        </p>
-      </div>
-
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
         <Button variant="outline" onClick={handleClickReset}>
@@ -297,7 +310,7 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
         </Button>
         <Button
           onClick={handleCopyLink}
-          disabled={!enableSave}
+          disabled={!data.enableCopy}
           className="flex-1"
         >
           Copy Exam Link

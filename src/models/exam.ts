@@ -18,7 +18,7 @@ export type IAnswer = { _id: ObjectId } & (
   updatedAt: Date;
 };
 
- type ISession = {
+export type ISession = {
   _id?: ObjectId;
   sessionDate: Date;
   startTime: string | null;
