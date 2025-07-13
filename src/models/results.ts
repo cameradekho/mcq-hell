@@ -7,7 +7,7 @@ export type IStudentResult = {
 };
 
 export type IExamResult = {
-  examId: IExam["id"];
+  examId: IExam["_id"];
   examName: IExam["name"];
   students: IStudentResult[];
 };

@@ -6,7 +6,6 @@ import { teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
 import dayjs from "dayjs";
 import { ObjectId } from "mongodb";
-import { fetchExamById } from "./fetch-exam-by-id";
 
 export type AddSessionInExamResult = ServerActionResult<undefined>;
 
@@ -102,18 +101,19 @@ export const addSessionInExam = async (
       };
     }
 
-    const res = await mongodb
-      .collection(teacherCollectionName)
-      .updateOne({ _id: teacherObjectId, "exam.id": data.examId }, {
+    const res = await mongodb.collection(examCollectionName).updateOne(
+      {
+        _id: new ObjectId(data.examId),
+      },
+      {
         $set: {
-          "exam.$.session": {
-            sessionDate: data.sessionDate,
-            startTime: formattedStartTime,
-            endTime: formattedEndTime,
-            createdAt: new Date(),
-          },
-        },
-      } as any);
+          "session.sessionDate": data.sessionDate,
+          "session.startTime": formattedStartTime,
+          "session.endTime": formattedEndTime,
+          "session.createdAt": new Date(),
+        } as any,
+      }
+    );
 
     if (!res.acknowledged) {
       return {

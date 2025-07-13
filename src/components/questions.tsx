@@ -4,7 +4,6 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { addExamByUser } from "../action/add-exam-by-user";
 import { addExam } from "../action/global-data/add-exam";
 import { useSession } from "next-auth/react";
 import { Button } from "./ui/button";
@@ -108,10 +107,9 @@ export const Questions = () => {
     }
 
     try {
-      const result = await addExamByUser({
-        userEmail: session?.user.email || "",
-        examName: data.title,
-        examDescription: data.description,
+      const res = await addExam({
+        name: data.title,
+        description: data.description,
         duration: data.duration,
         questions: data.questions.map((q) => ({
           question: q.question,
@@ -122,36 +120,15 @@ export const Questions = () => {
             isCorrect: opt.isCorrect,
           })),
         })),
+        createdName: "",
+        createdByEmail: session?.user.email || "",
       });
 
-      if (result.success) {
-        // toast.success("Exam added successfully!");
-
-        const res = await addExam({
-          name: data.title,
-          description: data.description,
-          duration: data.duration,
-          questions: data.questions.map((q) => ({
-            question: q.question,
-            image: q.image || "",
-            options: q.options.map((opt) => ({
-              ...(opt.text ? { text: opt.text } : {}),
-              ...(opt.image ? { image: opt.image } : {}),
-              isCorrect: opt.isCorrect,
-            })),
-          })),
-          createdName: "",
-          createdByEmail: session?.user.email || "",
-        });
-
-        if (res.success) {
-          toast.success("Exam added successfully!");
-          reset();
-        } else {
-          toast.error(res.message);
-        }
+      if (res.success) {
+        toast.success("Exam added successfully!");
+        reset();
       } else {
-        toast.error(result.message);
+        toast.error(res.message);
       }
     } catch (error: any) {
       toast.error(error);

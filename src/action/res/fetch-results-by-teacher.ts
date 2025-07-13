@@ -64,7 +64,7 @@ export const fetchResultsByTeacher = async (
 
     const teacher = teacherResult.data;
     const teacherEmail = teacher.email;
-    const teacherId = teacher.id;
+    const teacherId = teacher._id;
 
     await mongodb.connect();
 

@@ -1,8 +1,8 @@
 "use client";
 import { format } from "date-fns";
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
-import { IAnswer, IExam, IQuestion } from "@/models/exam";
+import { IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogOverlay,
-  DialogPortal,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { AlarmClock, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -114,7 +111,7 @@ const Page = ({ params }: PageProps) => {
               }[]
             > = {};
             (data.data as IExam).questions.forEach((q) => {
-              initialAnswers[q.id] = [];
+              initialAnswers[q._id.toString()] = [];
             });
             setAnswers(initialAnswers);
           }
@@ -356,7 +353,7 @@ const Page = ({ params }: PageProps) => {
       console.log("hubba one");
       // Check if all questions are answered
       const unansweredQuestions = exam.questions.filter(
-        (q) => answers[q.id]?.length === 0
+        (q) => answers[q._id.toString()]?.length === 0
       );
 
       if (timeLeft > 0 && unansweredQuestions.length > 0) {
@@ -372,22 +369,22 @@ const Page = ({ params }: PageProps) => {
       // Format responses for submission
       const formattedResponses = exam.questions.map((question) => {
         console.log("hubba one point five");
-        const selectedOptions = answers[question.id];
+        const selectedOptions = answers[question._id.toString()];
         console.log("selectedOptions");
 
         const isCorrect = arraysEqual(
-          selectedOptions.map((item) => item.id).sort(),
-          question.answer.sort()
+          selectedOptions.map((item) => item.id.toString()).sort(),
+          question.answer.map((id) => id.toString()).sort()
         );
 
         return {
-          questionId: question.id,
+          questionId: question._id.toString(),
           question: question.question,
           image: question.image || "",
           correctOption: question.options
-            .filter((opt) => question.answer.includes(opt.id))
+            .filter((opt) => question.answer.includes(opt._id))
             .map((opt) => ({
-              id: opt.id, // ✅ Corrected key
+              id: opt._id.toString(), // ✅ Corrected key
               content: {
                 // ✅ Corrected key
                 text: opt.textAnswer ? [opt.textAnswer] : [],
@@ -395,7 +392,7 @@ const Page = ({ params }: PageProps) => {
               },
             })),
           selectedOption: selectedOptions.map((opt) => ({
-            id: opt.id, // ✅ Corrected key
+            id: opt.id.toString(), // ✅ Corrected key
             content: {
               text: opt.content.text || [],
               image: opt.content.image || [],
@@ -765,11 +762,13 @@ const Page = ({ params }: PageProps) => {
                                   className={cn(
                                     "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
                                     (question.answer.length > 1
-                                      ? answers[question.id]?.some(
-                                          (ans) => ans.id === option.id
+                                      ? answers[question._id.toString()]?.some(
+                                          (ans) =>
+                                            ans.id === option._id.toString()
                                         )
-                                      : answers[question.id]?.[0]?.id ===
-                                        option.id) && "ring-2 ring-primary"
+                                      : answers[question._id.toString()]?.[0]
+                                          ?.id === option._id.toString()) &&
+                                      "ring-2 ring-primary"
                                   )}
                                 >
                                   <div className="flex items-start gap-3">
@@ -780,21 +779,26 @@ const Page = ({ params }: PageProps) => {
                                           : "radio"
                                       }
                                       name={`question-${qIndex}`}
-                                      value={option.id}
+                                      value={option._id.toString()}
                                       checked={
                                         question.answer.length > 1
-                                          ? answers[question.id]?.some(
-                                              (ans) => ans.id === option.id
+                                          ? answers[
+                                              question._id.toString()
+                                            ]?.some(
+                                              (ans) =>
+                                                ans.id ===
+                                                option._id?.toString()
                                             )
-                                          : answers[question.id]?.[0]?.id ===
-                                            option.id
+                                          : answers[
+                                              question._id.toString()
+                                            ]?.[0]?.id === option._id.toString()
                                       }
                                       onChange={(e) =>
                                         question.answer.length > 1
                                           ? handleMultipleAnswerChange(
-                                              question.id,
+                                              question._id.toString(),
                                               {
-                                                id: option.id,
+                                                id: option._id.toString(),
                                                 content: {
                                                   text: option.textAnswer
                                                     ? [option.textAnswer]
@@ -807,9 +811,9 @@ const Page = ({ params }: PageProps) => {
                                               e.target.checked
                                             )
                                           : handleSingleAnswerChange(
-                                              question.id,
+                                              question._id.toString(),
                                               {
-                                                id: option.id,
+                                                id: option._id.toString(),
                                                 content: {
                                                   text: option.textAnswer
                                                     ? [option.textAnswer]
@@ -899,10 +903,13 @@ const Page = ({ params }: PageProps) => {
                             </TableHeader>
                             <TableBody>
                               {exam?.questions.map((question, index) => {
-                                const selectedIds = answers[question.id] || [];
+                                const selectedIds =
+                                  answers[question._id.toString()] || [];
                                 const isCorrect = arraysEqual(
                                   selectedIds.map((item) => item.id).sort(),
-                                  question.answer.sort()
+                                  question.answer
+                                    .map((id) => id.toString())
+                                    .sort()
                                 );
 
                                 return (
@@ -940,7 +947,8 @@ const Page = ({ params }: PageProps) => {
                                           selectedIds.map(({ id }) => {
                                             const option =
                                               question.options.find(
-                                                (opt) => opt.id === id
+                                                (opt) =>
+                                                  opt._id.toString() === id
                                               );
 
                                             if (!option)
@@ -962,7 +970,7 @@ const Page = ({ params }: PageProps) => {
                                                 )}
                                                 {option.textAnswer && (
                                                   <span>
-                                                    {option.textAnswer} 
+                                                    {option.textAnswer}
                                                   </span>
                                                 )}
                                               </div>
@@ -977,18 +985,18 @@ const Page = ({ params }: PageProps) => {
                                     {/* Correct Answer */}
                                     <TableCell>
                                       <div className="flex flex-wrap items-center gap-4">
-                                        {question.answer.map((id: string) => {
+                                        {question.answer.map((id) => {
                                           const option = question.options.find(
-                                            (opt) => opt.id === id
+                                            (opt) => opt._id.toString() === id.toString()
                                           );
                                           if (!option)
                                             return (
-                                              <span key={id}>Not found</span>
+                                              <span key={id.toString()}>Not found</span>
                                             );
 
                                           return (
                                             <div
-                                              key={id}
+                                              key={id.toString()}
                                               className="flex items-center gap-2"
                                             >
                                               {option.image && (

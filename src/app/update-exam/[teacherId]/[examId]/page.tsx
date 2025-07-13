@@ -1,5 +1,4 @@
 "use client";
-import { nanoid } from "nanoid";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -23,6 +22,7 @@ import { Save, Plus, X, Trash2, FileQuestion, Copy } from "lucide-react";
 import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { updateExamByExamIdAndTeacherId } from "@/action/update-exam-by-examId-and-teacherId";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
+import { createTempId } from "@/utils/temp-id-for-client-generator";
 
 const UpdateExamPage = () => {
   const { teacherId, examId } = useParams() as {
@@ -49,6 +49,7 @@ const UpdateExamPage = () => {
         const res = await fetchExamById({ teacherId, examId });
 
         if (res.success) {
+          console.log("exam: ", res.data);
           setExam(res.data);
           setOriginalExam(JSON.parse(JSON.stringify(res.data))); // Deep clone for comparison
         } else {
@@ -97,7 +98,7 @@ const UpdateExamPage = () => {
     if (currentQuestionId && exam) {
       // Find the current question
       const currentQuestion = exam.questions.find(
-        (q) => q.id === currentQuestionId
+        (q) => q._id?.toString() === currentQuestionId
       );
 
       // Check if question text is empty
@@ -113,7 +114,7 @@ const UpdateExamPage = () => {
       if (newOptionText.trim() && newOptionImage) {
         // Both text and image provided
         newOption = {
-          id: nanoid(),
+          _id: createTempId() as any,
           textAnswer: newOptionText.trim(),
           image: newOptionImage,
           isCorrect: false,
@@ -121,14 +122,14 @@ const UpdateExamPage = () => {
       } else if (newOptionText.trim()) {
         // Only text provided
         newOption = {
-          id: nanoid(),
+          _id: createTempId() as any,
           textAnswer: newOptionText.trim(),
           isCorrect: false,
         };
       } else {
         // Only image provided
         newOption = {
-          id: nanoid(),
+          _id: createTempId() as any,
           image: newOptionImage,
           isCorrect: false,
         };
@@ -139,7 +140,7 @@ const UpdateExamPage = () => {
         return {
           ...prev,
           questions: prev.questions.map((q) =>
-            q.id === currentQuestionId
+            q._id?.toString() === currentQuestionId
               ? {
                   ...q,
                   options: [...q.options, newOption],
@@ -165,18 +166,24 @@ const UpdateExamPage = () => {
   const removeOption = (questionId: string, optionId: string) => {
     setExam((prev) => {
       if (!prev) return prev;
-      const question = prev.questions.find((q) => q.id === questionId);
+      const question = prev.questions.find(
+        (q) => q._id?.toString() === questionId
+      );
       if (!question) return prev;
 
-      const newOptions = question.options.filter((opt) => opt.id !== optionId);
+      const newOptions = question.options.filter(
+        (opt) => opt._id?.toString() !== optionId
+      );
 
       // If removing a correct answer, update the answer array
-      const newAnswer = question.answer.filter((id) => id !== optionId);
+      const newAnswer = question.answer.filter(
+        (id) => id.toString() !== optionId
+      );
 
       return {
         ...prev,
         questions: prev.questions.map((q) =>
-          q.id === questionId
+          q._id.toString() === questionId
             ? { ...q, options: newOptions, answer: newAnswer }
             : q
         ),
@@ -189,7 +196,9 @@ const UpdateExamPage = () => {
       if (!prev) return prev;
       return {
         ...prev,
-        questions: prev.questions.filter((q) => q.id !== questionId),
+        questions: prev.questions.filter(
+          (q) => q._id.toString() !== questionId
+        ),
       };
     });
   };
@@ -238,7 +247,7 @@ const UpdateExamPage = () => {
       try {
         console.log("Updated exam data:", exam);
         const res = await updateExamByExamIdAndTeacherId({
-          examId: exam.id,
+          examId: exam._id,
           teacherId: teacherId,
           exam: {
             name: exam.name,
@@ -268,7 +277,7 @@ const UpdateExamPage = () => {
     if (!exam) return;
 
     const newQuestion: IQuestion = {
-      id: nanoid(),
+      _id: createTempId() as any,
       question: "",
       image: "",
       options: [],
@@ -332,6 +341,7 @@ const UpdateExamPage = () => {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h3 className="text-2xl font-semibold">Update Exam: {exam.name}</h3>
+
         <div className="flex gap-3">
           {isDirty && (
             <Badge
@@ -421,6 +431,7 @@ const UpdateExamPage = () => {
               </p>
             )}
           </div>
+
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
               <Button variant="outline" className="mt-2 sm:mt-0">
@@ -524,7 +535,7 @@ const UpdateExamPage = () => {
       ) : (
         exam.questions.map((question, questionIndex) => (
           <Card
-            key={question.id}
+            key={question._id?.toString()}
             className="mb-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <CardHeader className="flex flex-row items-start justify-between pb-2 bg-gray-50">
@@ -537,7 +548,7 @@ const UpdateExamPage = () => {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => removeQuestion(question.id)}
+                onClick={() => removeQuestion(question._id?.toString())}
               >
                 <Trash2 className="h-4 w-4 mr-1" /> Remove
               </Button>
@@ -546,19 +557,19 @@ const UpdateExamPage = () => {
               <div className="space-y-4">
                 <div>
                   <Label
-                    htmlFor={`question-${question.id}`}
+                    htmlFor={`question-${question._id?.toString()}`}
                     className="text-sm font-medium"
                   >
                     Question Text
                   </Label>
                   <Input
-                    id={`question-${question.id}`}
+                    id={`question-${question._id?.toString()}`}
                     value={question.question}
                     onChange={(e) =>
                       setExam({
                         ...exam,
                         questions: exam.questions.map((q) =>
-                          q.id === question.id
+                          q._id?.toString() === question._id?.toString()
                             ? { ...q, question: e.target.value }
                             : q
                         ),
@@ -569,13 +580,15 @@ const UpdateExamPage = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor={`question-${question.id}-image`}>
+                  <Label
+                    htmlFor={`question-${question?._id?.toString()}-image`}
+                  >
                     Question Image
                   </Label>
                   <div className="flex items-center mt-1">
                     <Input
                       type="file"
-                      id={`question-${question.id}-image`}
+                      id={`question-${question._id?.toString()}-image`}
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -585,7 +598,7 @@ const UpdateExamPage = () => {
                             setExam({
                               ...exam,
                               questions: exam.questions.map((q) =>
-                                q.id === question.id
+                                q._id === question._id
                                   ? { ...q, image: reader.result as string }
                                   : q
                               ),
@@ -615,7 +628,7 @@ const UpdateExamPage = () => {
                           setExam({
                             ...exam,
                             questions: exam.questions.map((q) =>
-                              q.id === question.id ? { ...q, image: "" } : q
+                              q._id === question._id ? { ...q, image: "" } : q
                             ),
                           });
                         }}
@@ -633,7 +646,9 @@ const UpdateExamPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openAddOptionDialog(question.id)}
+                      onClick={() =>
+                        openAddOptionDialog(question._id?.toString())
+                      }
                       className="text-blue-600"
                     >
                       <Plus className="h-4 w-4 mr-1" /> Add Option
@@ -644,7 +659,7 @@ const UpdateExamPage = () => {
                     <div className="space-y-2">
                       {question.options.map((option, optionIndex) => (
                         <div
-                          key={option.id}
+                          key={option?._id?.toString()}
                           className="flex items-center gap-2 p-2 border rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
                         >
                           <div className="flex-1 overflow-hidden overflow-ellipsis flex items-center">
@@ -666,7 +681,7 @@ const UpdateExamPage = () => {
                               />
                             )}
 
-                            {question.answer.includes(option.id) && (
+                            {question.answer.includes(option._id) && (
                               <Badge className="ml-2 bg-green-100 text-green-800 border-green-300">
                                 Correct
                               </Badge>
@@ -680,23 +695,24 @@ const UpdateExamPage = () => {
                                 setExam({
                                   ...exam,
                                   questions: exam.questions.map((q) =>
-                                    q.id === question.id
+                                    q._id?.toString() ===
+                                    question._id?.toString()
                                       ? {
                                           ...q,
-                                          answer: q.answer.includes(option.id)
+                                          answer: q.answer.includes(option._id)
                                             ? q.answer.filter(
-                                                (id) => id !== option.id
+                                                (id) => id !== option._id
                                               )
-                                            : [...q.answer, option.id],
+                                            : [...q.answer, option._id],
                                         }
                                       : q
                                   ),
                                 });
                               }}
-                              className="text-green-500 hover:text-green-700"
+                              className="text-red-500 hover:text-green-700"
                               title="Toggle correct answer"
                             >
-                              {question.answer.includes(option.id) ? "✓" : "○"}
+                              {question.answer.includes(option._id) ? "✓" : "○"}
                             </Button>
                             <Button
                               variant="ghost"
@@ -711,7 +727,10 @@ const UpdateExamPage = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() =>
-                                removeOption(question.id, option.id)
+                                removeOption(
+                                  question._id?.toString(),
+                                  option._id?.toString()
+                                )
                               }
                               className="text-red-500 hover:text-red-700"
                               title="Remove option"
@@ -743,11 +762,11 @@ const UpdateExamPage = () => {
                         {question.answer.length > 0 ? (
                           question.answer.map((answerId) => {
                             const option = question.options.find(
-                              (opt) => opt.id === answerId
+                              (opt) => opt._id === answerId
                             );
                             return option ? (
                               <Badge
-                                key={answerId}
+                                key={answerId?.toString()}
                                 className="bg-green-100 text-green-800 border-green-300"
                               >
                                 {option.textAnswer || "Image option"}

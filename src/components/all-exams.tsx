@@ -41,18 +41,18 @@ import {
 
 type Props = {
   teacherEmail: string;
-  onExamDeleted?: () => void; // Callback to refresh dashboard stats
+  // onExamDeleted?: () => void; // Callback to refresh dashboard stats
 };
 
 export const AllExams = (params: Props) => {
   const [exams, setExams] = useState<
-    Pick<IExam, "id" | "name" | "description">[]
+    Pick<IExam, "_id" | "name" | "description">[]
   >([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [teacher, setTeacher] =
     useState<Pick<ITeacher, "_id" | "name" | "email" | "avatar">>();
-  const [examToDelete, setExamToDelete] = useState<string | null>(null);
+  const [examIDToDelete, setExamIDToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -86,8 +86,9 @@ export const AllExams = (params: Props) => {
       try {
         setIsLoading(true);
         const data = await fetchExams(params.teacherEmail);
+        console.log("exams: ", data);
         if (data.success) {
-          setExams(data.data);
+          setExams(data.data.map((exam) => ({ ...exam, id: exam._id })));
         } else {
           toast.error(data.message || "Failed to fetch exams");
         }
@@ -105,28 +106,26 @@ export const AllExams = (params: Props) => {
   }, [params.teacherEmail]);
 
   const handleDeleteClick = (examId: string) => {
-    setExamToDelete(examId);
+    setExamIDToDelete(examId);
     setIsDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!examToDelete) return;
+    if (!examIDToDelete) return;
 
     try {
       const res = await deleteExamById({
-        examId: examToDelete,
+        examId: examIDToDelete,
+        teacherId: teacher?._id?.toString() || "",
       });
 
       if (res.success) {
         toast.success("Exam deleted successfully!");
-        setExams((prev) => prev.filter((exam) => exam.name !== examToDelete));
+        setExams((prev) =>
+          prev.filter((exam) => exam._id.toString() !== examIDToDelete)
+        );
         setIsDeleteDialogOpen(false);
-        setExamToDelete(null);
-
-        // Call the callback to refresh dashboard stats
-        if (params.onExamDeleted) {
-          params.onExamDeleted();
-        }
+        setExamIDToDelete(null);
       } else {
         toast.error(res.message || "Failed to delete exam");
       }
@@ -137,7 +136,7 @@ export const AllExams = (params: Props) => {
 
   const handleCancelDelete = () => {
     setIsDeleteDialogOpen(false);
-    setExamToDelete(null);
+    setExamIDToDelete(null);
   };
 
   const filteredExams = exams.filter(
@@ -172,7 +171,7 @@ export const AllExams = (params: Props) => {
           </Link>
 
           <Link
-            href={`/add-exam-by-ai/${teacher?._id?.toString()}`}
+            href={`/add-exam-by-ai/${teacher?._id}`}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -186,9 +185,9 @@ export const AllExams = (params: Props) => {
 
       {filteredExams.length > 0 ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {filteredExams.map((exam) => (
+          {filteredExams.map((exam, index) => (
             <Card
-              key={exam.id}
+              key={index}
               className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-border hover:border-primary/20"
             >
               <CardHeader className="pb-3">
@@ -214,7 +213,7 @@ export const AllExams = (params: Props) => {
                   >
                     <Link
                       href={`/copy-exam-link/${teacher?._id?.toString()}/${
-                        exam.id
+                        exam._id
                       }`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -232,7 +231,7 @@ export const AllExams = (params: Props) => {
                     title="View results"
                   >
                     <Link
-                      href={`/result/${teacher?._id?.toString()}/${exam.id}`}
+                      href={`/result/${teacher?._id}/${exam._id}`}
                       rel="noopener noreferrer"
                     >
                       <HiAcademicCap className="h-3 w-3 md:h-4 md:w-4" />
@@ -248,9 +247,7 @@ export const AllExams = (params: Props) => {
                     title="Edit exam"
                   >
                     <Link
-                      href={`/update-exam/${teacher?._id?.toString()}/${
-                        exam.id
-                      }`}
+                      href={`/update-exam/${teacher?._id?.toString()}/${exam._id.toString()}`}
                       rel="noopener noreferrer"
                     >
                       <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
@@ -262,7 +259,7 @@ export const AllExams = (params: Props) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
-                    onClick={() => handleDeleteClick(exam.id.toString())}
+                    onClick={() => handleDeleteClick(exam._id.toString())}
                     title="Delete exam"
                   >
                     <Trash2 className="h-3 w-3 md:h-4 md:w-4" />

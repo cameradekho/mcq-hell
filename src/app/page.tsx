@@ -14,7 +14,7 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Settings, Activity } from "lucide-react";
 import Link from "next/link";
-import { fetchDashboardStats } from "../action/fetch-dashboard-stats";
+// import { fetchDashboardStats } from "../action/fetch-dashboard-stats";
 import AuthButtons from "@/components/auth/auth-buttons";
 
 export default function Home() {
@@ -54,27 +54,27 @@ export default function Home() {
     }
   }, [session]);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (session?.user?.email) {
-        try {
-          setIsLoading(true);
-          const result = await fetchDashboardStats(session.user.email);
-          if (result.success && result.data) {
-            setStats(result.data);
-          }
-        } catch (error) {
-          console.error("Error fetching stats:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
+  // useEffect(() => {
+  //   const fetchStats = async () => {
+  //     if (session?.user?.email) {
+  //       try {
+  //         setIsLoading(true);
+  //         const result = await fetchDashboardStats(session.user.email);
+  //         if (result.success && result.data) {
+  //           setStats(result.data);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error fetching stats:", error);
+  //       } finally {
+  //         setIsLoading(false);
+  //       }
+  //     }
+  //   };
 
-    if (session) {
-      fetchStats();
-    }
-  }, [session]);
+  //   if (session) {
+  //     fetchStats();
+  //   }
+  // }, [session]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -142,20 +142,20 @@ export default function Home() {
 
               <AllExams
                 teacherEmail={session.user.email || ""}
-                onExamDeleted={() => {
-                  // Refresh dashboard stats when an exam is deleted
-                  if (session?.user?.email) {
-                    fetchDashboardStats(session.user.email)
-                      .then((result) => {
-                        if (result.success && result.data) {
-                          setStats(result.data);
-                        }
-                      })
-                      .catch((error) => {
-                        console.error("Error refreshing stats:", error);
-                      });
-                  }
-                }}
+                // onExamDeleted={() => {
+                //   // Refresh dashboard stats when an exam is deleted
+                //   if (session?.user?.email) {
+                //     fetchDashboardStats(session.user.email)
+                //       .then((result) => {
+                //         if (result.success && result.data) {
+                //           setStats(result.data);
+                //         }
+                //       })
+                //       .catch((error) => {
+                //         console.error("Error refreshing stats:", error);
+                //       });
+                //   }
+                // }}
               />
             </div>
           ) : (

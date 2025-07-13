@@ -3,13 +3,16 @@ import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
-import { teacherCollectionName } from "@/models/teacher";
 import { ObjectId } from "mongodb";
+import { examCollectionName } from "@/models/exam";
+import { get } from "http";
+import { fetchTeacherById } from "./fetch-teacher-by-id";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
 type DeleteExamByIdData = {
   examId: string;
+  teacherId: string;
 };
 
 export const deleteExamById = async (
@@ -31,39 +34,36 @@ export const deleteExamById = async (
       };
     }
 
+    if (!props.teacherId) {
+      return {
+        success: false,
+        message: "Please provide teacherId",
+      };
+    }
     await mongodb.connect();
-    const res = await mongodb
-      .collection(teacherCollectionName)
-      .findOne({ email: session.user.email });
 
-    if (!res) {
+    const teacherDoc = await fetchTeacherById({
+      teacherId: props.teacherId,
+    });
+
+    if (!teacherDoc.success) {
       return {
         success: false,
-        message: "User does not exist",
+        message: teacherDoc.message,
       };
     }
 
-    const examObjectId = new ObjectId(props.examId);
-    const result = await mongodb.collection("exam").updateOne(
-      { id: examObjectId },
-      {
-        $unset: {
-          session: "",
-        },
-      }
-    );
+    if (!teacherDoc) throw new Error("Teacher not found");
 
-    if (!result.acknowledged) {
+    const deleteRes = await mongodb.collection(examCollectionName).deleteOne({
+      _id: new ObjectId(props.examId),
+      createdByEmail: teacherDoc.data.email,
+    });
+
+    if (!deleteRes.acknowledged) {
       return {
         success: false,
-        message: "Error deleting exam by id...",
-      };
-    }
-
-    if (result.modifiedCount === 0) {
-      return {
-        success: false,
-        message: "No exam was deleted. Please check the exam ID.",
+        message: "Error deleting exam",
       };
     }
 

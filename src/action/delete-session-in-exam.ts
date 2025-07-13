@@ -6,6 +6,7 @@ import { ObjectId } from "mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 import { toast } from "sonner";
 import { teacherCollectionName } from "@/models/teacher";
+import { examCollectionName } from "@/models/exam";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
@@ -40,49 +41,39 @@ export const deleteSessionInExam = async (
       };
     }
 
-    const existingExam = existingTeacher.data.exam.find(
-      (exam) => exam.id === examId
-    );
+    await mongodb.connect();
 
-    if (!existingExam) {
-      return {
-        success: false,
-        message: "Exam not found",
-      };
-    }
-
-    const result = await mongodb.collection(teacherCollectionName).updateOne(
+    const deleteRes = await mongodb.collection(examCollectionName).updateOne(
       {
-        _id: teacherObjectId,
-        "exam.id": examId,
+        _id: new ObjectId(examId),
+        createdByEmail: existingTeacher.data.email,
       },
       {
         $unset: {
-          "exam.$.session": "",
+          session: "",
         },
       }
     );
 
-    if (result.modifiedCount === 0) {
+    if (!deleteRes.acknowledged) {
       return {
         success: false,
-        message: "No session found to delete",
+        message: "Error deleting exam by id...",
       };
     }
 
-    if (!result.acknowledged) {
+    if (deleteRes.modifiedCount === 0) {
       return {
         success: false,
-        message: "Error deleting session",
+        message: "No exam was deleted. Please check the exam ID.",
       };
     }
+
     return {
       success: true,
       data: undefined,
       message: "Session deleted successfully",
     };
-
-    await mongodb.connect();
   } catch (error: any) {
     await logger({
       error,
@@ -90,7 +81,7 @@ export const deleteSessionInExam = async (
     });
     return {
       success: false,
-      message: `Error deleting exam by id: ${
+      message: `Error deleting exam session by id: ${
         error instanceof Error ? error.message : error
       }`,
     };

@@ -9,14 +9,7 @@ import { ObjectId } from "mongodb";
 export type FetchTeacherByIdResult = ServerActionResult<
   Pick<
     ITeacher,
-    | "_id"
-    | "email"
-    | "name"
-    | "avatar"
-    | "exam"
-    | "students"
-    | "createdAt"
-    | "updatedAt"
+    "_id" | "email" | "name" | "avatar" | "students" | "createdAt" | "updatedAt"
   >
 >;
 
@@ -29,6 +22,7 @@ export const fetchTeacherById = async (
 ): Promise<FetchTeacherByIdResult> => {
   try {
     const { teacherId } = data;
+    console.log("data: ", teacherId);
 
     if (!teacherId) {
       return {
@@ -53,11 +47,10 @@ export const fetchTeacherById = async (
     return {
       success: true,
       data: {
-        _id: teacherData._id, // ✅ fixed
+        _id: teacherData._id, 
         name: teacherData.name,
         email: teacherData.email,
         avatar: teacherData.avatar,
-        exam: teacherData.exam,
         students: teacherData.students,
         createdAt: teacherData.createdAt,
         updatedAt: teacherData.updatedAt,

@@ -3,14 +3,13 @@ import { IExam } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { mongodb } from "@/lib/mongodb";
-import { fetchTeacherById } from "./fetch-teacher-by-id";
-import { nanoid } from "nanoid";
 import { ObjectId } from "mongodb";
+import { fetchTeacherById } from "./fetch-teacher-by-id";
 
 export type IUpdateExamResult = ServerActionResult<undefined>;
 
 export type UpdateExamData = {
-  examId: string;
+  examId: ObjectId;
   teacherId: string;
   exam: Pick<IExam, "name" | "description" | "duration" | "questions">;
 };
@@ -25,74 +24,47 @@ export async function updateExamByExamIdAndTeacherId(
         message: "Please provide all the required fields",
       };
     }
-    const teacher = await fetchTeacherById({ teacherId: data.teacherId });
-    if (!teacher) {
+
+    const teacherData = await fetchTeacherById({ teacherId: data.teacherId });
+
+    console.log("Hubba teacherData: ", teacherData);
+
+    if (!teacherData.success) {
       return {
         success: false,
-        message: "Teacher not found",
+        message: "Teacher not found....",
       };
     }
 
-    const examIndex =
-      teacher.success &&
-      teacher.data.exam.findIndex((e: IExam) => e.id === data.examId);
+    console.log("Hubba teacherData.data: ", teacherData.data.email);
 
-    if (examIndex === -1) {
-      return {
-        success: false,
-        message: "Exam not found in teacher's exam list",
-      };
-    }
+    await mongodb.connect();
 
-    // const processedQuestions = data.exam.questions.map((question) => {
-    //   // Create a copy of the question to avoid mutating the input
-    //   const processedQuestion = { ...question };
+    const processedExamData = ensureObjectIds(data.exam);
 
-    //   // Check if options need IDs
-    //   processedQuestion.options = question.options.map((option) => {
-    //     // If option doesn't have an ID, generate one
-    //     if (!option.id) {
-    //       return { ...option, id: nanoid() };
-    //     }
-    //     return option;
-    //   });
-
-    //   return processedQuestion;
-    // });
-
-    const teacherId = new ObjectId(data.teacherId);
-
-    const updatedExam = await mongodb.collection("teacher").updateOne(
-      {
-        _id: teacherId,
-        "exam.id": data.examId,
-      },
-      {
-        $set: {
-          "exam.$.name": data.exam.name,
-          "exam.$.description": data.exam.description,
-          "exam.$.duration": data.exam.duration,
-          "exam.$.questions": data.exam.questions,
-          "exam.$.updatedAt": new Date(),
+    const updatedExamData = await mongodb
+      .collection<IExam>("exam")
+      .findOneAndUpdate(
+        {
+          _id: new ObjectId(data.examId),
+          createdByEmail: teacherData.data.email,
         },
-      }
-    );
+        {
+          $set: {
+            ...processedExamData,
+            updatedAt: new Date(),
+          },
+        },
+        { returnDocument: "after" }
+      );
 
-    console.log("Update result:", updatedExam);
-
-    if (!updatedExam.acknowledged) {
+    if (!updatedExamData) {
       return {
         success: false,
-        message: "Operation not acknowledged by database",
+        message: "Exam not found....",
       };
     }
 
-    if (updatedExam.matchedCount === 0) {
-      return {
-        success: false,
-        message: "No matching teacher found to update",
-      };
-    }
     return {
       success: true,
       data: undefined,
@@ -108,4 +80,61 @@ export async function updateExamByExamIdAndTeacherId(
       message: "Error updating exam: " + error.message,
     };
   }
+}
+
+function ensureObjectIds(exam: Partial<IExam>): Partial<IExam> {
+  const processedExam = { ...exam };
+
+  // Process questions array
+  if (processedExam.questions) {
+    processedExam.questions = processedExam.questions.map((question) => {
+      const processedQuestion = { ...question };
+
+      // Ensure question has _id
+      if (!processedQuestion._id) {
+        processedQuestion._id = new ObjectId();
+      }
+
+      // Process options (IAnswer[])
+      if (processedQuestion.options) {
+        processedQuestion.options = processedQuestion.options.map((option) => {
+          const processedOption = { ...option };
+
+          // Ensure option has _id
+          if (!processedOption._id) {
+            processedOption._id = new ObjectId();
+          }
+
+          return processedOption;
+        });
+      }
+
+      // Update question timestamps
+      if (!processedQuestion.createdAt) {
+        processedQuestion.createdAt = new Date();
+      }
+      processedQuestion.updatedAt = new Date();
+
+      return processedQuestion;
+    });
+  }
+
+  // Process session if it exists
+  if (processedExam.session) {
+    const processedSession = { ...processedExam.session };
+
+    // Ensure session has _id
+    if (!processedSession._id) {
+      processedSession._id = new ObjectId();
+    }
+
+    // Update session createdAt if not exists
+    if (!processedSession.createdAt) {
+      processedSession.createdAt = new Date();
+    }
+
+    processedExam.session = processedSession;
+  }
+
+  return processedExam;
 }
