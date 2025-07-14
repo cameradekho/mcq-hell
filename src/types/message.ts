@@ -1,5 +1,3 @@
-import { CoreMessage } from "ai";
-
 import { TDocument } from "./common";
 
 import { TFile } from "./file";
@@ -10,25 +8,27 @@ export type TConversation<TConversationUser = TUser["_id"]> = TDocument & {
   user: TConversationUser;
 };
 
+export type TextContent = {
+  type: "text";
+  text: string;
+};
+
+export type TagContent = {
+  type: "tag";
+  text: string;
+};
+
 export type TMessage<
   TMessageFile = TFile["_id"],
   TMessageConversation = TConversation["_id"]
 > = TDocument & {
   role: TMessageRole;
-  content: CoreMessage["content"];
+  content: (TextContent | TagContent)[];
   files?: TMessageFile[];
   conversation: TMessageConversation;
 };
 
 export type TMessageRole = "system" | "user" | "assistant" | "tool";
 
-export type TMessagePart =
-  | {
-      type: "text";
-      data: string;
-    }
-  | {
-      type: "tag";
-      name: string;
-      data: Record<string, unknown>;
-    };
+// export type TMessagePart = TextContent | TagContent
+export type TMessagePart = TMessage["content"][number];

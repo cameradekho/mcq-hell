@@ -16,7 +16,8 @@ const ChatPage = () => {
 
   const { pendingMessage, setPendingMessage } = useChatContext();
 
-  const { messages, isStreaming, submitMessage, currentMessage } = useSSE();
+  const { loading, messages, isStreaming, submitMessage, currentMessage } =
+    useSSE();
 
   useEffect(() => {
     if (params._id !== "new" && pendingMessage) {
@@ -59,10 +60,10 @@ const ChatPage = () => {
     <div className="flex flex-col h-[calc(100vh-120px)] mx-auto max-w-2xl px-4 w-full">
       <div className="flex-1 overflow-y-auto pb-32">
         <MessageList messages={messages} />
-        {isStreaming && <StreamingMessage message={currentMessage} />}
-        {isStreaming && (
+        {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
+        {isStreaming && loading && (
           <div className="flex justify-center items-center h-full">
-            <Loader2 className="size-4 animate-spin" /> 
+            <Loader2 className="size-4 animate-spin" />
           </div>
         )}
       </div>

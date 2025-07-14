@@ -8,13 +8,11 @@ type MessagePartProps = {
 
 export const MessagePart = ({ part }: MessagePartProps) => {
   if (part.type === "text") {
-    return <Markdown text={part.data} />;
+    return <Markdown text={part.text} />;
   }
 
   if (part.type === "tag") {
-    if (part.name === "questions") {
       return <div>Questions</div>;
-    }
   }
 
   return null;

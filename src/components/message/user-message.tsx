@@ -18,7 +18,7 @@ export const UserMessage = ({ message }: UserMessageProps) => {
           "group relative flex flex-col items-end gap-2 rounded-2xl bg-gradient-to-tr from-primary/20 via-primary/20 to-primary/10 px-4 py-1.5 prose-a:text-blue-500",
         )}
       >
-        <Markdown text={message.content as string} />
+        <Markdown text={message.content[0].text} />
       </div>
     </div>
   );

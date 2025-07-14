@@ -7,38 +7,21 @@ type AssistantMessageProps = {
 };
 
 export const AssistantMessage = ({ message }: AssistantMessageProps) => {
-
-
-
-
-
-
-
-
+  console.log("$$$$$message.content", message.content);
 
   return (
-    <div
-      className="group prose prose-neutral flex w-full max-w-3xl flex-col gap-2 dark:prose-invert"
-    >
+    <div className="group prose prose-neutral flex w-full max-w-3xl flex-col gap-2 dark:prose-invert">
+      {
+        message.content.map((part, index) => {
+          if (part.type === "text") {
+            return <MessagePart key={`${message.conversation}-${index}`} part={part} />;
+          }
 
-      {message.content.map((content, contentIndex) => {
-        if (content.type === "text") {
-          const parsedContent = parseMessage(content.text);
-
-          return (
-            <div key={contentIndex}>
-              {parsedContent.map((part, partIndex) => (
-                <MessagePart
-                  key={partIndex}
-                  part={part}
-                />
-              ))}
-            </div>
-          );
-        }
-
-        return null;
-      })}
+          if (part.type === "tag") {
+            return <MessagePart key={`${message.conversation}-${index}`} part={part} />;
+          }
+        })
+      }
     </div>
   );
 };

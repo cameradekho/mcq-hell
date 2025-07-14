@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
-import { CoreAssistantMessage, CoreMessage } from "ai";
-
-import { env } from "@/constants/env";
-import { generateMongoId } from "@/lib/generate-mongo-id";
 import { SSE_EVENTS } from "@/constants/sse-events";
+import { TMessage } from "@/types/message";
 
 type TPayload = {
   conversation_id: string;
@@ -13,22 +10,29 @@ type TPayload = {
 const READER_CONTINUE = true;
 
 export const useSSE = () => {
-  const [messages, setMessages] = useState<CoreMessage[]>([]);
+  const [messages, setMessages] = useState<TMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [loading, setLoading] = useState<{
+    loading_text: string;
+  } | null>();
 
   useEffect(() => {
     console.log("currentMessage", currentMessage);
   }, [currentMessage]);
 
   const submitMessage = async (payload: TPayload) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "",
-        content: payload.user_message,
-      },
-    ]);
+    setMessages(
+      (prev) =>
+        [
+          ...prev,
+          {
+            role: "user",
+            content: payload.user_message,
+            conversation: payload.conversation_id,
+          },
+        ] as TMessage[]
+    );
 
     try {
       const response = await fetch(
@@ -93,6 +97,16 @@ export const useSSE = () => {
                   setIsStreaming(false);
                   break;
 
+                case SSE_EVENTS.LOADING:
+                  setLoading({
+                    loading_text: parsedEvent.data.loading_text,
+                  });
+                  break;
+
+                case SSE_EVENTS.CHAT_QUESTION:
+                  setCurrentMessage((prev) => [...prev, parsedEvent.data.text]);
+                  break;
+
                 default:
                   console.warn("Unknown event type:", parsedEvent);
                   break;
@@ -109,6 +123,7 @@ export const useSSE = () => {
   };
 
   return {
+    loading,
     isStreaming,
     messages,
     currentMessage,
