@@ -1,11 +1,7 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/providers/auth-provider";
-import { Toaster } from "sonner";
 import { Outfit } from "next/font/google";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ChatProvider } from "@/providers/chat-provider";
+import { AppProvider } from "@/providers/app-provider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -25,12 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={outfit.className}>
-        <AuthProvider>
-          <ChatProvider>
-            <TooltipProvider delayDuration={100}>{children}</TooltipProvider>
-            <Toaster />
-          </ChatProvider>
-        </AuthProvider>
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

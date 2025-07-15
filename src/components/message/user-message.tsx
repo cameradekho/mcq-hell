@@ -5,13 +5,15 @@ import type { TMessage } from "@/types/message";
 import { cn } from "@/lib/utils";
 
 import { Markdown } from "@/components/markdown";
+import { parseMessage } from "@/lib/message-parser";
 
 type UserMessageProps = {
   message: TMessage;
 };
 
 export const UserMessage = ({ message }: UserMessageProps) => {
-  console.log("MESSAGE IN THE user-message.tsx ->", message);
+  const messageParts = parseMessage(message.content[0].text);
+
   return (
     <div className="flex flex-col items-end gap-1">
       <div
@@ -19,8 +21,11 @@ export const UserMessage = ({ message }: UserMessageProps) => {
           "group relative flex flex-col items-end gap-2 rounded-2xl bg-gradient-to-tr from-primary/20 via-primary/20 to-primary/10 px-4 py-1.5 prose-a:text-blue-500"
         )}
       >
-        <span>HUBBA HUBBA HUBBA</span>
-        <Markdown text={message.content[0].text} />
+        {messageParts.map((part, index) => {
+          if (part.type === "text") {
+            return <Markdown key={index} text={part.text} />;
+          }
+        })}
       </div>
     </div>
   );

@@ -21,14 +21,23 @@ export const useSSE = () => {
     console.log("currentMessage", currentMessage);
   }, [currentMessage]);
 
+  // Cleanup function to reset streaming state
+  const resetStreamingState = () => {
+    setIsStreaming(false);
+    setCurrentMessage([]);
+    setLoading(null);
+  };
+
   const submitMessage = async (payload: TPayload) => {
+    resetStreamingState();
+
     setMessages(
       (prev) =>
         [
           ...prev,
           {
             role: "user",
-            content: payload.user_message,
+            content: [{ type: "text", text: payload.user_message }],
             conversation: payload.conversation_id,
           },
         ] as TMessage[]
@@ -90,7 +99,7 @@ export const useSSE = () => {
                   break;
 
                 case SSE_EVENTS.CHAT_ERROR:
-                  setIsStreaming(false);
+                  resetStreamingState();
                   break;
 
                 case SSE_EVENTS.CHAT_COMPLETE:
@@ -118,7 +127,8 @@ export const useSSE = () => {
         }
       }
     } catch (error) {
-      console.error(error);
+      console.error("Streaming error:", error);
+      resetStreamingState();
     }
   };
 
@@ -129,5 +139,6 @@ export const useSSE = () => {
     currentMessage,
     setMessages,
     submitMessage,
+    resetStreamingState,
   };
 };

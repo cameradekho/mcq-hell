@@ -15,7 +15,7 @@ export type TextContent = {
 
 export type TagContent = {
   type: "tag";
-  text: string;
+  text: Record<string, any>;
 };
 
 export type TMessage<

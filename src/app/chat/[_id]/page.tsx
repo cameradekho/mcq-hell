@@ -9,6 +9,7 @@ import { MessageList } from "@/components/message-list";
 import { generateMongoId } from "@/lib/generate-mongo-id";
 import { StreamingMessage } from "@/components/streaming-message";
 import { Loader2 } from "lucide-react";
+import { useGetConversationById } from "@/hooks/api/conversation";
 
 const ChatPage = () => {
   const params = useParams<{ _id: string }>();
@@ -18,6 +19,18 @@ const ChatPage = () => {
 
   const { loading, messages, isStreaming, submitMessage, currentMessage } =
     useSSE();
+
+  const {
+    data: conversationData,
+    isLoading: isLoadingConversation,
+    error: errorConversation,
+  } = useGetConversationById({
+    conversationId: params._id,
+  });
+
+  useEffect(() => {
+    console.log("conversationData", conversationData);
+  }, [conversationData]);
 
   useEffect(() => {
     if (params._id !== "new" && pendingMessage) {
@@ -59,7 +72,9 @@ const ChatPage = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] mx-auto max-w-2xl px-4 w-full">
       <div className="flex-1 overflow-y-auto pb-32">
-        <MessageList messages={messages} />
+        {conversationData?.data?.messages && (
+          <MessageList messages={conversationData?.data?.messages} />
+        )}
         {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
         {!isStreaming && loading && (
           <div className="flex justify-center items-center h-full">

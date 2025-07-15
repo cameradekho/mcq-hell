@@ -32,9 +32,6 @@ const MessageListComponent = ({ messages }: MessageListProps) => {
                 </AvatarFallback>
               </Avatar>
             )}
-            <span className=" text-xl text-red-600">
-              Hello, I am from Messaga List
-            </span>
             {message.role === "user" ? (
               <UserMessage message={message} />
             ) : (
