@@ -1,4 +1,5 @@
 import { parseMessage } from "@/lib/message-parser";
+import AssistantQuestionList from "./message/assistant-question-list";
 
 export const StreamingMessage = ({
   currentMessage,
@@ -15,7 +16,7 @@ export const StreamingMessage = ({
           const parts = parseMessage(m);
           console.log("parts", parts);
           return (
-            <div
+            <div  
               key={m}
               className="flex flex-col gap-2 text-sm text-gray-800 dark:text-gray-200"
             >
@@ -29,13 +30,12 @@ export const StreamingMessage = ({
                 }
 
                 if (part.type === "tag") {
-                  console.log("%%%%%%%part.data", part.text);
                   return (
                     <span
                       key={`${m}-${index}`}
                       className="whitespace-pre-wrap bg-gray-100"
                     >
-                      {JSON.stringify(part.text)}
+                      <AssistantQuestionList text={part.text} />
                     </span>
                   );
                 }

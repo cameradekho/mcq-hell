@@ -61,7 +61,7 @@ const ChatPage = () => {
       <div className="flex-1 overflow-y-auto pb-32">
         <MessageList messages={messages} />
         {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
-        {isStreaming && loading && (
+        {!isStreaming && loading && (
           <div className="flex justify-center items-center h-full">
             <Loader2 className="size-4 animate-spin" />
           </div>

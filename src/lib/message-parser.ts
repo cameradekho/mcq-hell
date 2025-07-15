@@ -14,7 +14,7 @@ export const parseMessage = (message: string): TMessagePart[] => {
       if (contentMatch) {
         const content = contentMatch[1];
 
-        console.log("content*********", JSON.parse(content));
+        // console.log("content*********", JSON.parse(content));
 
         parts.push({
           type: "tag",
@@ -22,7 +22,6 @@ export const parseMessage = (message: string): TMessagePart[] => {
         });
       }
     } else if (segment.trim()) {
-      console.log("HUBAAAAAAAAAAAAAAAAAA", segment);
       parts.push({
         type: "text",
         text: segment.trim(),
