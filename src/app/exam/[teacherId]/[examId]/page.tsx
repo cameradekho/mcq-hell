@@ -177,8 +177,6 @@ const Page = ({ params }: PageProps) => {
     if (!exam) return;
     setAutoSubmit(true);
     console.log("answers ", answers);
-    // Submit exam
-    handleSubmit();
   };
 
   // exam session date and time validation before starting the exam
@@ -243,7 +241,6 @@ const Page = ({ params }: PageProps) => {
 
       if (!withinTimeRange) {
         toast.error("Sorry, the exam time is over");
-        //handleAutoSubmit();
         setIsDateTimeMatched(false);
         setAutoSubmit(false);
         setExamStarted(false);
@@ -453,6 +450,13 @@ const Page = ({ params }: PageProps) => {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    if (autoSubmit) {
+      handleSubmit();
+      setAutoSubmit(false);
+    }
+  }, [autoSubmit]);
 
   // Helper function to compare arrays
   function arraysEqual(a: string[], b: string[]) {
@@ -987,11 +991,15 @@ const Page = ({ params }: PageProps) => {
                                       <div className="flex flex-wrap items-center gap-4">
                                         {question.answer.map((id) => {
                                           const option = question.options.find(
-                                            (opt) => opt._id.toString() === id.toString()
+                                            (opt) =>
+                                              opt._id.toString() ===
+                                              id.toString()
                                           );
                                           if (!option)
                                             return (
-                                              <span key={id.toString()}>Not found</span>
+                                              <span key={id.toString()}>
+                                                Not found
+                                              </span>
                                             );
 
                                           return (
