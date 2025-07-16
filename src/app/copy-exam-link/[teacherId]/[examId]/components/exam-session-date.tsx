@@ -24,20 +24,24 @@ type ExamSessionDateProps = {
   teacher?: {
     _id?: string;
   };
-  sessionDate: Date | undefined;
-  setSessionDate: (date: Date | undefined) => void;
+  sessionDate: Dayjs | undefined;
+  setSessionDate: (date: Dayjs | undefined) => void;
   existingSessionData?: ISession;
   enableCopy: boolean;
   setEnableCopy: (enable: boolean) => void;
 };
 
 type ExamSessionType = {
-  examDate: Date;
+  examDate: Dayjs;
   startTime: Dayjs | null;
   endTime: Dayjs | null;
 };
 
-export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
+export const ExamSessionDate = ({
+  data: examSessionData,
+}: {
+  data: ExamSessionDateProps;
+}) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -45,7 +49,7 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
 
   const [examSession, setExamSession] = useState<ExamSessionType>({
-    examDate: new Date(),
+    examDate: dayjs(),
     startTime: startTime || null,
     endTime: endTime || null,
   });
@@ -60,18 +64,21 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
 
   useEffect(() => {
     const fetchExamData = async () => {
-      if (!data.exam.id || !data.teacher?._id) return;
+      if (basicExamDetails.name) return;
+
+      if (!examSessionData.exam.id || !examSessionData.teacher?._id) return;
 
       try {
         const res = await fetchExamById({
-          teacherId: data.teacher._id,
-          examId: data.exam.id,
+          teacherId: examSessionData.teacher._id,
+          examId: examSessionData.exam.id,
         });
 
         if (!res.success) {
           toast.error(res.message);
           return;
         }
+
         setBasicExamDetails({
           name: res.data.name,
           description: res.data.description,
@@ -87,63 +94,84 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
   }, []);
 
   useEffect(() => {
-    if (data.existingSessionData?.sessionDate) {
-      data.setSessionDate(data.existingSessionData?.sessionDate);
-    }
+    if (examSessionData.existingSessionData?.sessionDate) {
+      if (
+        examSessionData.existingSessionData?.sessionDate?.getDate() <
+        new Date().getDate()
+      ) {
+        examSessionData.setSessionDate(undefined);
+        setStartTime(null);
+        setEndTime(null);
+        examSessionData.setEnableCopy(false);
+        toast.error("Session date is in the past....");
+      } else {
+        examSessionData.setSessionDate(
+          dayjs(examSessionData.existingSessionData?.sessionDate)
+        );
+        if (examSessionData.existingSessionData?.startTime) {
+          setStartTime(dayjs(examSessionData.existingSessionData?.startTime));
+        }
 
-    if (data.existingSessionData?.startTime) {
-      setStartTime(dayjs(data.existingSessionData?.startTime));
-    }
+        if (examSessionData.existingSessionData?.endTime) {
+          const now = new Date();
+          const end = new Date(examSessionData.existingSessionData.endTime);
 
-    if (data.existingSessionData?.endTime) {
-      setEndTime(dayjs(data.existingSessionData?.endTime));
+          if (end < now) {
+            examSessionData.setEnableCopy(false);
+            toast.error("Session end time is in the past");
+            return;
+          } else {
+            setEndTime(dayjs(examSessionData.existingSessionData.endTime));
+          }
+        }
+      }
     }
-  }, [data.existingSessionData]);
+  }, [examSessionData.existingSessionData]);
 
   const handleDateSelect = (date: Date | undefined) => {
-    data.setSessionDate(date);
+    examSessionData.setSessionDate(dayjs(date));
     setCalendarOpen(false);
   };
 
   const handleCopyLink = () => {
-    if (!data.sessionDate || !startTime || !endTime) {
+    if (!examSessionData.sessionDate || !startTime || !endTime) {
       toast.error("Please select date and time first");
       return;
     }
 
-    // const examLink = `${window.location.origin}/exam/${data.teacher?._id}/${
-    //   data.exam.id
-    // }?date=${data.sessionDate.toISOString()}&start=${startTime.format(
-    //   "HH:mm"
-    // )}&end=${endTime.format("HH:mm")}`;
-
-    const examLink = `${window.location.origin}/exam/${data.teacher?._id}/${data.exam.id}`;
+    const examLink = `${window.location.origin}/exam/${examSessionData.teacher?._id}/${examSessionData.exam.id}`;
 
     navigator.clipboard.writeText(examLink);
     toast.success("Exam link copied to clipboard!");
   };
 
   const handleSessionSave = async () => {
-    if (!data.sessionDate) {
-      alert("Please select a date first");
+    if (!examSessionData.sessionDate) {
+      toast.error("Please select a date first");
       return;
     }
 
     if (!startTime) {
-      alert("Please select a start time first");
+      toast.error("Please select a start time first");
       return;
     }
 
     if (!endTime) {
-      alert("Please select an end time first");
+      toast.error("Please select an end time first");
+      return;
+    }
+
+    if (endTime.isBefore(dayjs())) {
+      examSessionData.setEnableCopy(false);
+      toast.error("Session end time is in the past");
       return;
     }
 
     try {
       const res = await addSessionInExam({
-        teacherId: data.teacher?._id || "",
-        examId: data.exam.id,
-        sessionDate: data.sessionDate,
+        teacherId: examSessionData.teacher?._id || "",
+        examId: examSessionData.exam.id,
+        sessionDate: examSessionData.sessionDate.toDate(),
         startTime: startTime.format("HH:mm"),
         endTime: endTime.format("HH:mm"),
       });
@@ -152,10 +180,10 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
         toast.error(res.message);
         return;
       }
-      data.setEnableCopy(true);
+      examSessionData.setEnableCopy(true);
 
       setExamSession({
-        examDate: data.sessionDate,
+        examDate: examSessionData.sessionDate,
         startTime: startTime,
         endTime: endTime,
       });
@@ -170,8 +198,8 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
   const handleClickReset = async () => {
     try {
       const res = await deleteSessionInExam({
-        teacherId: data.teacher?._id?.toString() || "",
-        examId: data.exam.id,
+        teacherId: examSessionData.teacher?._id?.toString() || "",
+        examId: examSessionData.exam.id,
       });
       if (!res.success) {
         toast.error(res.message);
@@ -180,8 +208,8 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
       toast.success("Session deleted successfully");
       setStartTime(null);
       setEndTime(null);
-      data.setSessionDate(undefined);
-      data.setEnableCopy(false);
+      examSessionData.setSessionDate(undefined);
+      examSessionData.setEnableCopy(false);
     } catch (error) {
       console.error(error);
       toast.error("Error resetting session");
@@ -206,17 +234,19 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
       </div>
 
       {/* Selected Date Display */}
-      {data.sessionDate && (
+      {examSessionData.sessionDate && (
         <div className="bg-muted rounded-md p-3 flex flex-col gap-1">
           <span className="text-sm font-semibold text-primary">
             Selected Date:{" "}
             <span className=" text-secondary-foreground">
-              {data.sessionDate.toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {examSessionData.sessionDate
+                .toDate()
+                .toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
             </span>
           </span>
           <span className="text-sm font-semibold text-primary">
@@ -227,8 +257,14 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
           </span>
           <span className="text-sm font-semibold text-primary">
             Selected End Time:{" "}
-            <span className=" text-secondary-foreground">
-              {endTime ? dayjs(endTime).format("hh:mm A") : "Not selected"}
+            <span className="text-secondary-foreground">
+              {endTime?.isBefore(dayjs()) ? (
+                <span className=" text-red-500">End time is in the past</span>
+              ) : endTime ? (
+                dayjs(endTime).format("hh:mm A")
+              ) : (
+                "Not selected"
+              )}
             </span>
           </span>
         </div>
@@ -245,25 +281,25 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
               type="button"
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {data.sessionDate ? (
-                data.sessionDate.toLocaleDateString()
+              {examSessionData.sessionDate ? (
+                examSessionData.sessionDate.format("MMMM D, YYYY") // or use .format("MMMM D, YYYY") for full date
               ) : (
                 <span className="text-muted-foreground">Pick a date</span>
               )}
+
               <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
-              selected={data.sessionDate}
+              selected={examSessionData.sessionDate?.toDate()}
               onSelect={handleDateSelect}
               disabled={(date) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 return date < today;
               }}
-              initialFocus
             />
           </PopoverContent>
         </Popover>
@@ -310,7 +346,7 @@ export const ExamSessionDate = ({ data }: { data: ExamSessionDateProps }) => {
         </Button>
         <Button
           onClick={handleCopyLink}
-          disabled={!data.enableCopy}
+          disabled={!examSessionData.enableCopy}
           className="flex-1"
         >
           Copy Exam Link

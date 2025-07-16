@@ -7,13 +7,14 @@ import { toast } from "sonner";
 import { fetchSessionByExamId } from "@/action/fetch-session-by-examId";
 import { useSession } from "next-auth/react";
 import { ISession } from "@/models/exam";
+import { Dayjs } from "dayjs";
 
 export default function Home() {
   const { data: session } = useSession();
   const params = useParams();
   const teacherId = params.teacherId as string;
   const examId = params.examId as string;
-  const [sessionDate, setSessionDate] = useState<Date | undefined>(undefined);
+  const [sessionDate, setSessionDate] = useState<Dayjs | undefined>(undefined);
   const [existingSessionData, setExistingSessionData] = useState<ISession | undefined>(
     undefined
   );
