@@ -15,7 +15,7 @@ type MessageListProps = {
 
 const MessageListComponent = ({ messages }: MessageListProps) => {
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col gap-6 text-sm">
       {messages?.map((message, index) => {
         return (
           <div

@@ -12,9 +12,9 @@ export const StreamingMessage = ({
   const parts = parseMessage(fullMessage);
 
   return (
-    <div className="flex justify-start px-4 md:px-8 py-3">
-      <div className=" dark:bg-gray-800 p-3 rounded-lg max-w-[80%] break-words">
-        <div className="flex flex-col gap-2 text-sm text-gray-800 dark:text-gray-200">
+    <div className="flex justify-start">
+      <div className="rounded-lg max-w-[80%] break-words">
+        <div className="flex flex-col gap-2 text-sm">
           {parts.map((part, index) => {
             if (part.type === "text") {
               return (

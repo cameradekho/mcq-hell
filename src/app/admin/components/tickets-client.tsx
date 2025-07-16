@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Ticket, Search, Copy, Check } from "lucide-react";
 import { ITicket } from "@/models/ticket";
 import { toast } from "sonner";
-import { useQueryParams } from "@/hooks/use-query-params";
+import { useQueryParams } from "@/hooks/custom/use-query-params";
 import { format } from "date-fns";
 import { updateTicket } from "@/action/update-ticket";
 

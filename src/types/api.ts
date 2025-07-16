@@ -27,7 +27,7 @@ export type TApiError = {
 
 export type TPaginationQParams = {
   search?: string;
-  page?: number;
+  page?: string;
   limit?: number;
 };
 

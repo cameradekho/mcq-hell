@@ -35,7 +35,9 @@ export default function ChatLayout({
             </Breadcrumb>
           </div>
         </header>
-        {children}
+        <div className="flex flex-col w-full overflow-y-auto">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

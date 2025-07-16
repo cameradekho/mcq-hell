@@ -26,13 +26,7 @@ type TUpdateConversationByIdPayload = {
   name?: string;
 };
 
-type TGetAllConversationsQParams = TPaginationQParams & {
-  search?: string;
-};
-
-type TGetConversationByIdQParams = {
-  search?: string;
-};
+type TGetAllConversationsQParams = TPaginationQParams;
 
 // Conversation Services
 
@@ -45,8 +39,7 @@ const getAllConversations = (
 const getConversationById = ({
   conversationId,
   ...params
-}: TConversationId &
-  TGetConversationByIdQParams): TApiPromise<TGetConversationByIdResponse> => {
+}: TConversationId): TApiPromise<TGetConversationByIdResponse> => {
   return api.get(`/conversation/${conversationId}`, { params });
 };
 
@@ -78,7 +71,7 @@ export const useGetAllConversations = (
 };
 
 export const useGetConversationById = (
-  params: TConversationId & TGetConversationByIdQParams,
+  params: TConversationId,
   options?: TQueryOpts<TGetConversationByIdResponse>
 ) => {
   return useQuery({
