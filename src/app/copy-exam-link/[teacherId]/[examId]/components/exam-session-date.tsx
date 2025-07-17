@@ -29,6 +29,7 @@ type ExamSessionDateProps = {
   existingSessionData?: ISession;
   enableCopy: boolean;
   setEnableCopy: (enable: boolean) => void;
+  basicExamDetails: Pick<IExam, "name" | "description" | "duration" | "session">;
 };
 
 type ExamSessionType = {
@@ -53,98 +54,123 @@ export const ExamSessionDate = ({
     startTime: startTime || null,
     endTime: endTime || null,
   });
-  const [basicExamDetails, setBasicExamDetails] = useState<
-    Pick<IExam, "name" | "description" | "duration" | "session">
-  >({
-    name: "",
-    description: "",
-    duration: 0,
-    //session: { startTime: "", endTime: "", date:"" }
-  });
+  // const [basicExamDetails, setBasicExamDetails] = useState<
+  //   Pick<IExam, "name" | "description" | "duration" | "session">
+  // >({
+  //   name: "",
+  //   description: "",
+  //   duration: 0,
+  // });
 
+  //fetching exam data
+  // useEffect(() => {
+  //   const fetchExamData = async () => {
+  //     if (basicExamDetails.name) return;
+
+  //     if (!examSessionData.exam.id || !examSessionData.teacher?._id) return;
+
+  //     try {
+  //       const res = await fetchExamById({
+  //         teacherId: examSessionData.teacher._id,
+  //         examId: examSessionData.exam.id,
+  //       });
+
+  //       if (!res.success) {
+  //         toast.error(res.message);
+  //         return;
+  //       }
+
+  //       setBasicExamDetails({
+  //         name: res.data.name,
+  //         description: res.data.description,
+  //         duration: res.data.duration,
+  //       });
+  //     } catch (error) {
+  //       console.error("Error fetching exam data:", error);
+  //       toast.error("Failed to fetch exam data");
+  //     }
+  //   };
+
+  //   fetchExamData();
+  // }, []);
+
+  // setting and assigning session data to examSessionData
   useEffect(() => {
-    const fetchExamData = async () => {
-      if (basicExamDetails.name) return;
-
-      if (!examSessionData.exam.id || !examSessionData.teacher?._id) return;
-
-      try {
-        const res = await fetchExamById({
-          teacherId: examSessionData.teacher._id,
-          examId: examSessionData.exam.id,
-        });
-
-        if (!res.success) {
-          toast.error(res.message);
-          return;
-        }
-
-        setBasicExamDetails({
-          name: res.data.name,
-          description: res.data.description,
-          duration: res.data.duration,
-        });
-      } catch (error) {
-        console.error("Error fetching exam data:", error);
-        toast.error("Failed to fetch exam data");
+    console.log(
+      "KEESSTOO KEESTO",
+      dayjs().isSame(dayjs(examSessionData.sessionDate))
+    );
+    // if (examSessionData.existingSessionData?.sessionDate) {
+    console.log("ExamSessionDate useEffect");
+    if (!examSessionData.existingSessionData) {
+      console.log("two yooo");
+      examSessionData.setSessionDate(undefined);
+      setStartTime(null);
+      setEndTime(null);
+      examSessionData.setEnableCopy(false);
+    } else if (
+      examSessionData?.existingSessionData?.sessionDate?.getDate() <
+      new Date().getDate()
+    ) {
+      console.log("two");
+      examSessionData.setSessionDate(undefined);
+      setStartTime(null);
+      setEndTime(null);
+      examSessionData.setEnableCopy(false);
+      toast.error("Session date is in the past....");
+    } else {
+      examSessionData.setSessionDate(
+        dayjs(examSessionData.existingSessionData?.sessionDate)
+      );
+      if (examSessionData.existingSessionData?.startTime) {
+        setStartTime(dayjs(examSessionData.existingSessionData?.startTime));
       }
-    };
 
-    fetchExamData();
-  }, []);
+      console.log(
+        "examSessionData.existingSessionData?.endTime: ",
+        examSessionData.existingSessionData?.endTime
+      );
+      if (examSessionData.existingSessionData?.endTime) {
+        console.log("HUBBA");
+        const now = new Date();
+        const end = new Date(examSessionData.existingSessionData.endTime);
 
-  useEffect(() => {
-    if (examSessionData.existingSessionData?.sessionDate) {
-      if (
-        examSessionData.existingSessionData?.sessionDate?.getDate() <
-        new Date().getDate()
-      ) {
-        examSessionData.setSessionDate(undefined);
-        setStartTime(null);
-        setEndTime(null);
-        examSessionData.setEnableCopy(false);
-        toast.error("Session date is in the past....");
-      } else {
-        examSessionData.setSessionDate(
-          dayjs(examSessionData.existingSessionData?.sessionDate)
-        );
-        if (examSessionData.existingSessionData?.startTime) {
-          setStartTime(dayjs(examSessionData.existingSessionData?.startTime));
-        }
-
-        if (examSessionData.existingSessionData?.endTime) {
-          const now = new Date();
-          const end = new Date(examSessionData.existingSessionData.endTime);
-
-          if (end < now) {
-            examSessionData.setEnableCopy(false);
-            toast.error("Session end time is in the past");
-            return;
-          } else {
-            setEndTime(dayjs(examSessionData.existingSessionData.endTime));
-          }
+        if (end < now && dayjs().isSame(dayjs(examSessionData.sessionDate))) {
+          console.log(
+            "KEESSTOO KEESTO",
+            dayjs().isSame(dayjs(examSessionData.sessionDate))
+          );
+          examSessionData.setEnableCopy(false);
+          const pro = dayjs().isSame(dayjs(examSessionData.sessionDate), "day");
+          console.log("pro: ", pro);
+          toast.error("Session end time is in the past");
+          return;
+        } else {
+          setEndTime(dayjs(examSessionData.existingSessionData.endTime));
         }
       }
     }
+    // }
   }, [examSessionData.existingSessionData]);
 
+  //selecting session Date
   const handleDateSelect = (date: Date | undefined) => {
     examSessionData.setSessionDate(dayjs(date));
     setCalendarOpen(false);
   };
 
+  //handler to copy Exam Link
   const handleCopyLink = () => {
     if (!examSessionData.sessionDate || !startTime || !endTime) {
       toast.error("Please select date and time first");
       return;
     }
-
     const examLink = `${window.location.origin}/exam/${examSessionData.teacher?._id}/${examSessionData.exam.id}`;
-
     navigator.clipboard.writeText(examLink);
     toast.success("Exam link copied to clipboard!");
   };
 
+  //handler to save session
   const handleSessionSave = async () => {
     if (!examSessionData.sessionDate) {
       toast.error("Please select a date first");
@@ -161,7 +187,7 @@ export const ExamSessionDate = ({
       return;
     }
 
-    if (endTime.isBefore(dayjs())) {
+    if (endTime.isBefore(dayjs()) && dayjs().isSame(dayjs(examSessionData.sessionDate))) {
       examSessionData.setEnableCopy(false);
       toast.error("Session end time is in the past");
       return;
@@ -194,7 +220,7 @@ export const ExamSessionDate = ({
       console.error(error);
     }
   };
-
+  //handler to reset session
   const handleClickReset = async () => {
     try {
       const res = await deleteSessionInExam({
@@ -220,15 +246,15 @@ export const ExamSessionDate = ({
     <div className="space-y-6 p-4">
       <div className="space-y-1 mb-6">
         <h2 className="text-2xl font-bold text-primary tracking-tight">
-          {basicExamDetails.name}
+          {examSessionData.basicExamDetails.name}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {basicExamDetails.description}
+          {examSessionData.basicExamDetails.description}
         </p>
         <p className="text-sm text-muted-foreground">
           Duration:{" "}
           <span className="font-medium text-foreground">
-            {basicExamDetails.duration} mins
+            {examSessionData.basicExamDetails.duration} mins
           </span>
         </p>
       </div>
@@ -258,7 +284,8 @@ export const ExamSessionDate = ({
           <span className="text-sm font-semibold text-primary">
             Selected End Time:{" "}
             <span className="text-secondary-foreground">
-              {endTime?.isBefore(dayjs()) ? (
+              {endTime?.isBefore(dayjs()) &&
+              dayjs().isSame(dayjs(examSessionData.sessionDate)) ? (
                 <span className=" text-red-500">End time is in the past</span>
               ) : endTime ? (
                 dayjs(endTime).format("hh:mm A")

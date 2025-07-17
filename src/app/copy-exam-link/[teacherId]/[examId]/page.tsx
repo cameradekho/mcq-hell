@@ -6,8 +6,9 @@ import { use, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { fetchSessionByExamId } from "@/action/fetch-session-by-examId";
 import { useSession } from "next-auth/react";
-import { ISession } from "@/models/exam";
+import { IExam, ISession } from "@/models/exam";
 import { Dayjs } from "dayjs";
+import { fetchExamById } from "@/action/fetch-exam-by-id";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -15,11 +16,17 @@ export default function Home() {
   const teacherId = params.teacherId as string;
   const examId = params.examId as string;
   const [sessionDate, setSessionDate] = useState<Dayjs | undefined>(undefined);
-  const [existingSessionData, setExistingSessionData] = useState<ISession | undefined>(
-    undefined
-  );
-    const [enableCopy, setEnableCopy] = useState(false);
-
+  const [existingSessionData, setExistingSessionData] = useState<
+    ISession | undefined
+  >(undefined);
+  const [basicExamDetails, setBasicExamDetails] = useState<
+    Pick<IExam, "name" | "description" | "duration" | "session">
+  >({
+    name: "",
+    description: "",
+    duration: 0,
+  });
+  const [enableCopy, setEnableCopy] = useState(false);
 
   useEffect(() => {
     if (!session) {
@@ -30,16 +37,26 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchSessionDate() {
-      console.log("#$^$%^$%^&$%&$&$%^%^$%#^#$%^#!^%$%^$%^$%^&*U&%&%U%&%U$%^");
       try {
-        const sessionData = await fetchSessionByExamId({
+        // const sessionData = await fetchSessionByExamId({
+        //   examId: examId,
+        //   teacherId: teacherId,
+        // });
+        const res = await fetchExamById({
           examId: examId,
           teacherId: teacherId,
         });
-        if (sessionData.success) {
-          setExistingSessionData(sessionData?.data || undefined);
+
+        if (!res.success) {
+          toast.error(res.message);
+          return;
         } else {
-          toast.error(sessionData.message || "Failed to fetch session date");
+          setExistingSessionData(res.data.session || undefined);
+          setBasicExamDetails({
+            name: res.data.name,
+            description: res.data.description,
+            duration: res.data.duration,
+          });
         }
       } catch (error) {
         console.log(error);
@@ -68,6 +85,7 @@ export default function Home() {
               existingSessionData: existingSessionData,
               enableCopy: enableCopy,
               setEnableCopy: setEnableCopy,
+              basicExamDetails: basicExamDetails,
             }}
           />
         </div>
