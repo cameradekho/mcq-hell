@@ -38,7 +38,7 @@ export const addUser = async (data: AddUserData): Promise<AddUserResult> => {
       if (studentData) {
         return {
           success: false,
-          message: "Student already exists",
+          message: "Student already exists...",
         };
       }
     }

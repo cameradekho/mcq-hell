@@ -1,5 +1,5 @@
-export type IStudents = {
-  _id?: string;
+export type IStudent = {
+  _id: string;
   name: string;
   role: "student";
   email: string;

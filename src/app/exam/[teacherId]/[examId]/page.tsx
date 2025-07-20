@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { signOut, useSession } from "next-auth/react";
 import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
+import { fetchStudentByEmail } from "@/action/student/fetch-student-by-email";
 
 type PageProps = {
   params: {
@@ -415,19 +416,24 @@ const Page = ({ params }: PageProps) => {
       const correctCount = formattedResponses.filter((r) => r.isCorrect).length;
       setResult(correctCount);
 
+      const studentData = await fetchStudentByEmail({
+        studentEmail: studentDetails.studentEmail,
+      });
+
+      if (!studentData.success || !studentData.data._id) {
+        toast.error("Error fetching student data");
+        return;
+      }
+
+      const studentId = studentData.data._id;
+
       // Submit to server
       const result = await addStudentResponse({
-        teacherId: params.teacherId,
-        teacherEmail: teacherEmail || "",
-        studentName: studentDetails.studentName,
-        studentEmail: studentDetails.studentEmail,
-        studentAvatar: "",
         examId: params.examId,
-        response: formattedResponses,
-        score: {
-          scored: correctCount,
-          submittedAt: new Date(),
-        },
+        teacherId: params.teacherId,
+        studentId: studentId,
+        responses: formattedResponses,
+        score: correctCount,
       });
 
       console.log("hubba three");

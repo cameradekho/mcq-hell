@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { IExam } from "./exam";
-import { IStudents } from "./student";
+import { IStudent } from "./student";
 
 export type ITeacher = {
   _id?: ObjectId;
@@ -9,13 +9,13 @@ export type ITeacher = {
   email: string;
   avatar: string;
   // exam: IExam[];
-  students?: IStudents[];
+  students?: IStudent[];
   createdAt: Date;
   updatedAt: Date;
 };
 
 export type IUser<T extends "teacher" | "student"> = T extends "teacher"
   ? ITeacher & { role: "teacher" }
-  : IStudents & { role: "student" };
+  : IStudent & { role: "student" };
 
 export const teacherCollectionName = "teacher";
