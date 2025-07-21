@@ -5,24 +5,13 @@ import { ServerActionResult } from "@/types";
 import { fetchTeacherById } from "../fetch-teacher-by-id";
 import { fetchExamById } from "../fetch-exam-by-id";
 import {
+  IStudentResponseDocument,
   StudentAnswer,
   studentResponseCollectionName,
 } from "@/models/students-response";
 
-export type IScores = {
-  scored: number;
-  responses: StudentAnswer[];
-  submittedAt: Date;
-};
-
-export type ExamResultWithStudentInfo = {
-  studentEmail: string;
-  studentName: string;
-  scores: IScores;
-};
-
 export type FetchResultByTeacherIdExamIdResult = ServerActionResult<
-  ExamResultWithStudentInfo[]
+  IStudentResponseDocument[] | undefined
 >;
 
 export type FetchResultByTeacherIdExamIdData = {
@@ -32,7 +21,7 @@ export type FetchResultByTeacherIdExamIdData = {
 
 export const fetchResultByTeacherIdExamId = async (
   data: FetchResultByTeacherIdExamIdData
-): Promise<FetchResultByTeacherIdExamIdResult> => {
+): Promise<ServerActionResult<any[]>> => {
   try {
     if (!data.teacherId || !data.examId) {
       return {
@@ -41,22 +30,19 @@ export const fetchResultByTeacherIdExamId = async (
       };
     }
 
-    const teacherResult = await fetchTeacherById({ teacherId: data.teacherId });
-    if (!teacherResult.success || !teacherResult.data) {
+    const teacherExists = await fetchTeacherById({ teacherId: data.teacherId });
+    if (!teacherExists.success || !teacherExists.data?.email) {
       return {
         success: false,
-        message: "Teacher not found",
+        message: "Teacher not found or missing email",
       };
     }
-
-    const teacherEmail = teacherResult.data.email;
 
     const examExists = await fetchExamById({
       teacherId: data.teacherId,
       examId: data.examId,
     });
-
-    if (!examExists) {
+    if (!examExists.success) {
       return {
         success: false,
         message: "Exam not found",
@@ -65,43 +51,82 @@ export const fetchResultByTeacherIdExamId = async (
 
     await mongodb.connect();
 
-    const studentResponses = await mongodb
+    const result = await mongodb
       .collection(studentResponseCollectionName)
-      .find({
-        "examAttempts.examId": data.examId,
-        "examAttempts.teacherEmail": teacherEmail,
-      })
+      .aggregate([
+        {
+          $match: {
+            examId: data.examId,
+            teacherId: data.teacherId,
+          },
+        },
+        {
+          $lookup: {
+            from: "student",
+            let: { studentId: "$studentId" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      // Try direct match first (if both are ObjectId or both are string)
+                      { $eq: ["$_id", "$$studentId"] },
+                      // Try string comparison (convert ObjectId to string)
+                      { $eq: [{ $toString: "$_id" }, "$$studentId"] },
+                      // Try ObjectId comparison (convert string to ObjectId)
+                      {
+                        $eq: [
+                          "$_id",
+                          {
+                            $cond: {
+                              if: { $eq: [{ $type: "$$studentId" }, "string"] },
+                              then: { $toObjectId: "$$studentId" },
+                              else: "$$studentId",
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "studentInfo",
+          },
+        },
+        {
+          $unwind: {
+            path: "$studentInfo",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            studentId: 1,
+            examId: 1,
+            responses: 1,
+            scored: 1,
+            createdAt: 1,
+            "studentInfo.name": 1,
+            "studentInfo.email": 1,
+            "studentInfo.avatar": 1,
+          },
+        },
+      ])
       .toArray();
 
-    if (!studentResponses.length) {
+    if (!result || result.length === 0) {
       return {
         success: false,
-        message: "No student responses found for this exam",
+        message: "No result found",
       };
     }
 
-    const allResults = studentResponses.flatMap((student) =>
-      student.examAttempts
-        .filter(
-          (attempt: any) =>
-            attempt.examId === data.examId &&
-            attempt.teacherEmail === teacherEmail
-        )
-        .map((attempt: any) => ({
-          studentEmail: student.studentEmail,
-          studentName: student.studentName,
-          scores: {
-            scored: attempt.score.scored,
-            submittedAt: attempt.score.submittedAt,
-            responses: attempt.responses,
-          },
-        }))
-    );
-
     return {
       success: true,
-      data: allResults,
-      message: "Results fetched successfully",
+      data: result,
+      message: "Result with student info fetched successfully",
     };
   } catch (error: any) {
     await logger({

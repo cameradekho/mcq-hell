@@ -54,52 +54,8 @@ export const ExamSessionDate = ({
     startTime: startTime || null,
     endTime: endTime || null,
   });
-  // const [basicExamDetails, setBasicExamDetails] = useState<
-  //   Pick<IExam, "name" | "description" | "duration" | "session">
-  // >({
-  //   name: "",
-  //   description: "",
-  //   duration: 0,
-  // });
-
-  //fetching exam data
-  // useEffect(() => {
-  //   const fetchExamData = async () => {
-  //     if (basicExamDetails.name) return;
-
-  //     if (!examSessionData.exam.id || !examSessionData.teacher?._id) return;
-
-  //     try {
-  //       const res = await fetchExamById({
-  //         teacherId: examSessionData.teacher._id,
-  //         examId: examSessionData.exam.id,
-  //       });
-
-  //       if (!res.success) {
-  //         toast.error(res.message);
-  //         return;
-  //       }
-
-  //       setBasicExamDetails({
-  //         name: res.data.name,
-  //         description: res.data.description,
-  //         duration: res.data.duration,
-  //       });
-  //     } catch (error) {
-  //       console.error("Error fetching exam data:", error);
-  //       toast.error("Failed to fetch exam data");
-  //     }
-  //   };
-
-  //   fetchExamData();
-  // }, []);
-
-  // setting and assigning session data to examSessionData
+  
   useEffect(() => {
-    console.log(
-      "KEESSTOO KEESTO",
-      dayjs().isSame(dayjs(examSessionData.sessionDate))
-    );
     // if (examSessionData.existingSessionData?.sessionDate) {
     console.log("ExamSessionDate useEffect");
     if (!examSessionData.existingSessionData) {
@@ -136,10 +92,7 @@ export const ExamSessionDate = ({
         const end = new Date(examSessionData.existingSessionData.endTime);
 
         if (end < now && dayjs().isSame(dayjs(examSessionData.sessionDate))) {
-          console.log(
-            "KEESSTOO KEESTO",
-            dayjs().isSame(dayjs(examSessionData.sessionDate))
-          );
+         
           examSessionData.setEnableCopy(false);
           const pro = dayjs().isSame(dayjs(examSessionData.sessionDate), "day");
           console.log("pro: ", pro);

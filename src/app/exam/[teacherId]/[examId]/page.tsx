@@ -112,7 +112,7 @@ const Page = ({ params }: PageProps) => {
               }[]
             > = {};
             (data.data as IExam).questions.forEach((q) => {
-              initialAnswers[q._id.toString()] = [];
+              initialAnswers[q?._id?.toString()] = [];
             });
             setAnswers(initialAnswers);
           }
@@ -351,7 +351,7 @@ const Page = ({ params }: PageProps) => {
       console.log("hubba one");
       // Check if all questions are answered
       const unansweredQuestions = exam.questions.filter(
-        (q) => answers[q._id.toString()]?.length === 0
+        (q) => answers[q._id?.toString()]?.length === 0
       );
 
       if (timeLeft > 0 && unansweredQuestions.length > 0) {
@@ -367,16 +367,16 @@ const Page = ({ params }: PageProps) => {
       // Format responses for submission
       const formattedResponses = exam.questions.map((question) => {
         console.log("hubba one point five");
-        const selectedOptions = answers[question._id.toString()];
+        const selectedOptions = answers[question._id?.toString()];
         console.log("selectedOptions");
 
         const isCorrect = arraysEqual(
           selectedOptions.map((item) => item.id.toString()).sort(),
-          question.answer.map((id) => id.toString()).sort()
+          question.answer.map((id) => id?.toString()).sort()
         );
 
         return {
-          questionId: question._id.toString(),
+          questionId: question._id?.toString(),
           question: question.question,
           image: question.image || "",
           correctOption: question.options
@@ -431,7 +431,7 @@ const Page = ({ params }: PageProps) => {
       const result = await addStudentResponse({
         examId: params.examId,
         teacherId: params.teacherId,
-        studentId: studentId,
+        studentId: studentId.toString(),
         responses: formattedResponses,
         score: correctCount,
       });
@@ -776,8 +776,8 @@ const Page = ({ params }: PageProps) => {
                                           (ans) =>
                                             ans.id === option._id.toString()
                                         )
-                                      : answers[question._id.toString()]?.[0]
-                                          ?.id === option._id.toString()) &&
+                                      : answers[question?._id?.toString()]?.[0]
+                                          ?.id === option?._id?.toString()) &&
                                       "ring-2 ring-primary"
                                   )}
                                 >
@@ -789,7 +789,7 @@ const Page = ({ params }: PageProps) => {
                                           : "radio"
                                       }
                                       name={`question-${qIndex}`}
-                                      value={option._id.toString()}
+                                      value={option._id?.toString()}
                                       checked={
                                         question.answer.length > 1
                                           ? answers[
@@ -800,8 +800,9 @@ const Page = ({ params }: PageProps) => {
                                                 option._id?.toString()
                                             )
                                           : answers[
-                                              question._id.toString()
-                                            ]?.[0]?.id === option._id.toString()
+                                              question._id?.toString()
+                                            ]?.[0]?.id ===
+                                            option._id?.toString()
                                       }
                                       onChange={(e) =>
                                         question.answer.length > 1
@@ -914,7 +915,7 @@ const Page = ({ params }: PageProps) => {
                             <TableBody>
                               {exam?.questions.map((question, index) => {
                                 const selectedIds =
-                                  answers[question._id.toString()] || [];
+                                  answers[question._id?.toString()] || [];
                                 const isCorrect = arraysEqual(
                                   selectedIds.map((item) => item.id).sort(),
                                   question.answer
@@ -998,19 +999,19 @@ const Page = ({ params }: PageProps) => {
                                         {question.answer.map((id) => {
                                           const option = question.options.find(
                                             (opt) =>
-                                              opt._id.toString() ===
-                                              id.toString()
+                                              opt._id?.toString() ===
+                                              id?.toString()
                                           );
                                           if (!option)
                                             return (
-                                              <span key={id.toString()}>
+                                              <span key={id?.toString()}>
                                                 Not found
                                               </span>
                                             );
 
                                           return (
                                             <div
-                                              key={id.toString()}
+                                              key={id?.toString()}
                                               className="flex items-center gap-2"
                                             >
                                               {option.image && (

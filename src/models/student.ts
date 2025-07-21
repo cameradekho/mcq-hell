@@ -1,5 +1,7 @@
+import { ObjectId } from "mongodb";
+
 export type IStudent = {
-  _id: string;
+  _id: ObjectId;
   name: string;
   role: "student";
   email: string;

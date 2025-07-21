@@ -3,11 +3,7 @@ import { IExam } from "@/models/exam";
 import React, { useEffect, useState } from "react";
 import { fetchExamById } from "../../../../action/fetch-exam-by-id";
 import { useParams } from "next/navigation";
-import {
-  ExamResultWithStudentInfo,
-  fetchResultByTeacherIdExamId,
-  IScores,
-} from "../../../../action/res/fetch-result-by-teacherId-examId";
+import { fetchResultByTeacherIdExamId } from "../../../../action/res/fetch-result-by-teacherId-examId";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  CalendarIcon,
+  ChevronDown,
+  RefreshCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -29,12 +31,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StudentAnswer } from "@/models/students-response";
+import { fetchStudentById } from "@/action/student/fetch-student-by-id";
+import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { FaSortNumericUp, FaSortNumericDown } from "react-icons/fa";
+import { BiSortAlt2 } from "react-icons/bi";
+
+type IResponses = {
+  responses: StudentAnswer[];
+  scored: number;
+  submittedAt: Date;
+};
 
 type FormattedResultData = {
-  studentName: string;
-  studentEmail: string;
-  scores: IScores[];
+  studentName?: string;
+  studentEmail?: string;
+  studentAvatar?: string;
+  studentId: string;
+  responses: IResponses[];
 };
+
+type SortState = "disabled" | "increased" | "decreased";
 
 const Page = () => {
   const { teacherId, examId } = useParams() as {
@@ -42,7 +66,6 @@ const Page = () => {
     examId: string;
   };
   const [examData, setExamData] = useState<IExam>();
-  const [resultData, setResultData] = useState<ExamResultWithStudentInfo[]>();
   const [formattedResultData, setFormattedResultData] = useState<
     FormattedResultData[]
   >([]);
@@ -52,60 +75,96 @@ const Page = () => {
   const [expandedScoreIndex, setExpandedScoreIndex] = useState<number | null>(
     null
   );
+  const [searchByStudentName, setSearchByStudentName] = useState<string>("");
+  const [searchbyStudentEmail, setSearchbyStudentEmail] = useState<string>("");
 
-  const [sortResultByDate, setSortResultByDate] = useState<boolean>(true);
+  const [allstudentResponses, setAllSetstudentResponses] = useState<
+    FormattedResultData[] | undefined
+  >();
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
+  const [sortByScore, setSortByScore] = useState<SortState>("disabled");
+
+  // Reset search and date when the component mounts
   useEffect(() => {
-    async function getExamData() {
+    setSearchByStudentName("");
+    setSearchbyStudentEmail("");
+    setSelectedDate(undefined);
+  }, []);
+
+  // Fetch exam data and student responses when teacherId or examId changes
+  useEffect(() => {
+    async function getExamResponseData() {
       try {
-        const examData = await fetchExamById({ teacherId, examId });
-        if (examData.success) {
-          setExamData(examData.data);
+        const examDataResponse = await fetchExamById({ teacherId, examId });
+        if (examDataResponse.success) {
+          setExamData(examDataResponse.data);
         } else {
-          console.log("error: ", examData.message);
+          console.log("error: ", examDataResponse.message);
+          toast.error("Error fetching exam data: " + examDataResponse.message);
         }
 
+        // fetching all students responses by teacher and exam ID
         const studentsResponseDatas = await fetchResultByTeacherIdExamId({
           teacherId,
           examId,
         });
 
-        if (studentsResponseDatas.success && studentsResponseDatas.data) {
-          const grouped: Record<string, FormattedResultData> = {};
+        if (!studentsResponseDatas.success) {
+          console.log("error: ", studentsResponseDatas.message);
+          toast.error(
+            "Error fetching student results: " + studentsResponseDatas.message
+          );
+          return; // Exit early if there's an error
+        }
 
+        // grouping student responses by student ID
+        const grouped: Record<string, FormattedResultData> = {};
+
+        // Check if data exists and process it
+        if (
+          studentsResponseDatas.data &&
+          studentsResponseDatas.data.length > 0
+        ) {
           studentsResponseDatas.data.forEach((curr) => {
-            if (grouped[curr.studentEmail]) {
-              grouped[curr.studentEmail].scores.push(curr.scores);
+            // Access nested student info from the MongoDB projection
+            const studentInfo = curr.studentInfo || {};
+
+            if (grouped[curr.studentId]) {
+              grouped[curr.studentId].responses.push({
+                responses: curr.responses,
+                scored: curr.scored,
+                submittedAt: curr.createdAt,
+              });
             } else {
-              grouped[curr.studentEmail] = {
-                studentEmail: curr.studentEmail,
-                studentName: curr.studentName,
-                scores: [curr.scores],
+              console.log("studentInfo: ", studentInfo);
+              console.log("curr object: ", curr); // Add this to see the full object
+
+              grouped[curr.studentId] = {
+                studentName: studentInfo?.name || curr.studentName || "Unknown", // Fallback to curr.studentName if exists
+                studentEmail: studentInfo?.email || curr.studentEmail || "",
+                studentAvatar: studentInfo?.avatar || curr.studentAvatar || "",
+                studentId: curr.studentId,
+                responses: [
+                  {
+                    responses: curr.responses,
+                    scored: curr.scored,
+                    submittedAt: curr.createdAt,
+                  },
+                ],
               };
             }
           });
-
-          const formattedRes = Object.values(grouped);
-          setFormattedResultData(formattedRes);
-
-          console.log(
-            "Formatted Results:",
-            formattedRes.map((item) => item.scores)
-          );
-
-          console.log(
-            "Formatted Results Image:",
-            formattedRes.map((item) =>
-              item?.scores?.map((score) =>
-                score?.responses?.map((response) => response.image)
-              )
-            )
-          );
-        } else {
-          console.log("error: ", studentsResponseDatas.message);
         }
+
+        // Convert the grouped object into an array
+        const formattedDataArray: FormattedResultData[] =
+          Object.values(grouped);
+        setFormattedResultData(formattedDataArray);
+        setAllSetstudentResponses(formattedDataArray);
+        console.log("Formatted Result Data: ", formattedDataArray);
       } catch (error) {
-        console.log("error:");
         console.log("error: ", error);
         console.error("Error fetching exam data:", error);
         toast.error("Error fetching exam data: " + error);
@@ -113,22 +172,226 @@ const Page = () => {
     }
 
     if (teacherId && examId) {
-      getExamData();
+      getExamResponseData();
     }
   }, [teacherId, examId]);
-  const sortedScoresByDate = selectedStudent?.scores
-    ?.slice() // avoid mutating original array
-    .sort(
-      (a, b) =>
-        sortResultByDate
-          ? new Date(a.submittedAt).getTime() -
-            new Date(b.submittedAt).getTime() // Oldest first
-          : new Date(b.submittedAt).getTime() -
-            new Date(a.submittedAt).getTime() // Newest first
-    );
 
-  const handleSortResult = (sortByDate: boolean) => {
-    setSortResultByDate((prev) => !prev);
+  //searching and filtering logic
+  useEffect(() => {
+    console.log("Applying search and date filters...");
+    if (!selectedDate) {
+      console.log("No date selected, applying search filters only.");
+      handleSortByScore(sortByScore);
+      applySearchFilters();
+      return;
+    }
+    console.log("KUTTA");
+    let dataToFilter = allstudentResponses || [];
+
+    const dateFilteredData = dataToFilter.filter((item) => {
+      if (!item.responses || item.responses.length === 0) return false;
+
+      const submissionDate = new Date(item.responses[0].submittedAt);
+      return (
+        submissionDate.getDate() === selectedDate.getDate() &&
+        submissionDate.getMonth() === selectedDate.getMonth() &&
+        submissionDate.getFullYear() === selectedDate.getFullYear()
+      );
+    });
+
+    let finalFilteredData = [...dateFilteredData];
+
+    console.log("KUTTA");
+
+    if (searchByStudentName?.trim()) {
+      finalFilteredData = finalFilteredData.filter((item) =>
+        item?.studentName
+          ?.toLowerCase()
+          .includes(searchByStudentName.toLowerCase().trim())
+      );
+    }
+
+    if (searchbyStudentEmail?.trim()) {
+      finalFilteredData = finalFilteredData.filter((item) =>
+        item?.studentEmail
+          ?.toLowerCase()
+          .includes(searchbyStudentEmail.toLowerCase().trim())
+      );
+    }
+
+    console.log("Final filtered data length: ", finalFilteredData.length);
+
+    if (sortByScore === "increased") {
+      console.log("yppp one");
+      finalFilteredData = finalFilteredData.slice().sort((a, b) => {
+        const scoreA =
+          a.responses.length > 0
+            ? a.responses[a.responses.length - 1].scored
+            : 0;
+        const scoreB =
+          b.responses.length > 0
+            ? b.responses[b.responses.length - 1].scored
+            : 0;
+        return scoreA - scoreB;
+      });
+    }
+
+    if (sortByScore === "decreased") {
+      console.log("yppp two");
+      finalFilteredData = finalFilteredData.slice().sort((a, b) => {
+        const scoreA =
+          a.responses.length > 0
+            ? a.responses[a.responses.length - 1].scored
+            : 0;
+        const scoreB =
+          b.responses.length > 0
+            ? b.responses[b.responses.length - 1].scored
+            : 0;
+        return scoreB - scoreA;
+      });
+    }
+
+    if (sortByScore === "disabled") {
+      console.log("yppp three");
+      finalFilteredData = finalFilteredData.slice().sort((a, b) => {
+        const dateA =
+          a.responses.length > 0
+            ? new Date(
+                a.responses[a.responses.length - 1].submittedAt
+              ).getTime()
+            : 0;
+        const dateB =
+          b.responses.length > 0
+            ? new Date(
+                b.responses[b.responses.length - 1].submittedAt
+              ).getTime()
+            : 0;
+        return dateB - dateA;
+      });
+    }
+
+    console.log(`Date filter: ${selectedDate.toDateString()}`);
+    console.log(`Results after date filter: ${dateFilteredData.length}`);
+    console.log(`Results after search filters: ${finalFilteredData.length}`);
+
+    setFormattedResultData(finalFilteredData);
+  }, [
+    selectedDate,
+    allstudentResponses,
+    searchByStudentName,
+    searchbyStudentEmail,
+    sortByScore,
+  ]);
+
+  // Helper function to apply search filters without date filter
+  const applySearchFilters = () => {
+    if (!searchByStudentName && !searchbyStudentEmail) {
+      console.log("Applying search filters.******");
+      setFormattedResultData(allstudentResponses || []);
+      return;
+    }
+
+    let filteredData = [...(allstudentResponses || [])];
+
+    if (searchByStudentName && searchByStudentName.trim()) {
+      filteredData = filteredData.filter((item) =>
+        item?.studentName
+          ?.toLowerCase()
+          .includes(searchByStudentName.toLowerCase().trim())
+      );
+    }
+
+    if (searchbyStudentEmail && searchbyStudentEmail.trim()) {
+      filteredData = filteredData.filter((item) =>
+        item?.studentEmail
+          ?.toLowerCase()
+          .includes(searchbyStudentEmail.toLowerCase().trim())
+      );
+    }
+
+    console.log(" HUMMA HUMMA A KJHBKJG");
+
+    setFormattedResultData(filteredData);
+  };
+
+  const handleSortByScore = (sortByScore: SortState) => {
+    let filteredData = [...(allstudentResponses || [])];
+
+    if (sortByScore === "increased") {
+      console.log("yppp one");
+      filteredData = filteredData.slice().sort((a, b) => {
+        const scoreA =
+          a.responses.length > 0
+            ? a.responses[a.responses.length - 1].scored
+            : 0;
+        const scoreB =
+          b.responses.length > 0
+            ? b.responses[b.responses.length - 1].scored
+            : 0;
+        return scoreA - scoreB;
+      });
+    }
+
+    if (sortByScore === "decreased") {
+      console.log("yppp two");
+      filteredData = filteredData.slice().sort((a, b) => {
+        const scoreA =
+          a.responses.length > 0
+            ? a.responses[a.responses.length - 1].scored
+            : 0;
+        const scoreB =
+          b.responses.length > 0
+            ? b.responses[b.responses.length - 1].scored
+            : 0;
+        return scoreB - scoreA;
+      });
+    }
+
+    if (sortByScore === "disabled") {
+      console.log("yppp three");
+      filteredData = filteredData.slice().sort((a, b) => {
+        const dateA =
+          a.responses.length > 0
+            ? new Date(
+                a.responses[a.responses.length - 1].submittedAt
+              ).getTime()
+            : 0;
+        const dateB =
+          b.responses.length > 0
+            ? new Date(
+                b.responses[b.responses.length - 1].submittedAt
+              ).getTime()
+            : 0;
+        return dateB - dateA;
+      });
+    }
+
+    setFormattedResultData(filteredData);
+  };
+
+  const sortedScoresByDate: IResponses[] = selectedDate
+    ? selectedStudent?.responses?.filter(
+        (item) =>
+          item.submittedAt.getDate() === selectedDate.getDate() &&
+          item.submittedAt.getMonth() === selectedDate.getMonth() &&
+          item.submittedAt.getFullYear() === selectedDate.getFullYear()
+      ) ?? []
+    : selectedStudent?.responses?.sort(
+        (a, b) =>
+          new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      ) ?? [];
+
+  // Search by student name or email
+  const handleSearchStudent = (searchValue: string) => {
+    setSearchByStudentName(searchValue);
+    setSearchbyStudentEmail(searchValue);
+  };
+
+  // Handle date selection from calendar
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setCalendarOpen(false);
+    console.log("Date selected: ", date);
   };
 
   return (
@@ -141,23 +404,96 @@ const Page = () => {
             <h2 className="text-2xl font-bold text-gray-800">
               Results: {examData?.name}
             </h2>
-            <Button
-              variant="outline"
-              onClick={() => handleSortResult(true)}
-              className="text-md"
-            >
-              {sortResultByDate ? (
-                <ArrowDownWideNarrow className="text-gray-500 text-lg" />
-              ) : (
-                <ArrowUpNarrowWide className="text-gray-500 text-lg" />
+            <div className=" flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchByStudentName("");
+                  setSearchbyStudentEmail("");
+                  setSelectedDate(undefined);
+                  setFormattedResultData(allstudentResponses || []);
+                }}
+                className="text-md active:bg-gray-200 duration-100 ease-in transition-all hover:bg-gray-200 hover:text-gray-800"
+              >
+                <RefreshCcw className="text-gray-500 text-lg" />
+              </Button>
+              <Input
+                placeholder="Search by student name or email"
+                className="w-72 border-b-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                value={searchByStudentName || searchbyStudentEmail}
+                onChange={(e) => handleSearchStudent(e.target.value)}
+                type="text"
+              />
+              <div className="space-y-2">
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      type="button"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate && (
+                        <Label className="text-sm text-gray-600">
+                          {format(selectedDate, "MMM d, yyyy")}
+                        </Label>
+                      )}
+
+                      <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateSelect}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return date > today;
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {sortByScore === "disabled" && (
+                <Button
+                  variant="outline"
+                  className="text-md opacity-50"
+                  onClick={() => setSortByScore("increased")}
+                >
+                  disable
+                  <BiSortAlt2 />
+                </Button>
               )}
-            </Button>
+              {sortByScore === "increased" && (
+                <Button
+                  variant="outline"
+                  className="text-md text-blue-600"
+                  onClick={() => setSortByScore("decreased")}
+                >
+                  Increase
+                  <FaSortNumericUp />
+                </Button>
+              )}
+              {sortByScore === "decreased" && (
+                <Button
+                  variant="outline"
+                  className="text-md text-blue-600"
+                  onClick={() => setSortByScore("disabled")}
+                >
+                  Decrease
+                  <FaSortNumericDown />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Student Image</TableHead>
                   <TableHead>Student Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Latest Score</TableHead>
@@ -166,21 +502,38 @@ const Page = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {formattedResultData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">
+                      No results found. Try Removing the search filters.
+                    </TableCell>
+                  </TableRow>
+                )}
                 {formattedResultData?.map((result, index) => (
                   <TableRow key={index}>
+                    <TableCell className="flex items-center gap-1">
+                      <Image
+                        src={result.studentAvatar || ""}
+                        alt="Student Avatar"
+                        width={100}
+                        height={100}
+                        className="rounded-full p-[2px] border h-16 w-16 border-gray-300 mr-4"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       {result.studentName}
                     </TableCell>
                     <TableCell>{result.studentEmail}</TableCell>
                     <TableCell>
-                      {result.scores?.length > 0
-                        ? result.scores[result.scores.length - 1].scored
+                      {result.responses.length > 0
+                        ? result.responses[result.responses.length - 1].scored
                         : "No scores"}
                     </TableCell>
                     <TableCell>
-                      {result.scores?.length > 0
+                      {result.responses?.length > 0
                         ? format(
-                            result.scores[result.scores.length - 1].submittedAt,
+                            result.responses[result.responses.length - 1]
+                              .submittedAt,
                             "MMM d, yyyy - h:mm a"
                           )
                         : "N/A"}
@@ -217,32 +570,32 @@ const Page = () => {
             <div className="space-y-6">
               <div className=" w-full flex items-center justify-between">
                 <div>
-                  <p className="text-lg font-semibold text-gray-800">
-                    {selectedStudent.studentName}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {selectedStudent.studentEmail}
-                  </p>
+                  <div className="flex items-center gap-1">
+                    <Image
+                      src={selectedStudent?.studentAvatar || ""}
+                      alt="Student Avatar"
+                      width={100}
+                      height={100}
+                      className="rounded-full p-1 border border-gray-300 mr-4"
+                    />
+                    <div className=" flex flex-col gap-[2px]">
+                      <p className="text-lg font-semibold text-gray-800">
+                        {selectedStudent.studentName}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {selectedStudent.studentEmail}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    className="text-md duration-100 ease-in transition-all hover:bg-gray-200 hover:text-gray-800"
-                    onClick={() => handleSortResult(true)}
-                  >
-                    {sortResultByDate ? (
-                      <ArrowDownWideNarrow className="text-gray-500 text-lg" />
-                    ) : (
-                      <ArrowUpNarrowWide className="text-gray-500 text-lg" />
-                    )}
-                  </Button>
-                </div>
+                <div className="flex items-center justify-between"></div>
               </div>
+
               {sortedScoresByDate?.map((score, index) => {
                 const isExpanded = expandedScoreIndex === index;
 
                 return (
-                  <div key={index} className="border rounded-md p-4">
+                  <div key={index} className="border rounded-md p-4 ">
                     <div
                       className="flex items-center justify-between cursor-pointer"
                       onClick={() =>

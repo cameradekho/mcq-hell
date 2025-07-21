@@ -1,4 +1,4 @@
-"use server"
+"use server";
 import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 import { IStudent, studentCollectionName } from "@/models/student";
@@ -26,8 +26,9 @@ export const fetchStudentById = async (
 
     await mongodb.connect();
 
-     const student = await mongodb
-       .collection<IStudent>(studentCollectionName).findOne( new ObjectId(studentId) );
+    const student = await mongodb
+      .collection<IStudent>(studentCollectionName)
+      .findOne(new ObjectId(studentId));
 
     if (!student) {
       return {
