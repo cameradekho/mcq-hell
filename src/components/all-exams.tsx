@@ -171,7 +171,8 @@ export const AllExams = (params: Props) => {
           </Link>
 
           <Link
-            href={`/add-exam-by-ai/${teacher?._id}`}
+            // href={`/add-exam-by-ai/${teacher?._id}`}
+            href={'/chat'}
             target="_blank"
             rel="noopener noreferrer"
           >
