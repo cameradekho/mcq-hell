@@ -5,20 +5,19 @@ import { fetchExamById } from "../fetch-exam-by-id";
 import { mongodb } from "@/lib/mongodb";
 import {
   IAnswerOption,
+  IStudentResponseDocument,
   studentResponseCollectionName,
 } from "@/models/students-response";
 import { logger } from "@/models/logger";
+import { fetchStudentById } from "../student/fetch-student-by-id";
 
 export type AddStudentResponseResult = ServerActionResult<undefined>;
 
 export type AddStudentResponseData = {
-  teacherId: string;
-  teacherEmail: string;
-  studentName: string;
-  studentEmail: string;
-  studentAvatar?: string;
   examId: string;
-  response: {
+  teacherId: string;
+  studentId: string;
+  responses: {
     questionId: string;
     question: string;
     image?: string;
@@ -26,10 +25,7 @@ export type AddStudentResponseData = {
     selectedOption: IAnswerOption[];
     isCorrect: boolean;
   }[];
-  score: {
-    scored: number;
-    submittedAt: Date;
-  };
+  score: number;
 };
 
 export const addStudentResponse = async (
@@ -37,6 +33,7 @@ export const addStudentResponse = async (
 ): Promise<AddStudentResponseResult> => {
   try {
     // Individual field validation
+    console.log("Adding kutta");
     if (!data.teacherId) {
       return {
         success: false,
@@ -44,24 +41,17 @@ export const addStudentResponse = async (
       };
     }
 
-    if (!data.teacherEmail) {
+    if (!data.studentId) {
       return {
         success: false,
-        message: "Please provide teacherEmail",
+        message: "Please provide StudentID",
       };
     }
 
-    if (!data.studentName) {
+    if (!data.teacherId) {
       return {
         success: false,
-        message: "Please provide studentName",
-      };
-    }
-
-    if (!data.studentEmail) {
-      return {
-        success: false,
-        message: "Please provide studentEmail",
+        message: "Please provide teacherId",
       };
     }
 
@@ -72,7 +62,7 @@ export const addStudentResponse = async (
       };
     }
 
-    if (!data.response || data.response.length === 0) {
+    if (!data.responses || data.responses.length === 0) {
       return {
         success: false,
         message: "Please provide response data",
@@ -105,39 +95,53 @@ export const addStudentResponse = async (
       };
     }
 
+    const studentExists = await fetchStudentById({
+      studentId: data.studentId,
+    });
+    if (!studentExists) {
+      return {
+        success: false,
+        message: "Student not found",
+      };
+    }
+
     await mongodb.connect();
-    const now = new Date();
 
     // Make sure all response items have image field (even if empty string)
-    const normalizedResponses = data.response.map((item) => ({
+    const normalizedResponses = data.responses.map((item) => ({
       ...item,
       image: item.image || "",
     }));
 
+    console.log(
+      "CorrectOption Responses:",
+      normalizedResponses.map((item) =>
+        item.correctOption.map((item1) => item1.content)
+      )
+    );
+    console.log(
+      "SelectedOption Responses:",
+      normalizedResponses.map((item) =>
+        item.selectedOption.map((item1) => item1.content)
+      )
+    );
+
+    console.log(
+      "normalizedResponses:",
+      normalizedResponses.map((item) => item)
+    );
+
     const result = await mongodb
-      .collection(studentResponseCollectionName)
-      .updateOne(
-        { studentEmail: data.studentEmail },
-        {
-          $setOnInsert: {
-            studentName: data.studentName,
-            studentAvatar: data.studentAvatar || "",
-            createdAt: now,
-          },
-          $set: {
-            updatedAt: now,
-          },
-          $push: {
-            examAttempts: {
-              examId: data.examId,
-              teacherEmail: data.teacherEmail,
-              responses: normalizedResponses,
-              score: data.score,
-            },
-          } as any,
-        },
-        { upsert: true }
-      );
+      .collection<IStudentResponseDocument>(studentResponseCollectionName)
+      .insertOne({
+        examId: data.examId,
+        studentId: data.studentId,
+        teacherId: data.teacherId,
+        responses: normalizedResponses,
+        scored: data.score,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
     if (!result.acknowledged) {
       return {

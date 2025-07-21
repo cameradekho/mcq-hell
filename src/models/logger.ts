@@ -10,7 +10,7 @@ export async function logger(info: object) {
     const id = nanoid(64);
 
     await mongodb.collection<ILog>(logCollectionName).insertOne({
-      id: id,
+      _id: id,
       createdAt: new Date().getTime(),
       info: JSON.stringify(info),
     });

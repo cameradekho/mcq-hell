@@ -2,6 +2,7 @@
 import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
+import { ObjectId } from "mongodb";
 import { nanoid } from "nanoid";
 
 export type AddExamResult = ServerActionResult<undefined>;
@@ -40,14 +41,13 @@ export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
     await mongodb.connect();
 
     const res = await mongodb.collection("exam").insertOne({
-      id: nanoid(),
       name: data.name,
       description: data.description,
       duration: data.duration,
       questions: data.questions.map((q) => {
         // Create options with IDs first
         const optionsWithIds = q.options.map((opt) => ({
-          id: nanoid(), //option Id
+          _id: new ObjectId(), //option Id
           textAnswer: opt.text,
           image: opt.image || "",
           isCorrect: opt.isCorrect || false,
@@ -55,13 +55,13 @@ export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
 
         // Now use those IDs for the answer array
         return {
-          id: nanoid(), //exam Id
+          _id: new ObjectId(),
           question: q.question,
           image: q.image || "",
           options: optionsWithIds,
           answer: optionsWithIds
             .filter((opt) => opt.isCorrect)
-            .map((opt) => opt.id),
+            .map((opt) => opt._id),
           createdAt: new Date(),
           updatedAt: new Date(),
         };

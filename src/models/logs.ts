@@ -1,5 +1,5 @@
 export type ILog = {
-  id: string;
+  _id: string;
   createdAt: Number;
   info: string;
 };

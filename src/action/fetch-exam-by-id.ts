@@ -1,9 +1,10 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
-import { IExam, IQuestion } from "@/models/exam";
+import { IExam } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
+import { fetchTeacherById } from "./fetch-teacher-by-id";
 
 export type FetchExamByIdResult = ServerActionResult<IExam>;
 
@@ -24,42 +25,41 @@ export const fetchExamById = async (
     }
 
     console.log(data.examId);
-    const teacherId = new ObjectId(data.teacherId);
 
-    const examId = data.examId;
+    const isTeacherExists = await mongodb.collection("teacher").findOne({
+      _id: new ObjectId(data.teacherId),
+    });
 
-    await mongodb.connect();
-    const teacherData = await mongodb
-      .collection("teacher")
-      .findOne({ _id: teacherId });
-
-    if (!teacherData) {
+    if (!isTeacherExists) {
       return {
         success: false,
         message: "Teacher not found",
       };
     }
 
-    console.log("pro-start ", teacherData);
+    const teacherData = await fetchTeacherById({ teacherId: data.teacherId });
+    if (!teacherData.success || !teacherData.data) {
+      return {
+        success: false,
+        message: "Error fetching teacher",
+      };
+    }
 
-    const exam = teacherData.exam.find(
-      (exam: IExam) => exam.id === data.examId
-    );
+    await mongodb.connect();
+    const examData = await mongodb.collection<IExam>("exam").findOne({
+      _id: new ObjectId(data.examId),
+      createdByEmail: teacherData.data.email,
+    });
 
-    console.log(exam);
-
-    if (!exam) {
+    if (!examData) {
       return {
         success: false,
         message: "Exam not found",
       };
     }
-
-    console.log(exam.questions.map((item: IQuestion) => item.id));
-
     return {
       success: true,
-      data: exam,
+      data: examData,
       message: "Exam found",
     };
   } catch (error: any) {

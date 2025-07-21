@@ -19,16 +19,16 @@ export const fetchAllExams = async (): Promise<FetchAllExamsResult> => {
     }
 
     const formattedExams: IExam[] = exams.map((exam) => ({
-      id: exam.id,
+      _id: exam._id,
       name: exam.name,
       description: exam.description,
       duration: exam.duration,
       questions: exam.questions.map((question: IQuestion) => ({
-        id: question.id,
+        id: question._id,
         question: question.question,
         image: question.image,
         options: question.options.map((option) => ({
-          id: option.id,
+          id: option._id,
           textAnswer: option.textAnswer,
           image: option.image,
           isCorrect: option.isCorrect,

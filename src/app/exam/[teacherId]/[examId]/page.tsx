@@ -1,8 +1,8 @@
 "use client";
-
-import React, { use, useEffect, useState } from "react";
+import { format } from "date-fns";
+import React, { useEffect, useState } from "react";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
-import { IAnswer, IExam, IQuestion } from "@/models/exam";
+import { IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogOverlay,
-  DialogPortal,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { AlarmClock, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { signOut, useSession } from "next-auth/react";
 import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
+import { fetchStudentByEmail } from "@/action/student/fetch-student-by-email";
 
 type PageProps = {
   params: {
@@ -46,6 +44,7 @@ type StudentDetails = {
 
 const Page = ({ params }: PageProps) => {
   const { data: session, status } = useSession();
+
   const [exam, setExam] = useState<IExam>();
   const [answers, setAnswers] = useState<
     Record<
@@ -63,7 +62,7 @@ const Page = ({ params }: PageProps) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<number>(0);
-  const [teacherEmail, setTeacherEmail] = useState<string>();
+  const [teacherEmail, setTeacherEmail] = useState<string>("");
   const [step, setStep] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [studentDetails, setStudentDetails] = useState<StudentDetails>({
@@ -75,8 +74,17 @@ const Page = ({ params }: PageProps) => {
   const [open, setOpen] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [shuffledQuestions, setShuffledQuestions] = useState<IQuestion[]>([]);
-  const [shuffledAnswers, setShuffledAnswers] = useState<IAnswer[]>([]);
 
+  const [currentDate, setCurrentDate] = useState<string>(
+    format(new Date(), "yyyy-MM-dd")
+  );
+  const [currentTime, setCurrentTime] = useState<string>(
+    format(new Date(), "HH:mm")
+  );
+
+  const [isDateTimeMatched, setIsDateTimeMatched] = useState<boolean>(false);
+
+  //fetching exam data
   useEffect(() => {
     async function fetchExamData() {
       try {
@@ -104,7 +112,7 @@ const Page = ({ params }: PageProps) => {
               }[]
             > = {};
             (data.data as IExam).questions.forEach((q) => {
-              initialAnswers[q.id] = [];
+              initialAnswers[q?._id?.toString()] = [];
             });
             setAnswers(initialAnswers);
           }
@@ -117,8 +125,12 @@ const Page = ({ params }: PageProps) => {
         });
 
         if (teacherData.success) {
-          setTeacherEmail(teacherData.data.email || "");
+          setTeacherEmail(teacherData.data.email);
         }
+
+        const date = new Date();
+        setCurrentDate(format(date, "yyyy-MM-dd"));
+        setCurrentTime(format(date, "hh:mm a"));
       } catch (error: any) {
         toast.error("Error fetching exam");
         console.error(error);
@@ -126,12 +138,13 @@ const Page = ({ params }: PageProps) => {
     }
 
     fetchExamData();
-  }, [params.teacherId, params.examId]);
+  }, [params.teacherId, params.examId, isDateTimeMatched === true]);
 
+  // calcuing time left for the exam and auto-submit exam if time is over
+  // This will start a timer when the exam starts and auto-submit when time is over
   useEffect(() => {
     if (!examStarted || !exam || exam.duration === 0) return;
 
-    // Initialize timeLeft when exam starts
     setTimeLeft(exam.duration * 60); // convert minutes to seconds
 
     const interval = setInterval(() => {
@@ -148,6 +161,7 @@ const Page = ({ params }: PageProps) => {
     return () => clearInterval(interval); // cleanup
   }, [examStarted, exam]);
 
+  // Shuffle questions and options
   useEffect(() => {
     if (exam?.questions) {
       const shuffled: IQuestion[] = [...exam.questions]
@@ -159,6 +173,85 @@ const Page = ({ params }: PageProps) => {
       setShuffledQuestions(shuffled);
     }
   }, [exam]);
+
+  const handleAutoSubmit = () => {
+    if (!exam) return;
+    setAutoSubmit(true);
+    console.log("answers ", answers);
+  };
+
+  // exam session date and time validation before starting the exam
+  // This will check if the current date and time matches the exam session date and time
+  useEffect(() => {
+    if (
+      !exam?.session?.sessionDate ||
+      !exam?.session?.startTime ||
+      !exam?.session?.endTime
+    ) {
+      console.log("Exam session details are not set");
+      return;
+    }
+    const now = new Date();
+    const sessionDate = new Date(exam?.session?.sessionDate);
+    const startTime = new Date(exam.session.startTime);
+    const endTime = new Date(exam.session.endTime);
+
+    const sameDate =
+      now.getFullYear() === sessionDate.getFullYear() &&
+      now.getMonth() === sessionDate.getMonth() &&
+      now.getDate() === sessionDate.getDate();
+
+    if (!sameDate) {
+      toast.error("Sorry, Today is not the exam date");
+      setExamStarted(false);
+      setIsDateTimeMatched(false);
+      return;
+    } else if (now < startTime) {
+      toast.error("Sorry, the exam hasn't started yet");
+      setIsDateTimeMatched(false);
+      setExamStarted(false);
+    } else if (now > endTime) {
+      toast.error("Sorry, the exam time is over");
+      setIsDateTimeMatched(false);
+      false;
+      setExamStarted(false);
+      return;
+    } else {
+      setIsDateTimeMatched(true);
+      return;
+    }
+  }, [exam]);
+
+  // Auto-submit exam if time is over
+  // This will check every minute if the current time is within the exam session time range
+  useEffect(() => {
+    const setIntervalId = setInterval(() => {
+      if (
+        !exam?.session?.sessionDate ||
+        !exam?.session?.startTime ||
+        !exam?.session?.endTime
+      ) {
+        console.log("Exam session details are not set");
+        return;
+      }
+      const now = new Date();
+      const startTime = new Date(exam.session.startTime);
+      const endTime = new Date(exam.session.endTime);
+
+      const withinTimeRange = now >= startTime && now <= endTime;
+
+      if (!withinTimeRange) {
+        toast.error("Sorry, the exam time is over");
+        setIsDateTimeMatched(false);
+        setAutoSubmit(false);
+        setExamStarted(false);
+        setTimeLeft(0);
+        setDuration(0);
+      }
+    }, 60000);
+
+    return () => clearInterval(setIntervalId); // Cleanup interval on unmount
+  }, [exam, isDateTimeMatched === true, examStarted === true]);
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -175,14 +268,6 @@ const Page = ({ params }: PageProps) => {
       }));
     }
   }, [session?.user.name, session?.user.email]);
-
-  const handleAutoSubmit = () => {
-    if (!exam) return;
-    setAutoSubmit(true);
-
-    // Submit exam
-    handleSubmit();
-  };
 
   // Handle single choice (radio button) selection
   const handleSingleAnswerChange = (
@@ -214,7 +299,7 @@ const Page = ({ params }: PageProps) => {
     isChecked: boolean
   ) => {
     setAnswers((prev) => {
-      const currentSelections = prev[questionId] || [];
+      const currentSelections = prev[questionId];
 
       if (isChecked) {
         return {
@@ -263,9 +348,10 @@ const Page = ({ params }: PageProps) => {
       setSubmitting(true);
       if (!exam) return;
 
+      console.log("hubba one");
       // Check if all questions are answered
       const unansweredQuestions = exam.questions.filter(
-        (q) => answers[q.id]?.length === 0
+        (q) => answers[q._id?.toString()]?.length === 0
       );
 
       if (timeLeft > 0 && unansweredQuestions.length > 0) {
@@ -280,21 +366,23 @@ const Page = ({ params }: PageProps) => {
 
       // Format responses for submission
       const formattedResponses = exam.questions.map((question) => {
-        const selectedOptions = answers[question.id] || [];
+        console.log("hubba one point five");
+        const selectedOptions = answers[question._id?.toString()];
+        console.log("selectedOptions");
 
         const isCorrect = arraysEqual(
-          selectedOptions.map((item) => item.id).sort(),
-          question.answer.sort()
+          selectedOptions.map((item) => item.id.toString()).sort(),
+          question.answer.map((id) => id?.toString()).sort()
         );
 
         return {
-          questionId: question.id,
+          questionId: question._id?.toString(),
           question: question.question,
           image: question.image || "",
           correctOption: question.options
-            .filter((opt) => question.answer.includes(opt.id))
+            .filter((opt) => question.answer.includes(opt._id))
             .map((opt) => ({
-              id: opt.id, // ✅ Corrected key
+              id: opt._id.toString(), // ✅ Corrected key
               content: {
                 // ✅ Corrected key
                 text: opt.textAnswer ? [opt.textAnswer] : [],
@@ -302,7 +390,7 @@ const Page = ({ params }: PageProps) => {
               },
             })),
           selectedOption: selectedOptions.map((opt) => ({
-            id: opt.id, // ✅ Corrected key
+            id: opt.id.toString(), // ✅ Corrected key
             content: {
               text: opt.content.text || [],
               image: opt.content.image || [],
@@ -311,25 +399,44 @@ const Page = ({ params }: PageProps) => {
           isCorrect: isCorrect,
         };
       });
-
+      console.log("hubba two");
+      console.log(
+        "CorrectOption Responses:",
+        formattedResponses.map((item) =>
+          item.correctOption.map((item1) => item1.content)
+        )
+      );
+      console.log(
+        "SelectedOption Responses:",
+        formattedResponses.map((item) =>
+          item.selectedOption.map((item1) => item1.content)
+        )
+      );
       // Calculate score
       const correctCount = formattedResponses.filter((r) => r.isCorrect).length;
       setResult(correctCount);
 
+      const studentData = await fetchStudentByEmail({
+        studentEmail: studentDetails.studentEmail,
+      });
+
+      if (!studentData.success || !studentData.data._id) {
+        toast.error("Error fetching student data");
+        return;
+      }
+
+      const studentId = studentData.data._id;
+
       // Submit to server
       const result = await addStudentResponse({
-        teacherId: params.teacherId,
-        teacherEmail: teacherEmail || "",
-        studentName: studentDetails.studentName,
-        studentEmail: studentDetails.studentEmail,
-        studentAvatar: "",
         examId: params.examId,
-        response: formattedResponses,
-        score: {
-          scored: correctCount,
-          submittedAt: new Date(),
-        },
+        teacherId: params.teacherId,
+        studentId: studentId.toString(),
+        responses: formattedResponses,
+        score: correctCount,
       });
+
+      console.log("hubba three");
 
       if (result.success) {
         toast.success(result.message);
@@ -341,7 +448,7 @@ const Page = ({ params }: PageProps) => {
         toast.error(result.message);
         setSubmitting(false);
       }
-
+      console.log("hubba five");
       setSubmitted(true);
     } catch (error) {
       setSubmitting(true);
@@ -350,6 +457,13 @@ const Page = ({ params }: PageProps) => {
     }
   };
 
+  useEffect(() => {
+    if (autoSubmit) {
+      handleSubmit();
+      setAutoSubmit(false);
+    }
+  }, [autoSubmit]);
+
   // Helper function to compare arrays
   function arraysEqual(a: string[], b: string[]) {
     if (a.length !== b.length) return false;
@@ -357,11 +471,6 @@ const Page = ({ params }: PageProps) => {
       if (a[i] !== b[i]) return false;
     }
     return true;
-  }
-
-  function getOptionTextById(question: IQuestion, optionId: string) {
-    const option = question.options.find((opt) => opt.id === optionId);
-    return option ? option.textAnswer || "Image option" : "Not found";
   }
 
   const formatTime = (seconds: number) => {
@@ -373,7 +482,6 @@ const Page = ({ params }: PageProps) => {
   };
 
   // checking if session is present or not
-
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -460,6 +568,85 @@ const Page = ({ params }: PageProps) => {
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold">Student Details</h2>
+                    <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted text-center shadow-md">
+                      <div className="text-lg font-semibold text-primary">
+                        Exam Session Details
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted text-center shadow-md">
+                        <div className="text-lg font-semibold text-primary">
+                          Exam Session Details
+                        </div>
+
+                        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Date:
+                            </span>{" "}
+                            {exam?.session?.sessionDate
+                              ? new Date(
+                                  exam.session.sessionDate
+                                ).toLocaleDateString()
+                              : "Not set"}
+                          </div>
+
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Start Time:
+                            </span>{" "}
+                            {exam?.session?.startTime
+                              ? new Date(
+                                  exam.session.startTime
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true, // this gives AM/PM format
+                                })
+                              : "Not set"}
+                          </div>
+
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Start Time:
+                            </span>{" "}
+                            {exam?.session?.endTime
+                              ? new Date(
+                                  exam.session.endTime
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true, // this gives AM/PM format
+                                })
+                              : "Not set"}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <span className="font-medium text-accent-foreground">
+                            CurrentDate: {currentDate}
+                          </span>
+                          <span className="font-medium text-accent-foreground">
+                            CurrentTime: {currentTime}
+                          </span>{" "}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground ">
+                      <span>
+                        Your exam's session will be over in{" "}
+                        {exam?.session?.endTime
+                          ? new Date(exam.session.endTime).toLocaleTimeString(
+                              [],
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true, // this gives AM/PM format
+                              }
+                            )
+                          : "Not set"}{" "}
+                        after that you can't submit your exam.
+                      </span>
+                    </div>
                     <div className="grid gap-4">
                       <div className="space-y-2">
                         <label
@@ -519,6 +706,7 @@ const Page = ({ params }: PageProps) => {
                         onClick={handleFetchStudentData}
                         className="w-full sm:w-auto"
                         size="lg"
+                        disabled={isDateTimeMatched === false}
                       >
                         Proceed
                       </Button>
@@ -584,11 +772,13 @@ const Page = ({ params }: PageProps) => {
                                   className={cn(
                                     "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
                                     (question.answer.length > 1
-                                      ? answers[question.id]?.some(
-                                          (ans) => ans.id === option.id
+                                      ? answers[question._id.toString()]?.some(
+                                          (ans) =>
+                                            ans.id === option._id.toString()
                                         )
-                                      : answers[question.id]?.[0]?.id ===
-                                        option.id) && "ring-2 ring-primary"
+                                      : answers[question?._id?.toString()]?.[0]
+                                          ?.id === option?._id?.toString()) &&
+                                      "ring-2 ring-primary"
                                   )}
                                 >
                                   <div className="flex items-start gap-3">
@@ -599,21 +789,27 @@ const Page = ({ params }: PageProps) => {
                                           : "radio"
                                       }
                                       name={`question-${qIndex}`}
-                                      value={option.id}
+                                      value={option._id?.toString()}
                                       checked={
                                         question.answer.length > 1
-                                          ? answers[question.id]?.some(
-                                              (ans) => ans.id === option.id
+                                          ? answers[
+                                              question._id.toString()
+                                            ]?.some(
+                                              (ans) =>
+                                                ans.id ===
+                                                option._id?.toString()
                                             )
-                                          : answers[question.id]?.[0]?.id ===
-                                            option.id
+                                          : answers[
+                                              question._id?.toString()
+                                            ]?.[0]?.id ===
+                                            option._id?.toString()
                                       }
                                       onChange={(e) =>
                                         question.answer.length > 1
                                           ? handleMultipleAnswerChange(
-                                              question.id,
+                                              question._id.toString(),
                                               {
-                                                id: option.id,
+                                                id: option._id.toString(),
                                                 content: {
                                                   text: option.textAnswer
                                                     ? [option.textAnswer]
@@ -626,9 +822,9 @@ const Page = ({ params }: PageProps) => {
                                               e.target.checked
                                             )
                                           : handleSingleAnswerChange(
-                                              question.id,
+                                              question._id.toString(),
                                               {
-                                                id: option.id,
+                                                id: option._id.toString(),
                                                 content: {
                                                   text: option.textAnswer
                                                     ? [option.textAnswer]
@@ -670,7 +866,7 @@ const Page = ({ params }: PageProps) => {
                       <Button
                         onClick={handleSubmit}
                         size="lg"
-                        disabled={submitting}
+                        disabled={submitting || isDateTimeMatched === false}
                         className="w-full sm:w-auto flex items-center gap-2"
                       >
                         {submitting ? (
@@ -718,10 +914,13 @@ const Page = ({ params }: PageProps) => {
                             </TableHeader>
                             <TableBody>
                               {exam?.questions.map((question, index) => {
-                                const selectedIds = answers[question.id] || [];
+                                const selectedIds =
+                                  answers[question._id?.toString()] || [];
                                 const isCorrect = arraysEqual(
                                   selectedIds.map((item) => item.id).sort(),
-                                  question.answer.sort()
+                                  question.answer
+                                    .map((id) => id.toString())
+                                    .sort()
                                 );
 
                                 return (
@@ -759,8 +958,10 @@ const Page = ({ params }: PageProps) => {
                                           selectedIds.map(({ id }) => {
                                             const option =
                                               question.options.find(
-                                                (opt) => opt.id === id
+                                                (opt) =>
+                                                  opt._id.toString() === id
                                               );
+
                                             if (!option)
                                               return (
                                                 <span key={id}>Not found</span>
@@ -795,18 +996,22 @@ const Page = ({ params }: PageProps) => {
                                     {/* Correct Answer */}
                                     <TableCell>
                                       <div className="flex flex-wrap items-center gap-4">
-                                        {question.answer.map((id: string) => {
+                                        {question.answer.map((id) => {
                                           const option = question.options.find(
-                                            (opt) => opt.id === id
+                                            (opt) =>
+                                              opt._id?.toString() ===
+                                              id?.toString()
                                           );
                                           if (!option)
                                             return (
-                                              <span key={id}>Not found</span>
+                                              <span key={id?.toString()}>
+                                                Not found
+                                              </span>
                                             );
 
                                           return (
                                             <div
-                                              key={id}
+                                              key={id?.toString()}
                                               className="flex items-center gap-2"
                                             >
                                               {option.image && (

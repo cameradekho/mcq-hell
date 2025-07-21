@@ -2,11 +2,11 @@
 import { mongodb } from "@/lib/mongodb";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
-import { auth } from "../../auth";
 import { ObjectId } from "mongodb";
-import { examCollectionName } from "@/models/exam";
-import { get } from "http";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
+import { toast } from "sonner";
+import { teacherCollectionName } from "@/models/teacher";
+import { examCollectionName } from "@/models/exam";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
@@ -15,18 +15,10 @@ type DeleteExamByIdData = {
   teacherId: string;
 };
 
-export const deleteExamById = async (
+export const deleteSessionInExam = async (
   props: DeleteExamByIdData
 ): Promise<DeleteExamByIdResult> => {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return {
-        success: false,
-        message: "You must be logged in to delete an exam",
-      };
-    }
-    console.log(props.examId);
     if (!props.examId) {
       return {
         success: false,
@@ -34,43 +26,53 @@ export const deleteExamById = async (
       };
     }
 
-    if (!props.teacherId) {
+    const examId = props.examId;
+    const teacherId = props.teacherId;
+    const teacherObjectId = new ObjectId(teacherId);
+
+    const existingTeacher = await fetchTeacherById({
+      teacherId: teacherId,
+    });
+
+    if (!existingTeacher.success) {
       return {
         success: false,
-        message: "Please provide teacherId",
+        message: existingTeacher.message,
       };
     }
+
     await mongodb.connect();
 
-    const teacherDoc = await fetchTeacherById({
-      teacherId: props.teacherId,
-    });
-
-    if (!teacherDoc.success) {
-      return {
-        success: false,
-        message: teacherDoc.message,
-      };
-    }
-
-    if (!teacherDoc) throw new Error("Teacher not found");
-
-    const deleteRes = await mongodb.collection(examCollectionName).deleteOne({
-      _id: new ObjectId(props.examId),
-      createdByEmail: teacherDoc.data.email,
-    });
+    const deleteRes = await mongodb.collection(examCollectionName).updateOne(
+      {
+        _id: new ObjectId(examId),
+        createdByEmail: existingTeacher.data.email,
+      },
+      {
+        $unset: {
+          session: "",
+        },
+      }
+    );
 
     if (!deleteRes.acknowledged) {
       return {
         success: false,
-        message: "Error deleting exam",
+        message: "Error deleting exam by id...",
+      };
+    }
+
+    if (deleteRes.modifiedCount === 0) {
+      return {
+        success: false,
+        message: "No exam was deleted. Please check the exam ID.",
       };
     }
 
     return {
       success: true,
       data: undefined,
-      message: "Exam deleted successfully",
+      message: "Session deleted successfully",
     };
   } catch (error: any) {
     await logger({
@@ -79,7 +81,7 @@ export const deleteExamById = async (
     });
     return {
       success: false,
-      message: `Error deleting exam by id: ${
+      message: `Error deleting exam session by id: ${
         error instanceof Error ? error.message : error
       }`,
     };

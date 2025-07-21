@@ -1,12 +1,11 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
-import { IExam } from "@/models/exam";
+import { examCollectionName, IExam } from "@/models/exam";
 import { logger } from "@/models/logger";
-import { teacherCollectionName, ITeacher } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
 
 export type FetchExamsResult = ServerActionResult<
-  Pick<IExam, "id" | "name" | "description">[]
+  Pick<IExam, "_id" | "name" | "description">[]
 >;
 
 export type FetchExamsData = {
@@ -25,33 +24,19 @@ export const fetchExams = async (
     }
 
     await mongodb.connect();
-    const teacher = (await mongodb.collection(teacherCollectionName).findOne({
-      email: userEmail,
-    })) as ITeacher | null;
+    const examData = await mongodb
+      .collection<IExam>(examCollectionName)
+      .find({
+        createdByEmail: userEmail,
+      })
+      .toArray();
 
-    if (!teacher) {
+    if (!examData) {
       return {
-        success: true,
-        data: [],
-        message: "No teacher found with this email",
+        success: false,
+        message: "No exams found",
       };
     }
-
-    // Check if teacher has exams
-    if (!teacher.exam || teacher.exam.length === 0) {
-      return {
-        success: true,
-        data: [],
-        message: "No exams found for this teacher",
-      };
-    }
-
-    const examData = teacher.exam.map((exam) => ({
-      id: exam.id,
-      name: exam.name,
-      description: exam.description,
-    }));
-
     return {
       success: true,
       data: examData,

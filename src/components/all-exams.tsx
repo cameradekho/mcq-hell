@@ -12,22 +12,22 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Copy, Edit2, Trash2, Plus, Search } from "lucide-react";
+import {
+  Clapperboard,
+  Copy,
+  Edit2,
+  Trash2,
+  Plus,
+  Search,
+  Bot,
+} from "lucide-react";
 import { toast } from "sonner";
 import { deleteExamById } from "../action/delete-exam-by-id";
 import { ITeacher } from "@/models/teacher";
 import { fetchTeacherByEmail } from "../action/fetch-teacher-by-email";
 import { HiAcademicCap } from "react-icons/hi";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -37,20 +37,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// import SimpleCalendarTest from "./exam-session-date";
+
 type Props = {
   teacherEmail: string;
-  onExamDeleted?: () => void; // Callback to refresh dashboard stats
+  // onExamDeleted?: () => void; // Callback to refresh dashboard stats
 };
 
 export const AllExams = (params: Props) => {
   const [exams, setExams] = useState<
-    Pick<IExam, "id" | "name" | "description">[]
+    Pick<IExam, "_id" | "name" | "description">[]
   >([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [teacher, setTeacher] =
     useState<Pick<ITeacher, "_id" | "name" | "email" | "avatar">>();
-  const [examToDelete, setExamToDelete] = useState<string | null>(null);
+  const [examIDToDelete, setExamIDToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -84,8 +86,9 @@ export const AllExams = (params: Props) => {
       try {
         setIsLoading(true);
         const data = await fetchExams(params.teacherEmail);
+        console.log("exams: ", data);
         if (data.success) {
-          setExams(data.data);
+          setExams(data.data.map((exam) => ({ ...exam, id: exam._id })));
         } else {
           toast.error(data.message || "Failed to fetch exams");
         }
@@ -102,29 +105,27 @@ export const AllExams = (params: Props) => {
     }
   }, [params.teacherEmail]);
 
-  const handleDeleteClick = (examName: string) => {
-    setExamToDelete(examName);
+  const handleDeleteClick = (examId: string) => {
+    setExamIDToDelete(examId);
     setIsDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!examToDelete) return;
+    if (!examIDToDelete) return;
 
     try {
       const res = await deleteExamById({
-        examName: examToDelete,
+        examId: examIDToDelete,
+        teacherId: teacher?._id?.toString() || "",
       });
 
       if (res.success) {
         toast.success("Exam deleted successfully!");
-        setExams((prev) => prev.filter((exam) => exam.name !== examToDelete));
+        setExams((prev) =>
+          prev.filter((exam) => exam._id.toString() !== examIDToDelete)
+        );
         setIsDeleteDialogOpen(false);
-        setExamToDelete(null);
-
-        // Call the callback to refresh dashboard stats
-        if (params.onExamDeleted) {
-          params.onExamDeleted();
-        }
+        setExamIDToDelete(null);
       } else {
         toast.error(res.message || "Failed to delete exam");
       }
@@ -135,7 +136,7 @@ export const AllExams = (params: Props) => {
 
   const handleCancelDelete = () => {
     setIsDeleteDialogOpen(false);
-    setExamToDelete(null);
+    setExamIDToDelete(null);
   };
 
   const filteredExams = exams.filter(
@@ -161,19 +162,32 @@ export const AllExams = (params: Props) => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Link href="/add-exam" target="_blank" rel="noopener noreferrer">
-          <Button className="w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Exam
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <Link href="/add-exam" target="_blank" rel="noopener noreferrer">
+            <Button className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Exam
+            </Button>
+          </Link>
+
+          <Link
+            href={`/add-exam-by-ai/${teacher?._id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button className="w-full sm:w-auto">
+              <Bot className="w-4 h-4 mr-2" />
+              Add New Exam By AI
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {filteredExams.length > 0 ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {filteredExams.map((exam) => (
+          {filteredExams.map((exam, index) => (
             <Card
-              key={exam.id}
+              key={index}
               className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-border hover:border-primary/20"
             >
               <CardHeader className="pb-3">
@@ -189,20 +203,23 @@ export const AllExams = (params: Props) => {
               <div className="absolute inset-0 bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                 <div className="flex items-center gap-2 md:gap-3">
                   {/* Copy Link */}
+
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-110"
-                    onClick={() => {
-                      const examLink = `${
-                        window.location.origin
-                      }/exam/${teacher?._id?.toString()}/${exam.id}`;
-                      navigator.clipboard.writeText(examLink);
-                      toast.success("Exam link copied to clipboard!");
-                    }}
-                    title="Copy exam link"
+                    asChild
+                    title="View results"
                   >
-                    <Copy className="h-3 w-3 md:h-4 md:w-4" />
+                    <Link
+                      href={`/copy-exam-link/${teacher?._id?.toString()}/${
+                        exam._id
+                      }`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Copy className="h-3 w-3 md:h-4 md:w-4" />
+                    </Link>
                   </Button>
 
                   {/* Results */}
@@ -214,7 +231,7 @@ export const AllExams = (params: Props) => {
                     title="View results"
                   >
                     <Link
-                      href={`/result/${teacher?._id?.toString()}/${exam.id}`}
+                      href={`/result/${teacher?._id}/${exam._id}`}
                       rel="noopener noreferrer"
                     >
                       <HiAcademicCap className="h-3 w-3 md:h-4 md:w-4" />
@@ -230,9 +247,7 @@ export const AllExams = (params: Props) => {
                     title="Edit exam"
                   >
                     <Link
-                      href={`/update-exam/${teacher?._id?.toString()}/${
-                        exam.id
-                      }`}
+                      href={`/update-exam/${teacher?._id?.toString()}/${exam._id.toString()}`}
                       rel="noopener noreferrer"
                     >
                       <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
@@ -244,7 +259,7 @@ export const AllExams = (params: Props) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
-                    onClick={() => handleDeleteClick(exam.name)}
+                    onClick={() => handleDeleteClick(exam._id.toString())}
                     title="Delete exam"
                   >
                     <Trash2 className="h-3 w-3 md:h-4 md:w-4" />

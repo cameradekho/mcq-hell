@@ -19,7 +19,7 @@ export const fetchTeacherByEmail = async (
     if (!data.email) {
       return {
         success: false,
-        message: "Please provide teacher email",
+        message: "Please provide teacher's email",
       };
     }
 
