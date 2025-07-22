@@ -119,12 +119,17 @@ export default function PDFSidebar() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_AI_BACKEND_URL}/file/all`
+        `${process.env.NEXT_PUBLIC_AI_BACKEND_URL}/file/all?userId=${userId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
+
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched data:", data); // Debug log
-        // Handle different response structures
         if (Array.isArray(data)) {
           setFiles(data);
         } else if (data.files && Array.isArray(data.files)) {
@@ -168,36 +173,45 @@ export default function PDFSidebar() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("userId", userId); // Add userId to FormData
-      console.log("Uploading file with userId:", userId); // Debug log
+      formData.append("userId", userId);
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_AI_BACKEND_URL}/file/upload`,
         {
           method: "POST",
-          body: formData, // Send FormData directly
+          body: formData,
         }
       );
 
-      console.log("Response status:", response.status); // Debug log
-
-      if (response.ok) {
-        const uploadedFile = await response.json();
-        console.log("Uploaded file response:", uploadedFile); // Debug log
-        // Handle different response structures
-
-        if (uploadedFile) {
-          setFiles((prev) => [...prev, uploadedFile]);
-        } else {
-          console.error("Unexpected upload response structure:", uploadedFile);
-          fetchFiles();
-        }
-
-        e.target.value = "";
-      } else {
+      if (!response.ok) {
         console.error("Failed to upload file", response.status);
         alert("Failed to upload file");
+        return;
       }
+
+      const result = await response.json();
+
+      let newFiles: FileType[] = [];
+
+      if (result && result._id) {
+        // Single file object
+        newFiles = [result];
+      }
+      // else if (result.data && Array.isArray(result.data)) {
+      //   // Multiple files in `data`
+      //   newFiles = result.data;
+      // } else if (Array.isArray(result.files)) {
+      //   // Multiple files in `files`
+      //   newFiles = result.files;
+      // }
+      else {
+        console.warn("Unexpected structure, refetching all files.");
+        await fetchFiles();
+        return;
+      }
+
+      setFiles((prev) => [...prev, ...newFiles]);
+      e.target.value = ""; // Clear input
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Error uploading file");
@@ -376,6 +390,10 @@ export default function PDFSidebar() {
                               }}
                               size="sm"
                               variant="destructive"
+                              disabled={
+                                file.processing_status === "unprocessed" ||
+                                file.processing_status === "processing"
+                              }
                               className="h-6 w-6 p-0 hover:bg-red-600"
                             >
                               <Trash size={12} />
