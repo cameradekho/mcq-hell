@@ -49,28 +49,6 @@ export default function Home() {
     }
   }, [session]);
 
-  // useEffect(() => {
-  //   const fetchStats = async () => {
-  //     if (session?.user?.email) {
-  //       try {
-  //         setIsLoading(true);
-  //         const result = await fetchDashboardStats(session.user.email);
-  //         if (result.success && result.data) {
-  //           setStats(result.data);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error fetching stats:", error);
-  //       } finally {
-  //         setIsLoading(false);
-  //       }
-  //     }
-  //   };
-
-  //   if (session) {
-  //     fetchStats();
-  //   }
-  // }, [session]);
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <TopNavigationBar />
@@ -118,21 +96,7 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
-                {/* <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <Settings className="h-8 w-8 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Pending Reviews
-                        </p>
-                        <h3 className="text-2xl font-bold">
-                          {isLoading ? "Loading..." : stats.pendingReviews}
-                        </h3>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card> */}
+               
               </div>
 
               <AllExams

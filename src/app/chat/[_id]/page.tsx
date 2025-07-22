@@ -12,8 +12,13 @@ import { Loader2, MessageCircle } from "lucide-react";
 import { useGetConversationById } from "@/hooks/api/conversation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import AuthButtons from "@/components/auth/auth-buttons";
+import PDFSidebar from "./components/Filesidebar";
 
 const ChatPage = () => {
+  const { data: session, status } = useSession();
+
   const params = useParams<{ _id: string }>();
   const router = useRouter();
 
@@ -62,6 +67,20 @@ const ChatPage = () => {
     }
   };
 
+  if (!session) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <h1 className="text-2xl font-bold mb-4">Please log in to continue</h1>
+        <AuthButtons
+          props={{
+            signInbtnText: "Get Started Now",
+            signOutbtnText: "Sign Out",
+          }}
+        />
+      </div>
+    );
+  }
+
   if (params._id === "new") {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-120px)] mx-auto max-w-3xl w-full">
@@ -72,6 +91,7 @@ const ChatPage = () => {
           </p>
         </div>
         <ChatInput onSubmit={handleSubmit} isStreaming={isStreaming} />
+        <PDFSidebar />
       </div>
     );
   }
@@ -99,6 +119,7 @@ const ChatPage = () => {
         </Button>
         <ChatInput onSubmit={handleSubmit} isStreaming={isStreaming} />
       </div>
+      <PDFSidebar />
     </div>
   );
 };
