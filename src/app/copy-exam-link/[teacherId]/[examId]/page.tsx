@@ -4,11 +4,11 @@ import { useParams } from "next/navigation";
 import { ExamSessionDate } from "./components/exam-session-date";
 import { use, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { fetchSessionByExamId } from "@/action/fetch-session-by-examId";
 import { useSession } from "next-auth/react";
-import { IExam, ISession } from "@/models/exam";
+import { IExam, IExamSession } from "@/models/exam";
 import { Dayjs } from "dayjs";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
+import { fetchExamSessionByExamId } from "@/action/fetch-session-by-examId";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -17,7 +17,7 @@ export default function Home() {
   const examId = params.examId as string;
   const [sessionDate, setSessionDate] = useState<Dayjs | undefined>(undefined);
   const [existingSessionData, setExistingSessionData] = useState<
-    ISession | undefined
+    IExamSession | undefined
   >(undefined);
   const [basicExamDetails, setBasicExamDetails] = useState<
     Pick<IExam, "name" | "description" | "duration" | "session">
@@ -36,35 +36,36 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
-    async function fetchSessionDate() {
+    async function fetchInitialExamandSessionData() {
       try {
-        // const sessionData = await fetchSessionByExamId({
-        //   examId: examId,
-        //   teacherId: teacherId,
-        // });
-        const res = await fetchExamById({
-          examId: examId,
-          teacherId: teacherId,
-        });
+        const [sessionData, examDetails] = await Promise.all([
+          fetchExamSessionByExamId({ examId, teacherId }),
+          fetchExamById({ examId, teacherId }),
+        ]);
 
-        if (!res.success) {
-          toast.error(res.message);
-          return;
+        if (!sessionData.success) {
+          toast.error(sessionData.message);
         } else {
-          setExistingSessionData(res.data.session || undefined);
+          setExistingSessionData(sessionData.data || undefined);
+        }
+
+        if (!examDetails.success) {
+          toast.error(examDetails.message);
+        } else {
           setBasicExamDetails({
-            name: res.data.name,
-            description: res.data.description,
-            duration: res.data.duration,
+            name: examDetails.data.name,
+            description: examDetails.data.description,
+            duration: examDetails.data.duration,
           });
         }
       } catch (error) {
-        console.log(error);
-        toast.error("Error fetching session date");
+        console.error("Error fetching initial data: ", error);
+        toast.error("Error fetching initial data");
       }
     }
-    fetchSessionDate();
-  }, [enableCopy]);
+
+    fetchInitialExamandSessionData();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 ">

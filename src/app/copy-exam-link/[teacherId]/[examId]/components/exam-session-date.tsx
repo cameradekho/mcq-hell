@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Button } from "../../../../../components/ui/button";
-import { ChevronDown, Copy, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronDown, Calendar as CalendarIcon } from "lucide-react";
 import { Label } from "../../../../../components/ui/label";
 import {
   Popover,
@@ -12,10 +12,9 @@ import { Calendar } from "../../../../../components/ui/calendar";
 import BasicTimePicker from "@/components/ui/basic-time-picker";
 import dayjs, { Dayjs } from "dayjs";
 import { toast } from "sonner";
-import { addSessionInExam } from "@/action/add-session-in-exam";
-import { fetchExamById } from "@/action/fetch-exam-by-id";
-import { deleteSessionInExam } from "@/action/delete-session-in-exam";
-import { IExam, ISession } from "@/models/exam";
+import { addExamSession } from "@/action/add-session-in-exam";
+import { deleteExamSession } from "@/action/delete-session-in-exam";
+import { IExam, IExamSession } from "@/models/exam";
 
 type ExamSessionDateProps = {
   exam: {
@@ -26,10 +25,13 @@ type ExamSessionDateProps = {
   };
   sessionDate: Dayjs | undefined;
   setSessionDate: (date: Dayjs | undefined) => void;
-  existingSessionData?: ISession;
+  existingSessionData?: IExamSession;
   enableCopy: boolean;
   setEnableCopy: (enable: boolean) => void;
-  basicExamDetails: Pick<IExam, "name" | "description" | "duration" | "session">;
+  basicExamDetails: Pick<
+    IExam,
+    "name" | "description" | "duration" | "session"
+  >;
 };
 
 type ExamSessionType = {
@@ -54,10 +56,11 @@ export const ExamSessionDate = ({
     startTime: startTime || null,
     endTime: endTime || null,
   });
-  
+
+  // here checking the existing session data over the current time or not and setting the state accordingly
   useEffect(() => {
-    // if (examSessionData.existingSessionData?.sessionDate) {
     console.log("ExamSessionDate useEffect");
+    //  if exam session does not exist, make every field null or undefined
     if (!examSessionData.existingSessionData) {
       console.log("two yooo");
       examSessionData.setSessionDate(undefined);
@@ -65,6 +68,7 @@ export const ExamSessionDate = ({
       setEndTime(null);
       examSessionData.setEnableCopy(false);
     } else if (
+      // if exam session exists and session date is in the past, disable copy button and show error message
       examSessionData?.existingSessionData?.sessionDate?.getDate() <
       new Date().getDate()
     ) {
@@ -92,7 +96,6 @@ export const ExamSessionDate = ({
         const end = new Date(examSessionData.existingSessionData.endTime);
 
         if (end < now && dayjs().isSame(dayjs(examSessionData.sessionDate))) {
-         
           examSessionData.setEnableCopy(false);
           const pro = dayjs().isSame(dayjs(examSessionData.sessionDate), "day");
           console.log("pro: ", pro);
@@ -140,15 +143,25 @@ export const ExamSessionDate = ({
       return;
     }
 
-    if (endTime.isBefore(dayjs()) && dayjs().isSame(dayjs(examSessionData.sessionDate))) {
-      examSessionData.setEnableCopy(false);
+    // if (
+    //   endTime.isBefore(dayjs()) &&
+    //   dayjs().isSame(dayjs(examSessionData.sessionDate))
+    // ) {
+    //   examSessionData.setEnableCopy(false);
+    //   toast.error("Session end time is in the past");
+    //   return;
+    // }
+
+    if (endTime.isBefore(dayjs())) {
       toast.error("Session end time is in the past");
+      examSessionData.setEnableCopy(false);
+      setEndTime(null);
       return;
     }
 
     try {
-      const res = await addSessionInExam({
-        teacherId: examSessionData.teacher?._id || "",
+      const res = await addExamSession({
+        teacherId: examSessionData.teacher?._id?.toString() || "",
         examId: examSessionData.exam.id,
         sessionDate: examSessionData.sessionDate.toDate(),
         startTime: startTime.format("HH:mm"),
@@ -176,7 +189,7 @@ export const ExamSessionDate = ({
   //handler to reset session
   const handleClickReset = async () => {
     try {
-      const res = await deleteSessionInExam({
+      const res = await deleteExamSession({
         teacherId: examSessionData.teacher?._id?.toString() || "",
         examId: examSessionData.exam.id,
       });

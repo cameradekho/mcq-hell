@@ -1,19 +1,19 @@
-"use server"
-import { IExam, ISession } from "@/models/exam";
+"use server";
+import { IExamSession } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 import { mongodb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-export type FetchSessionByExamIdResult = ServerActionResult<ISession | undefined>;
+export type FetchSessionByExamIdResult = ServerActionResult<IExamSession>;
 
 export type FetchSessionByExamIdData = {
   examId: string;
   teacherId: string;
 };
 
-export const fetchSessionByExamId = async (
+export const fetchExamSessionByExamId = async (
   data: FetchSessionByExamIdData
 ): Promise<FetchSessionByExamIdResult> => {
   try {
@@ -21,7 +21,7 @@ export const fetchSessionByExamId = async (
     if (!examId || !teacherId) {
       return {
         success: false,
-        message: "Please provide examId and teacherEmail",
+        message: "Please provide examId and teacherId",
       };
     }
 
@@ -30,25 +30,28 @@ export const fetchSessionByExamId = async (
     if (!teacherData.success) {
       return {
         success: false,
-        message: teacherData.message || "Failed to fetch teacher",
+        message: teacherData.message || "Teacher not found",
       };
     }
 
     await mongodb.connect();
-    const sessionData = await mongodb.collection<IExam>("exam").findOne({
-      _id: new ObjectId(data.examId),
-      createdByEmail: teacherData.data.email,
-    });
+
+    const sessionData = await mongodb
+      .collection<IExamSession>(`examSession`)
+      .findOne({
+        examId: new ObjectId(examId),
+        teacherId: new ObjectId(teacherId),
+      });
 
     if (!sessionData) {
       return {
         success: false,
-        message: "No exam found",
+        message: "No exam session found, please create a new one",
       };
     }
     return {
       success: true,
-      data: sessionData.session || undefined,
+      data: sessionData,
       message: "Session fetched successfully",
     };
   } catch (error: any) {
