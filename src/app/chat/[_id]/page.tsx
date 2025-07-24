@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useChatContext } from "@/providers/chat-provider";
 import { ChatInput } from "@/components/chat-input";
 import { useSSE } from "@/hooks/custom/use-sse";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import AuthButtons from "@/components/auth/auth-buttons";
-import PDFSidebar from "./components/Filesidebar";
+import { FileSidebar } from "./components/file-sidebar";
 
 const ChatPage = () => {
   const { data: session, status } = useSession();
@@ -23,6 +23,7 @@ const ChatPage = () => {
   const router = useRouter();
 
   const { pendingMessage, setPendingMessage } = useChatContext();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { messages, loading, isStreaming, submitMessage, currentMessage } =
     useSSE();
@@ -67,6 +68,14 @@ const ChatPage = () => {
     }
   };
 
+  const handlePaperclipClick = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleSidebarOpenChange = (open: boolean) => {
+    setIsSidebarOpen(open);
+  };
+
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
@@ -90,8 +99,15 @@ const ChatPage = () => {
             Type your message below to begin
           </p>
         </div>
-        <ChatInput onSubmit={handleSubmit} isStreaming={isStreaming} />
-        <PDFSidebar />
+        <ChatInput
+          onSubmit={handleSubmit}
+          isStreaming={isStreaming}
+          onPaperclipClick={handlePaperclipClick}
+        />
+        <FileSidebar
+          isOpen={isSidebarOpen}
+          onOpenChange={handleSidebarOpenChange}
+        />
       </div>
     );
   }
@@ -117,9 +133,16 @@ const ChatPage = () => {
             <span>New Chat</span>
           </Link>
         </Button>
-        <ChatInput onSubmit={handleSubmit} isStreaming={isStreaming} />
+        <ChatInput
+          onSubmit={handleSubmit}
+          isStreaming={isStreaming}
+          onPaperclipClick={handlePaperclipClick}
+        />
       </div>
-      <PDFSidebar />
+      <FileSidebar
+        isOpen={isSidebarOpen}
+        onOpenChange={handleSidebarOpenChange}
+      />
     </div>
   );
 };
