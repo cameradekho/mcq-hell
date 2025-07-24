@@ -9,6 +9,7 @@ import { useEffect } from "react";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
+  files: z.array(z.string()).optional(),
 });
 
 type ChatInputProps = {

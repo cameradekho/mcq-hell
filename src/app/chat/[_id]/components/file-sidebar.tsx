@@ -6,21 +6,11 @@ import { useSession } from "next-auth/react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Trash, Loader2, CloudUpload } from "lucide-react";
 import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
 import { env } from "@/constants/env";
-
-type FileType = {
-  _id: string;
-  name: string;
-  type: string;
-  url: string;
-  processing_status: string;
-  createdAt: string;
-  updatedAt: string;
-};
+import { TFile } from "@/types/file";
 
 type FileSidebarProps = {
   isOpen: boolean;
@@ -29,7 +19,7 @@ type FileSidebarProps = {
 
 export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
   const { data: session } = useSession();
-  const [files, setFiles] = useState<FileType[]>([]);
+  const [files, setFiles] = useState<TFile<string>[]>([]);
   const [userId, setUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,10 +50,9 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
         (f) => f.processing_status === "unprocessed"
       )) {
         try {
-          await axios.post(
-            `${env.aiBackendUrl}/parse/upload`,
-            { fileId: file._id },
-          );
+          await axios.post(`${env.aiBackendUrl}/parse/upload`, {
+            fileId: file._id,
+          });
           toast.success(`File ${file.name} parsed successfully.`);
           fetchFiles(userId);
         } catch (error) {
@@ -80,9 +69,7 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
 
     try {
       setIsLoading(true);
-      const { data } = await axios.get(
-        `${env.aiBackendUrl}/file/all`
-      );
+      const { data } = await axios.get(`${env.aiBackendUrl}/file/all`);
 
       const fileList = Array.isArray(data)
         ? data
@@ -137,9 +124,7 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
 
   const deleteFile = async (fileId: string) => {
     try {
-      await axios.delete(
-        `${env.aiBackendUrl}/file/delete/${fileId}/${userId}`
-      );
+      await axios.delete(`${env.aiBackendUrl}/file/delete/${fileId}/${userId}`);
       setFiles((prev) => prev.filter((file) => file._id !== fileId));
       toast.success("File deleted successfully.");
     } catch (error) {
