@@ -31,7 +31,7 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
       .then((data) => {
         if (data.success) {
           setUserId(data?.data?._id?.toString() || "");
-          fetchFiles(data?.data?._id?.toString() || "");
+          fetchFiles();
         } else {
           toast.error(data.message || "Error fetching user data.");
         }
@@ -41,32 +41,7 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
       });
   }, [session?.user?.email]);
 
-  // Auto-parse uploaded files
-  useEffect(() => {
-    if (!files.length) return;
-
-    const timer = setTimeout(async () => {
-      for (const file of files.filter(
-        (f) => f.processing_status === "unprocessed"
-      )) {
-        try {
-          await axios.post(`${env.aiBackendUrl}/parse/upload`, {
-            fileId: file._id,
-          });
-          toast.success(`File ${file.name} parsed successfully.`);
-          fetchFiles(userId);
-        } catch (error) {
-          toast.error(`Error parsing file ${file.name}. Please upload again.`);
-        }
-      }
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, [files, userId]);
-
-  const fetchFiles = async (id: string) => {
-    if (!id) return;
-
+  const fetchFiles = async () => {
     try {
       setIsLoading(true);
       const { data } = await axios.get(`${env.aiBackendUrl}/file/all`);
