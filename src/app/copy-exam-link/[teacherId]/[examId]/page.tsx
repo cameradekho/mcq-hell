@@ -5,10 +5,12 @@ import { ExamSessionDate } from "./components/exam-session-date";
 import { use, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
-import { IExam, IExamSession } from "@/models/exam";
+import { IExam } from "@/models/exam";
 import { Dayjs } from "dayjs";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { fetchExamSessionByExamId } from "@/action/fetch-session-by-examId";
+import { IExamSession } from "@/models/teacher-exam-session";
+import { TopNavigationBar } from "@/components/top-navigation-bar";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -20,7 +22,7 @@ export default function Home() {
     IExamSession | undefined
   >(undefined);
   const [basicExamDetails, setBasicExamDetails] = useState<
-    Pick<IExam, "name" | "description" | "duration" | "session">
+    Pick<IExam, "name" | "description" | "duration">
   >({
     name: "",
     description: "",
@@ -68,7 +70,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 ">
+    <div className="min-h-screen flex flex-col items-center justify-start gap-24 bg-background px-4  ">
+      <TopNavigationBar />
       <div className="w-full max-w-2xl space-y-6 text-center">
         {/* App Title */}
         <h1 className="text-4xl font-extrabold text-primary tracking-tight">
@@ -79,7 +82,7 @@ export default function Home() {
         <div className="rounded-xl border border-muted bg-muted/40 shadow-sm p-6">
           <ExamSessionDate
             data={{
-              exam: { id: examId },
+              exam: { _id: examId },
               teacher: { _id: teacherId },
               sessionDate: sessionDate,
               setSessionDate: setSessionDate,

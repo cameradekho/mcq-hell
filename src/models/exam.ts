@@ -18,17 +18,6 @@ export type IQuestion = {
   updatedAt: Date;
 };
 
-export type IExamSession = {
-  _id?: ObjectId;
-  examId: ObjectId;
-  teacherId: ObjectId;
-  sessionDate: Date;
-  startTime: string | null;
-  endTime: string | null;
-  createdAt: Date;
-  // updatedAt: Date;
-};
-
 export type IExam = {
   _id: ObjectId;
   createdBy?: string;
@@ -37,10 +26,9 @@ export type IExam = {
   description: string;
   duration: number;
   questions: IQuestion[];
-  session?: IExamSession;
+  // session?: IExamSession;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export const examCollectionName = "exam";
-export const examsessionCollectionName = "examSession";

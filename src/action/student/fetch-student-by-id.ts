@@ -49,7 +49,7 @@ export const fetchStudentById = async (
     });
     return {
       success: false,
-      message: "Error fetching student",
+      message: "Error fetching student......",
     };
   }
 };

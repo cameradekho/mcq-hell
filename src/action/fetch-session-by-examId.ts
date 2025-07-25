@@ -1,10 +1,10 @@
 "use server";
-import { IExamSession } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 import { mongodb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { IExamSession } from "@/models/teacher-exam-session";
 
 export type FetchSessionByExamIdResult = ServerActionResult<IExamSession>;
 
@@ -46,7 +46,7 @@ export const fetchExamSessionByExamId = async (
     if (!sessionData) {
       return {
         success: false,
-        message: "No exam session found, please create a new one",
+        message: "Please create a new Session",
       };
     }
     return {

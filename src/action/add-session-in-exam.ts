@@ -1,11 +1,11 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
-import { examsessionCollectionName } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import dayjs from "dayjs";
 import { ObjectId } from "mongodb";
 import { fetchExamSessionByExamId } from "./fetch-session-by-examId";
+import { examsessionCollectionName } from "@/models/teacher-exam-session";
 
 export type AddSessionInExamResult = ServerActionResult<undefined>;
 
@@ -107,32 +107,27 @@ export const addExamSession = async (
     });
     // if the Exam's Session already exists, update it
     if (examSessionExists.success) {
-      const res = await mongodb.collection(examsessionCollectionName).updateOne(
-        {
+      await mongodb.collection(examsessionCollectionName).deleteOne({
+        _id: examSessionExists.data._id,
+      });
+
+      // Insert a new document with a new _id
+      const res = await mongodb
+        .collection(examsessionCollectionName)
+        .insertOne({
           examId: new ObjectId(data.examId),
           teacherId: new ObjectId(data.teacherId),
-        },
-        {
-          $set: {
-            sessionDate: data.sessionDate,
-            startTime: formattedStartTime,
-            endTime: formattedEndTime,
-            updatedAt: new Date(),
-          },
-        }
-      );
+          sessionDate: data.sessionDate,
+          startTime: formattedStartTime,
+          endTime: formattedEndTime,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
 
       if (!res.acknowledged) {
         return {
           success: false,
           message: "Error updating session",
-        };
-      }
-
-      if (res.modifiedCount === 0) {
-        return {
-          success: false,
-          message: "No changes made to the exam",
         };
       }
 

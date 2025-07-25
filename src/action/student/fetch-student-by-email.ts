@@ -30,7 +30,7 @@ export const fetchStudentByEmail = async (
     if (!student) {
       return {
         success: false,
-        message: "Student not found",
+        message: "Student not found...",
       };
     }
 

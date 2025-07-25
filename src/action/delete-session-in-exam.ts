@@ -4,7 +4,7 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
-import { examsessionCollectionName } from "@/models/exam";
+import { examsessionCollectionName } from "@/models/teacher-exam-session";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 

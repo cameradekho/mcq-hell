@@ -69,7 +69,9 @@ export const addStudentResponse = async (
       };
     }
 
-    if (!data.score) {
+    if (data.score === undefined) {
+      console.log("score is not provided, score: ", data.score);
+
       return {
         success: false,
         message: "Please provide score",
