@@ -9,7 +9,6 @@ export type ITeacher = {
   email: string;
   avatar: string;
   // exam: IExam[];
-  students?: IStudent[];
   createdAt: Date;
   updatedAt: Date;
 };

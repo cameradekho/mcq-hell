@@ -9,7 +9,7 @@ import { ObjectId } from "mongodb";
 export type FetchTeacherByIdResult = ServerActionResult<
   Pick<
     ITeacher,
-    "_id" | "email" | "name" | "avatar" | "students" | "createdAt" | "updatedAt"
+    "_id" | "email" | "name" | "avatar"  | "createdAt" | "updatedAt"
   >
 >;
 
@@ -51,7 +51,6 @@ export const fetchTeacherById = async (
         name: teacherData.name,
         email: teacherData.email,
         avatar: teacherData.avatar,
-        students: teacherData.students,
         createdAt: teacherData.createdAt,
         updatedAt: teacherData.updatedAt,
       },
