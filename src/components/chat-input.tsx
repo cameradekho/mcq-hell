@@ -16,12 +16,14 @@ type ChatInputProps = {
   onSubmit: (data: z.infer<typeof formSchema>) => void;
   isStreaming: boolean;
   onPaperclipClick?: () => void;
+  selectedFileIds?: string[];
 };
 
 export const ChatInput = ({
   onSubmit,
   isStreaming,
   onPaperclipClick,
+  selectedFileIds,
 }: ChatInputProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,9 +65,20 @@ export const ChatInput = ({
           )}
         />
         <div className="flex items-center justify-between w-full p-2">
-          <Button variant="ghost" size="icon" onClick={onPaperclipClick}>
-            <Paperclip className="w-4 h-4" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onPaperclipClick}
+            className="relative hover:bg-violet-100 dark:hover:bg-violet-900 group"
+          >
+            <Paperclip className="w-4 h-4 text-gray-600 dark:text-gray-300 group-hover:text-violet-500 transition-colors" />
+            {selectedFileIds && selectedFileIds.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-violet-500 text-white text-[10px] px-1.5 py-0.5 rounded-full shadow-sm">
+                {selectedFileIds.length}
+              </span>
+            )}
           </Button>
+
           <Button
             className="rounded-full size-10 flex items-center justify-center"
             disabled={isStreaming}

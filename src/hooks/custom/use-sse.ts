@@ -5,6 +5,7 @@ import { TMessage } from "@/types/message";
 type TPayload = {
   conversation_id: string;
   user_message: string;
+  file_ids?: string[];
 };
 
 const READER_CONTINUE = true;
@@ -55,6 +56,7 @@ export const useSSE = () => {
           body: JSON.stringify({
             conversation_id: payload.conversation_id,
             user_message: payload.user_message,
+            file_ids: payload.file_ids,
           }),
         }
       );

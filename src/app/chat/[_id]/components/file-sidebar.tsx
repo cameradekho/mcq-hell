@@ -18,42 +18,27 @@ import {
 } from "@/hooks/api/file";
 import { revalidatePath } from "next/cache";
 import { invalidateQueries } from "@/lib/query-client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useChatContext } from "@/providers/chat-provider";
 
 type FileSidebarProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  selectedFileIds: string[];
+  setSelectedFileIds: (selectedFileIds: string[]) => void;
 };
 
-export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
+export const FileSidebar = ({ isOpen, onOpenChange, selectedFileIds, setSelectedFileIds }: FileSidebarProps) => {
   const { data: session } = useSession();
   const [userId, setUserId] = useState<string>("");
 
-const {
-  data: files,
-  isLoading: isLoadingFiles,
-  error: errorFiles,
-} = useGetAllFiles(
-  {},
-  {
-    refetchInterval: (data) => {
-      const processingFiles = data?.data?.filter(
-        (file) =>
-          file.processing_status === "processing" ||
-          file.processing_status === "unprocessed"
-      );
-
-      if (!processingFiles?.length) return false;
-
-      // Start with 2 seconds, increase interval for longer processing times
-      const baseInterval = 2000;
-      const maxInterval = 10000; // Max 10 seconds
-
-      // You could track retry count in state if needed
-      return Math.min(baseInterval, maxInterval);
-    },
-  }
-);
-
+  const {
+    data: files,
+    isLoading: isLoadingFiles,
+    error: errorFiles,
+  } = useGetAllFiles({},{
+    enabled: isOpen
+  });
 
   const { mutate: deleteFileById } = useDeleteFileById({
     onSuccess: () => {
@@ -110,6 +95,14 @@ const {
     }
   };
 
+  const handleToggle = (_id: string) => {
+    if(selectedFileIds.includes(_id)){
+      setSelectedFileIds(selectedFileIds.filter(id => id !== _id));
+    }else{
+      setSelectedFileIds([...selectedFileIds, _id]);
+    }
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-[400px] sm:w-[540px]">
@@ -163,6 +156,11 @@ const {
                   key={file._id}
                   className="flex items-center gap-3 border rounded-lg p-2"
                 >
+                  <Checkbox
+                    id={file._id}
+                    checked={selectedFileIds.includes(file._id)}
+                    onCheckedChange={() => handleToggle(file._id)}
+                  />
                   <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{file.name}</p>

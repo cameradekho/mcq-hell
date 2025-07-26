@@ -11,19 +11,24 @@ import {
 
 type TChatContextType = {
   pendingMessage: string | null;
+  selectedFileIds: string[];
   setPendingMessage: Dispatch<SetStateAction<string | null>>;
+  setSelectedFileIds: Dispatch<SetStateAction<string[]>>;
 };
 
 const ChatContext = createContext<TChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [ selectedFileIds, setSelectedFileIds ] = useState<string[]>([]);
 
   return (
     <ChatContext.Provider
       value={{
         pendingMessage,
         setPendingMessage,
+        selectedFileIds,
+        setSelectedFileIds,
       }}
     >
       {children}

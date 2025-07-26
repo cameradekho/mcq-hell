@@ -22,7 +22,12 @@ const ChatPage = () => {
   const params = useParams<{ _id: string }>();
   const router = useRouter();
 
-  const { pendingMessage, setPendingMessage } = useChatContext();
+  const {
+    pendingMessage,
+    setPendingMessage,
+    selectedFileIds,
+    setSelectedFileIds,
+  } = useChatContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { messages, loading, isStreaming, submitMessage, currentMessage } =
@@ -50,6 +55,7 @@ const ChatPage = () => {
       submitMessage({
         conversation_id: params._id,
         user_message: pendingMessage,
+        file_ids: selectedFileIds,
       });
     }
     setPendingMessage(null);
@@ -64,6 +70,7 @@ const ChatPage = () => {
       submitMessage({
         conversation_id: params._id,
         user_message: data.message,
+        file_ids: selectedFileIds,
       });
     }
   };
@@ -103,10 +110,13 @@ const ChatPage = () => {
           onSubmit={handleSubmit}
           isStreaming={isStreaming}
           onPaperclipClick={handlePaperclipClick}
+          selectedFileIds={selectedFileIds}
         />
         <FileSidebar
           isOpen={isSidebarOpen}
           onOpenChange={handleSidebarOpenChange}
+          selectedFileIds={selectedFileIds}
+          setSelectedFileIds={setSelectedFileIds}
         />
       </div>
     );
@@ -137,11 +147,14 @@ const ChatPage = () => {
           onSubmit={handleSubmit}
           isStreaming={isStreaming}
           onPaperclipClick={handlePaperclipClick}
+          selectedFileIds={selectedFileIds}
         />
       </div>
       <FileSidebar
         isOpen={isSidebarOpen}
         onOpenChange={handleSidebarOpenChange}
+        selectedFileIds={selectedFileIds}
+        setSelectedFileIds={setSelectedFileIds}
       />
     </div>
   );
