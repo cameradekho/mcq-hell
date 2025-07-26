@@ -106,6 +106,10 @@ export const useSSE = () => {
                   setIsStreaming(false);
                   break;
 
+                case SSE_EVENTS.DONE:
+                  setIsStreaming(false);
+                  break;
+
                 case SSE_EVENTS.LOADING:
                   setLoading({
                     loading_text: parsedEvent.data.loading_text,

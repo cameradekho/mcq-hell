@@ -119,7 +119,7 @@ const ChatPage = () => {
           <MessageList messages={conversationData?.data?.messages} />
         )}
         {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
-        {!isStreaming && (
+        {isStreaming && (
           <div className="flex justify-left items-center gap-2">
             <Loader2 className="size-4 animate-spin" />{" "}
             {loading?.loading_text || "Generating content..."}
