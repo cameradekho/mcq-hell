@@ -8,6 +8,7 @@ import type {
 } from "@/types/api";
 import { api } from "@/lib/api";
 import { TFile } from "@/types/file";
+import { options } from "marked";
 
 // Base URL: /api/v1/file/...
 
@@ -26,6 +27,11 @@ type TUpdateFileByIdPayload = {
 };
 
 type TGetAllFilesQParams = TPaginationQParams;
+
+type TFileUploadPayload = {
+  file: File;
+  userId: string;
+};
 
 // File Services
 
@@ -53,6 +59,14 @@ const deleteFileById = ({ fileId }: TFileId): TApiPromise<TFile> => {
   return api.delete(`/file/${fileId}`);
 };
 
+const uploadFile = (payload: TFileUploadPayload): TApiPromise<TFile> => {
+  return api.post("/file", payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
 // File Hooks
 
 export const useGetAllFiles = (
@@ -73,6 +87,16 @@ export const useGetFileById = (
   return useQuery({
     queryKey: ["useGetFileById", params],
     queryFn: () => getFileById(params),
+    ...options,
+  });
+};
+
+export const useUploadFile = (
+  options?: TMutationOpts<TFileUploadPayload, TFile>
+) => {
+  return useMutation({
+    mutationKey: ["useUploadFile"],
+    mutationFn: uploadFile,
     ...options,
   });
 };

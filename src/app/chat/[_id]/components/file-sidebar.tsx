@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, use } from "react";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
 import axios from "axios";
@@ -11,6 +11,13 @@ import { FileText, Trash, Loader2, CloudUpload } from "lucide-react";
 import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
 import { env } from "@/constants/env";
 import { TFile } from "@/types/file";
+import {
+  useDeleteFileById,
+  useGetAllFiles,
+  useUploadFile,
+} from "@/hooks/api/file";
+import { revalidatePath } from "next/cache";
+import { invalidateQueries } from "@/lib/query-client";
 
 type FileSidebarProps = {
   isOpen: boolean;
@@ -19,75 +26,57 @@ type FileSidebarProps = {
 
 export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
   const { data: session } = useSession();
-  const [files, setFiles] = useState<TFile<string>[]>([]);
   const [userId, setUserId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Get user ID
-  useEffect(() => {
-    if (!session?.user?.email) return;
+const {
+  data: files,
+  isLoading: isLoadingFiles,
+  error: errorFiles,
+} = useGetAllFiles(
+  {},
+  {
+    refetchInterval: (data) => {
+      const processingFiles = data?.data?.filter(
+        (file) =>
+          file.processing_status === "processing" ||
+          file.processing_status === "unprocessed"
+      );
 
-    fetchTeacherByEmail({ email: session.user.email })
-      .then((data) => {
-        if (data.success) {
-          setUserId(data?.data?._id?.toString() || "");
-          fetchFiles();
-        } else {
-          toast.error(data.message || "Error fetching user data.");
-        }
-      })
-      .catch(() => {
-        toast.error("Error fetching user data. Please try again.");
+      if (!processingFiles?.length) return false;
+
+      // Start with 2 seconds, increase interval for longer processing times
+      const baseInterval = 2000;
+      const maxInterval = 10000; // Max 10 seconds
+
+      // You could track retry count in state if needed
+      return Math.min(baseInterval, maxInterval);
+    },
+  }
+);
+
+
+  const { mutate: deleteFileById } = useDeleteFileById({
+    onSuccess: () => {
+      invalidateQueries({
+        queryKey: ["useGetAllFiles"],
       });
-  }, [session?.user?.email]);
+    },
+  });
 
-  const fetchFiles = async () => {
-    try {
-      setIsLoading(true);
-      const { data } = await axios.get(`${env.aiBackendUrl}/file/all`);
-
-      const fileList = Array.isArray(data)
-        ? data
-        : Array.isArray(data.files)
-        ? data.files
-        : Array.isArray(data.data)
-        ? data.data
-        : [];
-
-      setFiles(fileList);
-    } catch (error) {
-      console.error("Error fetching files:", error);
-      setFiles([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { mutate: uploadFile } = useUploadFile({
+    onSuccess: (data) => {
+      invalidateQueries({
+        queryKey: ["useGetAllFiles"],
+      });
+    },
+  });
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      if (!userId) {
-        toast.error("User not loaded. Please try again.");
-        return;
-      }
-
       for (const file of acceptedFiles) {
         try {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("userId", userId);
-
-          const { data } = await axios.post(
-            `${env.aiBackendUrl}/file/upload`,
-            formData,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            }
-          );
-
-          if (data?._id) {
-            setFiles((prev) => [...prev, data]);
-            toast.success(`${file.name} uploaded successfully.`);
-          }
+          uploadFile({ file, userId: "687f2b481adfa5f57632727e" });
+          toast.success(`${file.name} uploaded successfully.`);
         } catch (error) {
           console.error("Upload error:", error);
           toast.error(`Failed to upload ${file.name}`);
@@ -97,15 +86,8 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
     [userId]
   );
 
-  const deleteFile = async (fileId: string) => {
-    try {
-      await axios.delete(`${env.aiBackendUrl}/file/delete/${fileId}/${userId}`);
-      setFiles((prev) => prev.filter((file) => file._id !== fileId));
-      toast.success("File deleted successfully.");
-    } catch (error) {
-      console.error("Delete error:", error);
-      toast.error("Error deleting file.");
-    }
+  const deleteFile = (fileId: string) => {
+    deleteFileById({ fileId });
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -166,17 +148,17 @@ export const FileSidebar = ({ isOpen, onOpenChange }: FileSidebarProps) => {
 
           {/* Files List */}
           <div className="flex-1 overflow-y-auto space-y-3">
-            {isLoading ? (
+            {isLoadingFiles ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin" />
                 <span className="ml-2">Loading files...</span>
               </div>
-            ) : files.length === 0 ? (
+            ) : files?.data?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No files uploaded yet
               </div>
             ) : (
-              files.map((file) => (
+              files?.data?.map((file) => (
                 <div
                   key={file._id}
                   className="flex items-center gap-3 border rounded-lg p-2"
