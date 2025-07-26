@@ -8,7 +8,7 @@ export type IAnswer = { _id: ObjectId } & (
     isCorrect: boolean;
   };
 
- export type IQuestion = {
+export type IQuestion = {
   _id: ObjectId;
   question: string;
   image: string;
@@ -16,15 +16,6 @@ export type IAnswer = { _id: ObjectId } & (
   answer: IAnswer["_id"][];
   createdAt: Date;
   updatedAt: Date;
-};
-
-export type ISession = {
-  _id?: ObjectId;
-  sessionDate: Date;
-  startTime: string | null;
-  endTime: string | null;
-  // isLive: boolean;
-  createdAt: Date;
 };
 
 export type IExam = {
@@ -35,7 +26,7 @@ export type IExam = {
   description: string;
   duration: number;
   questions: IQuestion[];
-  session?: ISession;
+  // session?: IExamSession;
   createdAt: Date;
   updatedAt: Date;
 };

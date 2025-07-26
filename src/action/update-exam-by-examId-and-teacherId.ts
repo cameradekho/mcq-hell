@@ -119,22 +119,5 @@ function ensureObjectIds(exam: Partial<IExam>): Partial<IExam> {
     });
   }
 
-  // Process session if it exists
-  if (processedExam.session) {
-    const processedSession = { ...processedExam.session };
-
-    // Ensure session has _id
-    if (!processedSession._id) {
-      processedSession._id = new ObjectId();
-    }
-
-    // Update session createdAt if not exists
-    if (!processedSession.createdAt) {
-      processedSession.createdAt = new Date();
-    }
-
-    processedExam.session = processedSession;
-  }
-
   return processedExam;
 }

@@ -8,8 +8,6 @@ export type ITeacher = {
   name: string;
   email: string;
   avatar: string;
-  // exam: IExam[];
-  students?: IStudent[];
   createdAt: Date;
   updatedAt: Date;
 };

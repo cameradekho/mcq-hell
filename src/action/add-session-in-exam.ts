@@ -1,11 +1,11 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
-import { examCollectionName } from "@/models/exam";
 import { logger } from "@/models/logger";
-import { teacherCollectionName } from "@/models/teacher";
 import { ServerActionResult } from "@/types";
 import dayjs from "dayjs";
 import { ObjectId } from "mongodb";
+import { fetchExamSessionByExamId } from "./fetch-session-by-examId";
+import { examsessionCollectionName } from "@/models/teacher-exam-session";
 
 export type AddSessionInExamResult = ServerActionResult<undefined>;
 
@@ -17,7 +17,7 @@ export type AddSessionInExamData = {
   endTime: string;
 };
 
-export const addSessionInExam = async (
+export const addExamSession = async (
   data: AddSessionInExamData
 ): Promise<AddSessionInExamResult> => {
   try {
@@ -30,12 +30,12 @@ export const addSessionInExam = async (
     ) {
       return {
         success: false,
-        message: "Please provide examId, sessionDate, startTime and endTime",
+        message:
+          "Please provide examId, sessionDate, startTime, endTime and teacherId",
       };
     }
 
     await mongodb.connect();
-    const teacherObjectId = new ObjectId(data.teacherId);
 
     // Convert sessionDate to dayjs object for date manipulation
     const sessionDay = dayjs(data.sessionDate);
@@ -101,19 +101,52 @@ export const addSessionInExam = async (
       };
     }
 
-    const res = await mongodb.collection(examCollectionName).updateOne(
-      {
-        _id: new ObjectId(data.examId),
-      },
-      {
-        $set: {
-          "session.sessionDate": data.sessionDate,
-          "session.startTime": formattedStartTime,
-          "session.endTime": formattedEndTime,
-          "session.createdAt": new Date(),
-        } as any,
+    const examSessionExists = await fetchExamSessionByExamId({
+      examId: data.examId,
+      teacherId: data.teacherId,
+    });
+    // if the Exam's Session already exists, update it
+    if (examSessionExists.success) {
+      await mongodb.collection(examsessionCollectionName).deleteOne({
+        _id: examSessionExists.data._id,
+      });
+
+      // Insert a new document with a new _id
+      const res = await mongodb
+        .collection(examsessionCollectionName)
+        .insertOne({
+          examId: new ObjectId(data.examId),
+          teacherId: new ObjectId(data.teacherId),
+          sessionDate: data.sessionDate,
+          startTime: formattedStartTime,
+          endTime: formattedEndTime,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+      if (!res.acknowledged) {
+        return {
+          success: false,
+          message: "Error updating session",
+        };
       }
-    );
+
+      return {
+        success: true,
+        data: undefined,
+        message: "Session updated successfully",
+      };
+    }
+
+    // if the Exam's Session doesn't exist, create it
+    const res = await mongodb.collection(examsessionCollectionName).insertOne({
+      examId: new ObjectId(data.examId),
+      teacherId: new ObjectId(data.teacherId),
+      sessionDate: data.sessionDate,
+      startTime: formattedStartTime,
+      endTime: formattedEndTime,
+      createdAt: new Date(),
+    });
 
     if (!res.acknowledged) {
       return {
@@ -122,10 +155,10 @@ export const addSessionInExam = async (
       };
     }
 
-    if (res.modifiedCount === 0) {
+    if (res.insertedId === null) {
       return {
         success: false,
-        message: "No changes made to the exam",
+        message: "Error adding session",
       };
     }
 

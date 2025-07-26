@@ -6,7 +6,6 @@ import { IExam, IQuestion } from "@/models/exam";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { fetchTeacherById } from "@/action/fetch-teacher-by-id";
 import Image from "next/image";
 import { addStudentResponse } from "@/action/res/add-student-response";
 import {
@@ -28,8 +27,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { signOut, useSession } from "next-auth/react";
-import StudentExamAuthButton from "@/components/auth/student-exam-auth-button";
 import { fetchStudentByEmail } from "@/action/student/fetch-student-by-email";
+import { fetchExamSessionByExamId } from "@/action/fetch-session-by-examId";
+import { IExamSession } from "@/models/teacher-exam-session";
+import { Loading } from "./components/loading";
+import { LoginForm } from "./components/login-form";
+import {
+  fetchStudentExamSessionByStudentId,
+  IStudentExamSessionWithDetails,
+} from "@/action/session/student/fetch-student-exam-session-by-studentId";
+import { addStudentExamSession } from "@/action/session/student/add-student-exam-session";
+import { addUser } from "@/action/add-user";
+import { updateStudentExamSessionbyStudent } from "@/action/session/student/update-student-exam-session-by-student";
+import { arraysEqual } from "./utils/array-equal";
+import { formatTime } from "./utils/format-time";
+import { IStudentExamSession } from "@/models/student-exam-session";
+import { start } from "repl";
 
 type PageProps = {
   params: {
@@ -38,8 +51,10 @@ type PageProps = {
   };
 };
 type StudentDetails = {
+  studentId: string;
   studentName: string;
   studentEmail: string;
+  studentAvatar: string;
 };
 
 const Page = ({ params }: PageProps) => {
@@ -62,12 +77,13 @@ const Page = ({ params }: PageProps) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<number>(0);
-  const [teacherEmail, setTeacherEmail] = useState<string>("");
   const [step, setStep] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(0);
+  const [examduration, setExamDuration] = useState<number>(0);
   const [studentDetails, setStudentDetails] = useState<StudentDetails>({
+    studentId: "",
     studentName: "",
     studentEmail: "",
+    studentAvatar: "",
   });
   const [timeLeft, setTimeLeft] = useState<number>(0); // in seconds
   const [examStarted, setExamStarted] = useState(false);
@@ -81,13 +97,168 @@ const Page = ({ params }: PageProps) => {
   const [currentTime, setCurrentTime] = useState<string>(
     format(new Date(), "HH:mm")
   );
-
+  const [examSessionData, setExamSessionData] = useState<IExamSession | null>(
+    null
+  );
   const [isDateTimeMatched, setIsDateTimeMatched] = useState<boolean>(false);
+  const [studentExamSession, setStudentExamSession] =
+    useState<IStudentExamSessionWithDetails | null>(null);
 
-  //fetching exam data
+  // validating the student account details, if not present in the DB then adding the students in the DB when `session` is available
+  useEffect(() => {
+    async function fetchStudentData() {
+      console.log("ONEEEEEE");
+      console.log("TWOEEEEE Email", session?.user?.email);
+      const studentExists = await fetchStudentByEmail({
+        studentEmail: session?.user?.email || "",
+      });
+      if (studentExists.success) {
+        setStudentDetails((prev) => ({
+          ...prev,
+          studentId: studentExists.data._id.toString(),
+          studentName: studentExists.data.name,
+          studentEmail: studentExists.data.email,
+          studentAvatar: studentExists.data.avatar,
+        }));
+      } else {
+        const addStudentUser = await addUser({
+          email: session?.user?.email || "",
+          name: session?.user?.name || "",
+          avatar: session?.user?.avatar || "",
+          role: "student",
+        });
+        if (addStudentUser.success) {
+          setStudentDetails((prev) => ({
+            ...prev,
+            studentId: addStudentUser.data?._id?.toString() || "",
+            studentName: addStudentUser?.data?.name || "",
+            studentEmail: addStudentUser?.data?.email || "",
+            studentAvatar: addStudentUser?.data?.avatar || "",
+          }));
+        } else {
+          toast.error(addStudentUser.message);
+        }
+      }
+    }
+
+    if (session && session?.user?.email && session?.user?.name) {
+      fetchStudentData();
+    }
+  }, [session, session?.user?.email, session?.user?.name]);
+
+  // setting the student-exam-session as not-started, when this page renders when only studentDetail is available
+  useEffect(() => {
+    async function validateExamSessionData() {
+      try {
+        console.log("pro starrrr spor one");
+
+        const examSessionData = await fetchExamSessionByExamId({
+          examId: params.examId,
+          teacherId: params.teacherId,
+        });
+
+        if (!examSessionData.success) {
+          toast.error(examSessionData.message);
+          return;
+        }
+
+        setExamSessionData(examSessionData.data);
+
+        console.log("kukur email", studentDetails.studentEmail);
+
+        const studentSessionExists = await fetchStudentExamSessionByStudentId({
+          studentId: studentDetails.studentId.toString() || "",
+          examId: params.examId,
+          teacherId: params.teacherId,
+          examSessionId: examSessionData.data._id?.toString() || "",
+        });
+
+        if (studentSessionExists.success) {
+          console.log("student_Session_Exists", studentSessionExists.data);
+          const status = studentSessionExists.data.status;
+
+          setStudentExamSession(studentSessionExists.data);
+
+          if (status === "not-started") {
+            toast.error("You have not started the exam");
+          } else if (status === "started") {
+            toast.error(
+              "You have already started the exam in another Tab or Device"
+            );
+            setIsDateTimeMatched(false);
+            setExamStarted(false);
+            return;
+          } else if (
+            status === "completed" &&
+            examSessionData.data._id === studentSessionExists.data.examSessionId
+          ) {
+            toast.error("You have already completed the exam");
+
+            setIsDateTimeMatched(false);
+            setExamStarted(false);
+            return;
+          } else if (status === "block") {
+            toast.error("Your exam is blocked, please contact the teacher");
+            setIsDateTimeMatched(false);
+            setExamStarted(false);
+            return;
+          } else {
+            const res = await addStudentExamSession({
+              studentId: studentDetails.studentId.toString() || "",
+              examId: params.examId,
+              teacherId: params.teacherId,
+              examSessionId: examSessionData.data._id?.toString() || "", // this is the exam session id
+              status: "not-started",
+            });
+
+            if (res.success) {
+              console.log("arijit four");
+              setStudentExamSession(res?.data || null);
+              console.log("studentExamSession ******>> ", res?.data);
+              toast.success(res.message);
+            } else {
+              console.log("arijit five");
+              toast.error(res.message);
+              return;
+            }
+          }
+        } else {
+          console.log("#$%^&*#$%^&*#$^&. ====>>");
+          const res = await addStudentExamSession({
+            studentId: studentDetails.studentId.toString() || "",
+            examId: params.examId,
+            teacherId: params.teacherId,
+            examSessionId: examSessionData.data._id?.toString() || "", // this is the exam session id
+            status: "not-started",
+          });
+
+          if (res.success) {
+            console.log("arijit four");
+            setStudentExamSession(res?.data || null);
+            console.log("studentExamSession ******>> ", res?.data);
+            toast.success(res.message);
+          } else {
+            console.log("arijit five");
+            toast.error(res.message);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error adding exam session:", error);
+        toast.error("Something went wrong while adding exam session");
+      }
+    }
+
+    if (params.examId && params.teacherId && studentDetails.studentEmail) {
+      validateExamSessionData();
+    }
+  }, [studentDetails.studentEmail]);
+
+  //fetching the whole exam data when the studentDetails, examSessionData and studentExamSession Dats are available
   useEffect(() => {
     async function fetchExamData() {
       try {
+        console.log("Startted fetching whole exam");
         const data = await fetchExamById({
           teacherId: params.teacherId,
           examId: params.examId,
@@ -95,7 +266,7 @@ const Page = ({ params }: PageProps) => {
 
         if (data.success) {
           setExam(data.data as IExam);
-          setDuration(data.data.duration);
+          setExamDuration(data.data.duration);
 
           setAutoSubmit(false);
 
@@ -116,38 +287,41 @@ const Page = ({ params }: PageProps) => {
             });
             setAnswers(initialAnswers);
           }
+          console.log("Exam Name: ", data.data.name);
         } else {
           toast.error(data.message);
-        }
-
-        const teacherData = await fetchTeacherById({
-          teacherId: params.teacherId,
-        });
-
-        if (teacherData.success) {
-          setTeacherEmail(teacherData.data.email);
         }
 
         const date = new Date();
         setCurrentDate(format(date, "yyyy-MM-dd"));
         setCurrentTime(format(date, "hh:mm a"));
+
+        console.log("examData fetching is done.");
       } catch (error: any) {
         toast.error("Error fetching exam");
         console.error(error);
       }
     }
 
-    fetchExamData();
-  }, [params.teacherId, params.examId, isDateTimeMatched === true]);
+    if (
+      studentDetails.studentEmail &&
+      studentExamSession?._id &&
+      examSessionData?.examId
+    ) {
+      fetchExamData();
+    }
+  }, [studentExamSession, examSessionData]);
 
-  // calcuing time left for the exam and auto-submit exam if time is over
-  // This will start a timer when the exam starts and auto-submit when time is over
-  useEffect(() => {
-    if (!examStarted || !exam || exam.duration === 0) return;
+  // calcuing time left for the exam and auto-submit exam if time is over only when exam, examSessionData and studentDetails are available
+  function startTimer() {
+    console.log("ONË Starting the countdown timer for exam", exam?.duration);
 
-    setTimeLeft(exam.duration * 60); // convert minutes to seconds
+    console.log("TWO Starting the countdown timer for exam");
+
+    setTimeLeft(examduration * 60); // convert minutes to seconds
 
     const interval = setInterval(() => {
+      console.log("interval", interval);
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
@@ -159,9 +333,16 @@ const Page = ({ params }: PageProps) => {
     }, 1000);
 
     return () => clearInterval(interval); // cleanup
-  }, [examStarted, exam]);
+  }
 
-  // Shuffle questions and options
+  function endTimer() {
+    console.log("Ending the countdown timer for exam");
+    setTimeLeft(0);
+    setExamDuration(0);
+    setAutoSubmit(false);
+    setExamStarted(false);
+  }
+
   useEffect(() => {
     if (exam?.questions) {
       const shuffled: IQuestion[] = [...exam.questions]
@@ -180,21 +361,35 @@ const Page = ({ params }: PageProps) => {
     console.log("answers ", answers);
   };
 
-  // exam session date and time validation before starting the exam
-  // This will check if the current date and time matches the exam session date and time
   useEffect(() => {
     if (
-      !exam?.session?.sessionDate ||
-      !exam?.session?.startTime ||
-      !exam?.session?.endTime
+      examSessionData?._id &&
+      studentDetails.studentId &&
+      exam?._id &&
+      studentExamSession?._id
     ) {
-      console.log("Exam session details are not set");
+      validateExamSessionDateAndTime();
+    }
+  }, [examSessionData, studentDetails, exam, studentExamSession]);
+
+  // exam session date and time validation before starting the exam
+  // This functionwill check if the current date and time matches the exam session date and time
+  function validateExamSessionDateAndTime() {
+    if (
+      !examSessionData?.sessionDate ||
+      !examSessionData.startTime ||
+      !examSessionData?.endTime
+    ) {
+      console.log("Exam session details are not set....");
+      console.log("examSessionData", examSessionData);
+      console.log("examSessionData?.sessionDate", examSessionData?.sessionDate);
+      console.log("examSessionData?.startTime", examSessionData?.startTime);
       return;
     }
     const now = new Date();
-    const sessionDate = new Date(exam?.session?.sessionDate);
-    const startTime = new Date(exam.session.startTime);
-    const endTime = new Date(exam.session.endTime);
+    const sessionDate = new Date(examSessionData?.sessionDate);
+    const startTime = new Date(examSessionData.startTime);
+    const endTime = new Date(examSessionData.endTime);
 
     const sameDate =
       now.getFullYear() === sessionDate.getFullYear() &&
@@ -220,23 +415,38 @@ const Page = ({ params }: PageProps) => {
       setIsDateTimeMatched(true);
       return;
     }
-  }, [exam]);
+  }
 
   // Auto-submit exam if time is over
   // This will check every minute if the current time is within the exam session time range
   useEffect(() => {
-    const setIntervalId = setInterval(() => {
-      if (
-        !exam?.session?.sessionDate ||
-        !exam?.session?.startTime ||
-        !exam?.session?.endTime
-      ) {
-        console.log("Exam session details are not set");
-        return;
-      }
+    // Early return if conditions are not met
+    if (!examStarted || !isDateTimeMatched) {
+      return;
+    }
+
+    // Early return if required data is not available
+    if (
+      !studentExamSession?._id ||
+      !examSessionData?.sessionDate ||
+      !examSessionData?.startTime ||
+      !examSessionData?.endTime
+    ) {
+      return;
+    }
+
+    // Early return if exam is already completed or blocked
+    if (
+      studentExamSession.status === "completed" ||
+      studentExamSession.status === "block"
+    ) {
+      return;
+    }
+
+    const checkTimeValidity = () => {
       const now = new Date();
-      const startTime = new Date(exam.session.startTime);
-      const endTime = new Date(exam.session.endTime);
+      const startTime = new Date(examSessionData.startTime?.toString() || "");
+      const endTime = new Date(examSessionData.endTime?.toString() || "");
 
       const withinTimeRange = now >= startTime && now <= endTime;
 
@@ -246,28 +456,27 @@ const Page = ({ params }: PageProps) => {
         setAutoSubmit(false);
         setExamStarted(false);
         setTimeLeft(0);
-        setDuration(0);
+        setExamDuration(0);
       }
-    }, 60000);
+    };
 
-    return () => clearInterval(setIntervalId); // Cleanup interval on unmount
-  }, [exam, isDateTimeMatched === true, examStarted === true]);
+    // Run initial check
+    checkTimeValidity();
 
-  useEffect(() => {
-    if (session?.user?.name) {
-      setStudentDetails((prev) => ({
-        ...prev,
-        studentName: session.user.name,
-      }));
-    }
+    // Set up interval for periodic checks
+    const intervalId = setInterval(checkTimeValidity, 60000);
 
-    if (session?.user?.email) {
-      setStudentDetails((prev) => ({
-        ...prev,
-        studentEmail: session.user.email,
-      }));
-    }
-  }, [session?.user.name, session?.user.email]);
+    // Cleanup interval on unmount or dependency change
+    return () => clearInterval(intervalId);
+  }, [
+    examStarted,
+    isDateTimeMatched,
+    studentExamSession,
+    examSessionData?.sessionDate,
+    examSessionData?.startTime,
+    examSessionData?.endTime,
+    studentExamSession?.status,
+  ]);
 
   // Handle single choice (radio button) selection
   const handleSingleAnswerChange = (
@@ -319,8 +528,9 @@ const Page = ({ params }: PageProps) => {
 
   const handleFetchStudentData = async () => {
     // Validate student details
+    console.log("studentDetails", studentDetails);
     if (!studentDetails.studentName.trim()) {
-      toast.error("Please provide student name");
+      toast.error("Please provide student name...");
       return;
     }
 
@@ -329,18 +539,53 @@ const Page = ({ params }: PageProps) => {
         ...prev,
         studentEmail: session?.user.email,
       }));
+
+      if (
+        studentExamSession?.status === "completed" ||
+        studentExamSession?.status === "block" ||
+        studentExamSession?.status === "started"
+      ) {
+        setOpen(false);
+        return;
+      } else {
+        setOpen(true);
+      }
     } else {
       toast.error("Please Login again");
       return;
     }
-
-    setOpen(true);
   };
 
-  const handleStartExam = () => {
-    setOpen(false); // close dialog
-    setStep((prev) => prev + 1); // Move to step 2
-    setExamStarted(true); // Start the exam
+  const handleStartExam = async () => {
+    try {
+      setOpen(false); // close dialog
+      setStep((prev) => prev + 1); // Move to step 2
+      setExamStarted(true); // Start the exam
+
+      console.log("hubba one");
+
+      const updateStudentExamSession = await updateStudentExamSessionbyStudent({
+        studentId: studentDetails.studentId,
+        examId: params.examId.toString(),
+        examSessionId: examSessionData?._id?.toString() || "",
+        teacherId: params.teacherId.toString(),
+        status: "started",
+      });
+
+      startTimer();
+
+      if (!updateStudentExamSession) {
+        toast.error("Student Exam Session not updated");
+        setExamStarted(false);
+        setIsDateTimeMatched(false);
+        return;
+      }
+
+      toast.success(updateStudentExamSession.message);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error starting exam");
+    }
   };
 
   const handleSubmit = async () => {
@@ -416,22 +661,13 @@ const Page = ({ params }: PageProps) => {
       const correctCount = formattedResponses.filter((r) => r.isCorrect).length;
       setResult(correctCount);
 
-      const studentData = await fetchStudentByEmail({
-        studentEmail: studentDetails.studentEmail,
-      });
-
-      if (!studentData.success || !studentData.data._id) {
-        toast.error("Error fetching student data");
-        return;
-      }
-
-      const studentId = studentData.data._id;
+      endTimer();
 
       // Submit to server
       const result = await addStudentResponse({
         examId: params.examId,
         teacherId: params.teacherId,
-        studentId: studentId.toString(),
+        studentId: studentDetails.studentId.toString(),
         responses: formattedResponses,
         score: correctCount,
       });
@@ -440,15 +676,26 @@ const Page = ({ params }: PageProps) => {
 
       if (result.success) {
         toast.success(result.message);
-        setAutoSubmit(false);
-        setExamStarted(false);
-        setTimeLeft(0);
-        setDuration(0);
       } else {
         toast.error(result.message);
         setSubmitting(false);
       }
       console.log("hubba five");
+
+      const updateStudentExamSession = await updateStudentExamSessionbyStudent({
+        studentId: studentDetails.studentId,
+        examId: params.examId.toString(),
+        examSessionId: examSessionData?._id?.toString() || "",
+        teacherId: params.teacherId.toString(),
+        status: "completed",
+      });
+
+      if (!updateStudentExamSession) {
+        toast.error("Student Exam Session not updated");
+        setSubmitting(false);
+        return;
+      }
+
       setSubmitted(true);
     } catch (error) {
       setSubmitting(true);
@@ -464,79 +711,13 @@ const Page = ({ params }: PageProps) => {
     }
   }, [autoSubmit]);
 
-  // Helper function to compare arrays
-  function arraysEqual(a: string[], b: string[]) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
-  }
-
-  const formatTime = (seconds: number) => {
-    const min = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
-    const sec = (seconds % 60).toString().padStart(2, "0");
-    return `${min}:${sec}`;
-  };
-
   // checking if session is present or not
   if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <svg
-            className="animate-spin h-8 w-8 text-primary"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            ></path>
-          </svg>
-          <span className="text-sm text-muted-foreground">
-            Checking your session....
-          </span>
-        </div>
-      </div>
-    );
+    <Loading />;
   }
 
   if (!session) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-        <div className="max-w-md w-full bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-8 space-y-6 border border-gray-200 dark:border-gray-700 text-center">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Student Exam Access
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            You must be signed in to access the exam. Click the button below to
-            sign in with your student account.
-          </p>
-          <StudentExamAuthButton
-            props={{
-              teacherId: params.teacherId,
-              examId: params.examId,
-            }}
-          />
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            Your email will be used to identify your submission.
-          </p>
-        </div>
-      </div>
-    );
+    return <LoginForm teacherId={params.teacherId} examId={params.examId} />;
   }
 
   if (status === "authenticated") {
@@ -558,7 +739,7 @@ const Page = ({ params }: PageProps) => {
                   <div className="mt-4 flex items-center gap-2 text-primary">
                     <AlarmClock className="h-5 w-5" />
                     <span className="font-semibold">
-                      {formatTime(timeLeft)}
+                      Time Left: {formatTime(timeLeft)}
                     </span>
                   </div>
                 )}
@@ -569,10 +750,6 @@ const Page = ({ params }: PageProps) => {
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold">Student Details</h2>
                     <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted text-center shadow-md">
-                      <div className="text-lg font-semibold text-primary">
-                        Exam Session Details
-                      </div>
-
                       <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted text-center shadow-md">
                         <div className="text-lg font-semibold text-primary">
                           Exam Session Details
@@ -583,9 +760,9 @@ const Page = ({ params }: PageProps) => {
                             <span className="font-medium text-accent-foreground">
                               Date:
                             </span>{" "}
-                            {exam?.session?.sessionDate
+                            {examSessionData?.sessionDate
                               ? new Date(
-                                  exam.session.sessionDate
+                                  examSessionData.sessionDate
                                 ).toLocaleDateString()
                               : "Not set"}
                           </div>
@@ -594,9 +771,9 @@ const Page = ({ params }: PageProps) => {
                             <span className="font-medium text-accent-foreground">
                               Start Time:
                             </span>{" "}
-                            {exam?.session?.startTime
+                            {examSessionData?.startTime
                               ? new Date(
-                                  exam.session.startTime
+                                  examSessionData.startTime
                                 ).toLocaleTimeString([], {
                                   hour: "2-digit",
                                   minute: "2-digit",
@@ -607,17 +784,24 @@ const Page = ({ params }: PageProps) => {
 
                           <div>
                             <span className="font-medium text-accent-foreground">
-                              Start Time:
+                              End Time:
                             </span>{" "}
-                            {exam?.session?.endTime
+                            {examSessionData?.endTime
                               ? new Date(
-                                  exam.session.endTime
+                                  examSessionData.endTime
                                 ).toLocaleTimeString([], {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                   hour12: true, // this gives AM/PM format
                                 })
                               : "Not set"}
+                          </div>
+
+                          <div>
+                            <span className="font-medium text-accent-foreground">
+                              Exam Duration:
+                            </span>{" "}
+                            {exam?.duration} minutes
                           </div>
                         </div>
 
@@ -634,15 +818,14 @@ const Page = ({ params }: PageProps) => {
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground ">
                       <span>
                         Your exam's session will be over in{" "}
-                        {exam?.session?.endTime
-                          ? new Date(exam.session.endTime).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true, // this gives AM/PM format
-                              }
-                            )
+                        {examSessionData?.endTime
+                          ? new Date(
+                              examSessionData.endTime
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true, // this gives AM/PM format
+                            })
                           : "Not set"}{" "}
                         after that you can't submit your exam.
                       </span>
@@ -702,14 +885,20 @@ const Page = ({ params }: PageProps) => {
                         Back
                       </Button>
 
-                      <Button
-                        onClick={handleFetchStudentData}
-                        className="w-full sm:w-auto"
-                        size="lg"
-                        disabled={isDateTimeMatched === false}
-                      >
-                        Proceed
-                      </Button>
+                      {studentExamSession?.status === "completed" ||
+                      studentExamSession?.status === "block" ||
+                      studentExamSession?.status === "started" ? (
+                        <></>
+                      ) : (
+                        <Button
+                          onClick={handleFetchStudentData}
+                          className="w-full sm:w-auto"
+                          size="lg"
+                          disabled={isDateTimeMatched === false}
+                        >
+                          Proceed
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1075,7 +1264,7 @@ const Page = ({ params }: PageProps) => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-4 py-4">
-                  <div className="flex flex-col gap-2">
+                  <div className="flex  gap-2">
                     <span className="text-sm font-medium text-muted-foreground">
                       Name:
                     </span>
@@ -1083,7 +1272,7 @@ const Page = ({ params }: PageProps) => {
                       {studentDetails.studentName}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
                     <span className="text-sm font-medium text-muted-foreground">
                       Email:
                     </span>

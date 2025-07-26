@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import { examCollectionName } from "@/models/exam";
 import { get } from "http";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
+import { deleteExamSession } from "./delete-session-in-exam";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
@@ -64,6 +65,25 @@ export const deleteExamById = async (
       return {
         success: false,
         message: "Error deleting exam",
+      };
+    }
+
+    if (deleteRes.deletedCount === 0) {
+      return {
+        success: false,
+        message: "No exam found with the provided examId",
+      };
+    }
+
+    const deleteExamSessionRes = await deleteExamSession({
+      examId: props.examId,
+      teacherId: props.teacherId,
+    });
+
+    if (!deleteExamSessionRes.success) {
+      return {
+        success: false,
+        message: deleteExamSessionRes.message,
       };
     }
 

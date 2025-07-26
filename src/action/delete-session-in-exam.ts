@@ -4,9 +4,7 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
-import { toast } from "sonner";
-import { teacherCollectionName } from "@/models/teacher";
-import { examCollectionName } from "@/models/exam";
+import { examsessionCollectionName } from "@/models/teacher-exam-session";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
@@ -15,7 +13,7 @@ type DeleteExamByIdData = {
   teacherId: string;
 };
 
-export const deleteSessionInExam = async (
+export const deleteExamSession = async (
   props: DeleteExamByIdData
 ): Promise<DeleteExamByIdResult> => {
   try {
@@ -28,7 +26,13 @@ export const deleteSessionInExam = async (
 
     const examId = props.examId;
     const teacherId = props.teacherId;
-    const teacherObjectId = new ObjectId(teacherId);
+
+    if (!teacherId) {
+      return {
+        success: false,
+        message: "Please provide teacherId",
+      };
+    }
 
     const existingTeacher = await fetchTeacherById({
       teacherId: teacherId,
@@ -43,17 +47,12 @@ export const deleteSessionInExam = async (
 
     await mongodb.connect();
 
-    const deleteRes = await mongodb.collection(examCollectionName).updateOne(
-      {
-        _id: new ObjectId(examId),
-        createdByEmail: existingTeacher.data.email,
-      },
-      {
-        $unset: {
-          session: "",
-        },
-      }
-    );
+    const deleteRes = await mongodb
+      .collection(examsessionCollectionName)
+      .deleteOne({
+        examId: new ObjectId(examId),
+        teacherId: new ObjectId(teacherId),
+      });
 
     if (!deleteRes.acknowledged) {
       return {
@@ -62,10 +61,10 @@ export const deleteSessionInExam = async (
       };
     }
 
-    if (deleteRes.modifiedCount === 0) {
+    if (deleteRes.deletedCount === 0) {
       return {
         success: false,
-        message: "No exam was deleted. Please check the exam ID.",
+        message: "No exam session found with the provided examId and teacherId",
       };
     }
 
