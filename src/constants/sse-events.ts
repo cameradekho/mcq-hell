@@ -4,4 +4,5 @@ export const SSE_EVENTS = {
   CHAT_ERROR: "chat-error",
   CHAT_QUESTION: "chat-question",
   LOADING: "loading",
+  DONE: "done",
 };

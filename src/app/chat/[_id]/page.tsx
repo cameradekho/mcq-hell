@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useChatContext } from "@/providers/chat-provider";
 import { ChatInput } from "@/components/chat-input";
 import { useSSE } from "@/hooks/custom/use-sse";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import AuthButtons from "@/components/auth/auth-buttons";
-import PDFSidebar from "./components/Filesidebar";
+import { FileSidebar } from "./components/file-sidebar";
 
 const ChatPage = () => {
   const { data: session, status } = useSession();
@@ -22,7 +22,13 @@ const ChatPage = () => {
   const params = useParams<{ _id: string }>();
   const router = useRouter();
 
-  const { pendingMessage, setPendingMessage } = useChatContext();
+  const {
+    pendingMessage,
+    setPendingMessage,
+    selectedFileIds,
+    setSelectedFileIds,
+  } = useChatContext();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { messages, loading, isStreaming, submitMessage, currentMessage } =
     useSSE();
@@ -49,6 +55,7 @@ const ChatPage = () => {
       submitMessage({
         conversation_id: params._id,
         user_message: pendingMessage,
+        file_ids: selectedFileIds,
       });
     }
     setPendingMessage(null);
@@ -63,8 +70,17 @@ const ChatPage = () => {
       submitMessage({
         conversation_id: params._id,
         user_message: data.message,
+        file_ids: selectedFileIds,
       });
     }
+  };
+
+  const handlePaperclipClick = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleSidebarOpenChange = (open: boolean) => {
+    setIsSidebarOpen(open);
   };
 
   if (!session) {
@@ -90,8 +106,18 @@ const ChatPage = () => {
             Type your message below to begin
           </p>
         </div>
-        <ChatInput onSubmit={handleSubmit} isStreaming={isStreaming} />
-        <PDFSidebar />
+        <ChatInput
+          onSubmit={handleSubmit}
+          isStreaming={isStreaming}
+          onPaperclipClick={handlePaperclipClick}
+          selectedFileIds={selectedFileIds}
+        />
+        <FileSidebar
+          isOpen={isSidebarOpen}
+          onOpenChange={handleSidebarOpenChange}
+          selectedFileIds={selectedFileIds}
+          setSelectedFileIds={setSelectedFileIds}
+        />
       </div>
     );
   }
@@ -103,7 +129,7 @@ const ChatPage = () => {
           <MessageList messages={conversationData?.data?.messages} />
         )}
         {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
-        {!isStreaming && (
+        {isStreaming && (
           <div className="flex justify-left items-center gap-2">
             <Loader2 className="size-4 animate-spin" />{" "}
             {loading?.loading_text || "Generating content..."}
@@ -117,9 +143,19 @@ const ChatPage = () => {
             <span>New Chat</span>
           </Link>
         </Button>
-        <ChatInput onSubmit={handleSubmit} isStreaming={isStreaming} />
+        <ChatInput
+          onSubmit={handleSubmit}
+          isStreaming={isStreaming}
+          onPaperclipClick={handlePaperclipClick}
+          selectedFileIds={selectedFileIds}
+        />
       </div>
-      <PDFSidebar />
+      <FileSidebar
+        isOpen={isSidebarOpen}
+        onOpenChange={handleSidebarOpenChange}
+        selectedFileIds={selectedFileIds}
+        setSelectedFileIds={setSelectedFileIds}
+      />
     </div>
   );
 };
