@@ -56,7 +56,7 @@ const updateFileById = ({
 };
 
 const deleteFileById = ({ fileId }: TFileId): TApiPromise<TFile> => {
-  return api.delete(`/file/${fileId}`);
+  return api.delete(`/file/${fileId}}`);
 };
 
 const uploadFile = (payload: TFileUploadPayload): TApiPromise<TFile> => {

@@ -28,7 +28,12 @@ type FileSidebarProps = {
   setSelectedFileIds: (selectedFileIds: string[]) => void;
 };
 
-export const FileSidebar = ({ isOpen, onOpenChange, selectedFileIds, setSelectedFileIds }: FileSidebarProps) => {
+export const FileSidebar = ({
+  isOpen,
+  onOpenChange,
+  selectedFileIds,
+  setSelectedFileIds,
+}: FileSidebarProps) => {
   const { data: session } = useSession();
   const [userId, setUserId] = useState<string>("");
 
@@ -36,9 +41,12 @@ export const FileSidebar = ({ isOpen, onOpenChange, selectedFileIds, setSelected
     data: files,
     isLoading: isLoadingFiles,
     error: errorFiles,
-  } = useGetAllFiles({},{
-    enabled: isOpen
-  });
+  } = useGetAllFiles(
+    {},
+    {
+      enabled: isOpen,
+    }
+  );
 
   const { mutate: deleteFileById } = useDeleteFileById({
     onSuccess: () => {
@@ -70,9 +78,8 @@ export const FileSidebar = ({ isOpen, onOpenChange, selectedFileIds, setSelected
     },
     [userId]
   );
-
   const deleteFile = (fileId: string) => {
-    deleteFileById({ fileId });
+    deleteFileById({ fileId: fileId });
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -96,9 +103,9 @@ export const FileSidebar = ({ isOpen, onOpenChange, selectedFileIds, setSelected
   };
 
   const handleToggle = (_id: string) => {
-    if(selectedFileIds.includes(_id)){
-      setSelectedFileIds(selectedFileIds.filter(id => id !== _id));
-    }else{
+    if (selectedFileIds.includes(_id)) {
+      setSelectedFileIds(selectedFileIds.filter((id) => id !== _id));
+    } else {
       setSelectedFileIds([...selectedFileIds, _id]);
     }
   };
