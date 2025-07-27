@@ -55,31 +55,31 @@ export const AllExams = (params: Props) => {
 
   console.log("-> teacherId: ", params.teacherId);
 
-  useEffect(() => {
-    async function fetchTeacherData() {
-      try {
-        setIsLoading(true);
-        const data = await fetchTeacherByEmail({
-          email: params.teacherId,
-        });
+  // useEffect(() => {
+  //   async function fetchTeacherData() {
+  //     try {
+  //       setIsLoading(true);
+  //       const data = await fetchTeacherByEmail({
+  //         email: params.teacherId,
+  //       });
 
-        if (data.success) {
-          setTeacher(data.data);
-        } else {
-          toast.error(data.message || "Failed to fetch teacher");
-        }
-      } catch (error) {
-        console.error(error);
-        toast.error("Error fetching teacher");
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  //       if (data.success) {
+  //         setTeacher(data.data);
+  //       } else {
+  //         toast.error(data.message || "Failed to fetch teacher");
+  //       }
+  //     } catch (error) {
+  //       console.error(error);
+  //       toast.error("Error fetching teacher");
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   }
 
-    if (params.teacherId) {
-      fetchTeacherData();
-    }
-  }, []);
+  //   if (params.teacherId) {
+  //     fetchTeacherData();
+  //   }
+  // }, []);
 
   useEffect(() => {
     async function fetchExamsData() {
@@ -233,7 +233,7 @@ export const AllExams = (params: Props) => {
                     title="View results"
                   >
                     <Link
-                      href={`/result/${teacher?._id}/${exam._id}`}
+                      href={`/result/${params.teacherId}/${exam._id}`}
                       rel="noopener noreferrer"
                     >
                       <HiAcademicCap className="h-3 w-3 md:h-4 md:w-4" />
@@ -249,7 +249,9 @@ export const AllExams = (params: Props) => {
                     title="Edit exam"
                   >
                     <Link
-                      href={`/update-exam/${teacher?._id?.toString()}/${exam?._id?.toString()}`}
+                      href={`/update-exam/${
+                        params.teacherId
+                      }/${exam?._id?.toString()}`}
                       rel="noopener noreferrer"
                     >
                       <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
