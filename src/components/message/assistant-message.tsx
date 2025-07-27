@@ -2,6 +2,7 @@ import { parseMessage } from "@/lib/message-parser";
 import { TMessage } from "@/types/message";
 import { Markdown } from "../markdown";
 import { AssistantQuestionList } from "./assistant-question-list";
+import { IQuestion } from "@/models/exam";
 
 type AssistantMessageProps = {
   message: TMessage;
@@ -16,7 +17,12 @@ export const AssistantMessage = ({ message }: AssistantMessageProps) => {
         }
 
         if (part.type === "tag") {
-          return <AssistantQuestionList key={index} text={part.text} />;
+          return (
+            <AssistantQuestionList
+              key={index}
+              text={part.text as IQuestion[]}
+            />
+          );
         }
       })}
     </div>

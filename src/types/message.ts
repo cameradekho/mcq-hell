@@ -30,5 +30,4 @@ export type TMessage<
 
 export type TMessageRole = "system" | "user" | "assistant" | "tool";
 
-// export type TMessagePart = TextContent | TagContent
 export type TMessagePart = TMessage["content"][number];
