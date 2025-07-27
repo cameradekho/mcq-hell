@@ -3,20 +3,19 @@ import { mongodb } from "@/lib/mongodb";
 import { examCollectionName, IExam } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
+import { ObjectId } from "mongodb";
 
 export type FetchExamsResult = ServerActionResult<
   Pick<IExam, "_id" | "name" | "description">[]
 >;
 
 export type FetchExamsData = {
-  userEmail: string;
+  teacherId: string;
 };
 
-export const fetchExams = async (
-  userEmail: string
-): Promise<FetchExamsResult> => {
+export const fetchExams = async (data: FetchExamsData): Promise<FetchExamsResult> => {
   try {
-    if (!userEmail) {
+    if (!data.teacherId) {
       return {
         success: false,
         message: "Please provide userEmail",
@@ -26,9 +25,7 @@ export const fetchExams = async (
     await mongodb.connect();
     const examData = await mongodb
       .collection<IExam>(examCollectionName)
-      .find({
-        createdByEmail: userEmail,
-      })
+      .find({ teacherId: new ObjectId(data.teacherId) })
       .toArray();
 
     if (!examData) {

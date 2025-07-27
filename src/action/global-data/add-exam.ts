@@ -5,6 +5,7 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
 import { nanoid } from "nanoid";
+import { fetchTeacherById } from "../fetch-teacher-by-id";
 
 export type AddExamResult = ServerActionResult<undefined>;
 
@@ -30,7 +31,8 @@ export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
       !data.name ||
       !data.description ||
       !data.duration ||
-      data.questions.length === 0
+      data.questions.length === 0||
+      !data.teacherId
     ) {
       return {
         success: false,
@@ -40,7 +42,21 @@ export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
 
     await mongodb.connect();
 
+    console.log("Hubba teacherId: ", data.teacherId);
+
+    const teacherExists = await fetchTeacherById({
+      teacherId: data.teacherId,
+    });
+
+    if (!teacherExists.success) {
+      return {
+        success: false,
+        message: "Teacher not found",
+      };
+    }
+
     const res = await mongodb.collection<IExam>(examCollectionName).insertOne({
+      _id: new ObjectId(),
       name: data.name,
       description: data.description,
       duration: data.duration,

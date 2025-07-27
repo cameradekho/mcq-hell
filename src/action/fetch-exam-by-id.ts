@@ -26,17 +26,6 @@ export const fetchExamById = async (
 
     console.log(data.examId);
 
-    const isTeacherExists = await mongodb.collection("teacher").findOne({
-      _id: new ObjectId(data.teacherId),
-    });
-
-    if (!isTeacherExists) {
-      return {
-        success: false,
-        message: "Teacher not found",
-      };
-    }
-
     const teacherData = await fetchTeacherById({ teacherId: data.teacherId });
     if (!teacherData.success || !teacherData.data) {
       return {
@@ -48,7 +37,7 @@ export const fetchExamById = async (
     await mongodb.connect();
     const examData = await mongodb.collection<IExam>("exam").findOne({
       _id: new ObjectId(data.examId),
-      createdByEmail: teacherData.data.email,
+      teacherId: new ObjectId(data.teacherId),
     });
 
     if (!examData) {

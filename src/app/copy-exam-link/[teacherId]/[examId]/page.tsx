@@ -40,10 +40,15 @@ export default function Home() {
   useEffect(() => {
     async function fetchInitialExamandSessionData() {
       try {
+        console.log("teacherId", teacherId);
+        console.log("examId", examId);
         const [sessionData, examDetails] = await Promise.all([
           fetchExamSessionByExamId({ examId, teacherId }),
           fetchExamById({ examId, teacherId }),
         ]);
+
+        console.log("sessionData", sessionData);
+        console.log("examDetails", examDetails);
 
         if (!sessionData.success) {
           toast.error(sessionData.message);

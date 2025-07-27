@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { use, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { addUser } from "../action/add-user";
 import { toast } from "sonner";
@@ -13,8 +13,9 @@ import { TopNavigationBar } from "@/components/top-navigation-bar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Settings, Activity } from "lucide-react";
-// import { fetchDashboardStats } from "../action/fetch-dashboard-stats";
 import AuthButtons from "@/components/auth/auth-buttons";
+import { IStudent } from "@/models/student";
+import { ITeacher } from "@/models/teacher";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -25,6 +26,7 @@ export default function Home() {
     pendingReviews: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState<IStudent | ITeacher | undefined>();
 
   useEffect(() => {
     const addUserToDB = async () => {
@@ -32,12 +34,16 @@ export default function Home() {
       hasRun.current = true;
       try {
         if (session) {
-          await addUser({
+          const res = await addUser({
             name: session.user.name,
             email: session.user.email,
             avatar: session.user.avatar,
             role: session.user.role,
           });
+
+          if (res.success) {
+            setUserData(res?.data as ITeacher);
+          }
         }
       } catch (error) {
         toast.error("Error adding user: " + error);
@@ -96,26 +102,9 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
-               
               </div>
 
-              <AllExams
-                teacherEmail={session.user.email || ""}
-                // onExamDeleted={() => {
-                //   // Refresh dashboard stats when an exam is deleted
-                //   if (session?.user?.email) {
-                //     fetchDashboardStats(session.user.email)
-                //       .then((result) => {
-                //         if (result.success && result.data) {
-                //           setStats(result.data);
-                //         }
-                //       })
-                //       .catch((error) => {
-                //         console.error("Error refreshing stats:", error);
-                //       });
-                //   }
-                // }}
-              />
+              <AllExams teacherId={userData?._id?.toString() || ""} />
             </div>
           ) : (
             <div className="space-y-20">

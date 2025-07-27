@@ -37,10 +37,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// import SimpleCalendarTest from "./exam-session-date";
-
 type Props = {
-  teacherEmail: string;
+  teacherId: string;
   // onExamDeleted?: () => void; // Callback to refresh dashboard stats
 };
 
@@ -55,12 +53,14 @@ export const AllExams = (params: Props) => {
   const [examIDToDelete, setExamIDToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+  console.log("-> teacherId: ", params.teacherId);
+
   useEffect(() => {
     async function fetchTeacherData() {
       try {
         setIsLoading(true);
         const data = await fetchTeacherByEmail({
-          email: params.teacherEmail,
+          email: params.teacherId,
         });
 
         if (data.success) {
@@ -76,7 +76,7 @@ export const AllExams = (params: Props) => {
       }
     }
 
-    if (params.teacherEmail) {
+    if (params.teacherId) {
       fetchTeacherData();
     }
   }, []);
@@ -85,7 +85,9 @@ export const AllExams = (params: Props) => {
     async function fetchExamsData() {
       try {
         setIsLoading(true);
-        const data = await fetchExams(params.teacherEmail);
+        const data = await fetchExams({
+          teacherId: params.teacherId,
+        });
         console.log("exams: ", data);
         if (data.success) {
           setExams(data.data.map((exam) => ({ ...exam, id: exam._id })));
@@ -100,10 +102,10 @@ export const AllExams = (params: Props) => {
       }
     }
 
-    if (params.teacherEmail) {
+    if (params.teacherId) {
       fetchExamsData();
     }
-  }, [params.teacherEmail]);
+  }, [params.teacherId]);
 
   const handleDeleteClick = (examId: string) => {
     if (!examId) return;
@@ -214,9 +216,7 @@ export const AllExams = (params: Props) => {
                     title="View results"
                   >
                     <Link
-                      href={`/copy-exam-link/${teacher?._id?.toString()}/${
-                        exam._id
-                      }`}
+                      href={`/copy-exam-link/${params.teacherId}/${exam._id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

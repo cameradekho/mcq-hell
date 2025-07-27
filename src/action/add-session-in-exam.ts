@@ -28,6 +28,11 @@ export const addExamSession = async (
       !data.endTime ||
       !data.teacherId
     ) {
+      console.log("teacherId", data.teacherId);
+      console.log("examId", data.examId);
+      console.log("sessionDate", data.sessionDate);
+      console.log("startTime", data.startTime);
+      console.log("endTime", data.endTime);
       return {
         success: false,
         message:
@@ -44,7 +49,6 @@ export const addExamSession = async (
     let formattedEndTime: string;
 
     try {
-      // Try 12-hour format first (e.g., "2:30 PM", "10:15 AM")
       const startDateTime =
         sessionDay.format("YYYY-MM-DD") + " " + data.startTime;
       const endDateTime = sessionDay.format("YYYY-MM-DD") + " " + data.endTime;
@@ -112,6 +116,8 @@ export const addExamSession = async (
       });
 
       // Insert a new document with a new _id
+
+      console.log("Hubba Teacher ID", data.teacherId);
       const res = await mongodb
         .collection(examsessionCollectionName)
         .insertOne({

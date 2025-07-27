@@ -108,6 +108,10 @@ export const Questions = () => {
         toast.error("Error fetching teacher");
       }
     }
+
+    if (session?.user?.email) {
+      fetchTeacherDataByEmail();
+    }
   }, [session?.user.email]);
 
   const onSubmit = async (data: FormValues) => {
