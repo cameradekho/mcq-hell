@@ -26,7 +26,6 @@ export type IExam = {
   description: string;
   duration: number;
   questions: IQuestion[];
-  // session?: IExamSession;
   createdAt: Date;
   updatedAt: Date;
 };

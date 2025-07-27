@@ -8,9 +8,6 @@ import type {
 } from "@/types/api";
 import { api } from "@/lib/api";
 import { TFile } from "@/types/file";
-import { options } from "marked";
-
-// Base URL: /api/v1/file/...
 
 // File Types
 
