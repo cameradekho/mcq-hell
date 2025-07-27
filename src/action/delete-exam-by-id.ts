@@ -4,7 +4,7 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { auth } from "../../auth";
 import { ObjectId } from "mongodb";
-import { examCollectionName } from "@/models/exam";
+import { examCollectionName, IExam } from "@/models/exam";
 import { get } from "http";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 import { deleteExamSession } from "./delete-session-in-exam";
@@ -56,9 +56,9 @@ export const deleteExamById = async (
 
     if (!teacherDoc) throw new Error("Teacher not found");
 
-    const deleteRes = await mongodb.collection(examCollectionName).deleteOne({
+    const deleteRes = await mongodb.collection<IExam>(examCollectionName).deleteOne({
       _id: new ObjectId(props.examId),
-      createdByEmail: teacherDoc.data.email,
+      teacherId: new ObjectId(props.teacherId),
     });
 
     if (!deleteRes.acknowledged) {

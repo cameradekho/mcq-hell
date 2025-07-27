@@ -106,6 +106,7 @@ export const AllExams = (params: Props) => {
   }, [params.teacherEmail]);
 
   const handleDeleteClick = (examId: string) => {
+    if (!examId) return;
     setExamIDToDelete(examId);
     setIsDeleteDialogOpen(true);
   };
@@ -122,7 +123,7 @@ export const AllExams = (params: Props) => {
       if (res.success) {
         toast.success("Exam deleted successfully!");
         setExams((prev) =>
-          prev.filter((exam) => exam._id.toString() !== examIDToDelete)
+          prev.filter((exam) => exam?._id?.toString() !== examIDToDelete)
         );
         setIsDeleteDialogOpen(false);
         setExamIDToDelete(null);
@@ -172,7 +173,7 @@ export const AllExams = (params: Props) => {
 
           <Link
             // href={`/add-exam-by-ai/${teacher?._id}`}
-            href={'/chat'}
+            href={"/chat"}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -248,7 +249,7 @@ export const AllExams = (params: Props) => {
                     title="Edit exam"
                   >
                     <Link
-                      href={`/update-exam/${teacher?._id?.toString()}/${exam._id.toString()}`}
+                      href={`/update-exam/${teacher?._id?.toString()}/${exam?._id?.toString()}`}
                       rel="noopener noreferrer"
                     >
                       <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
@@ -260,7 +261,9 @@ export const AllExams = (params: Props) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
-                    onClick={() => handleDeleteClick(exam._id.toString())}
+                    onClick={() =>
+                      handleDeleteClick(exam?._id?.toString() || "")
+                    }
                     title="Delete exam"
                   >
                     <Trash2 className="h-3 w-3 md:h-4 md:w-4" />

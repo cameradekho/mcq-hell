@@ -9,7 +9,7 @@ import { fetchTeacherById } from "./fetch-teacher-by-id";
 export type IUpdateExamResult = ServerActionResult<undefined>;
 
 export type UpdateExamData = {
-  examId: ObjectId;
+  examId: string;
   teacherId: string;
   exam: Pick<IExam, "name" | "description" | "duration" | "questions">;
 };
@@ -47,7 +47,7 @@ export async function updateExamByExamIdAndTeacherId(
       .findOneAndUpdate(
         {
           _id: new ObjectId(data.examId),
-          createdByEmail: teacherData.data.email,
+          teacherId: new ObjectId(data.teacherId),
         },
         {
           $set: {

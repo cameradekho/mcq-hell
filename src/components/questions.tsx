@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Plus, X, Image as ImageIcon } from "lucide-react";
+import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -48,6 +49,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export const Questions = () => {
   const { data: session } = useSession();
+  const [teacherId, setTeacherId] = useState<string>("");
 
   const {
     register,
@@ -88,6 +90,26 @@ export const Questions = () => {
     name: "questions",
   });
 
+  useEffect(() => {
+    async function fetchTeacherDataByEmail() {
+      try {
+        const res = await fetchTeacherByEmail({
+          email: session?.user?.email || "",
+        });
+
+        if (res.success) {
+          console.log("teacher: ", res.data);
+          setTeacherId(res?.data?._id?.toString() || "");
+        } else {
+          toast.error(res.message || "Failed to fetch teacher");
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Error fetching teacher");
+      }
+    }
+  }, [session?.user.email]);
+
   const onSubmit = async (data: FormValues) => {
     console.log("Exam Schema:", data);
 
@@ -120,8 +142,7 @@ export const Questions = () => {
             isCorrect: opt.isCorrect,
           })),
         })),
-        createdName: "",
-        createdByEmail: session?.user.email || "",
+        teacherId: teacherId,
       });
 
       if (res.success) {

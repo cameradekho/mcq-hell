@@ -247,7 +247,7 @@ const UpdateExamPage = () => {
       try {
         console.log("Updated exam data:", exam);
         const res = await updateExamByExamIdAndTeacherId({
-          examId: exam._id,
+          examId: exam?._id?.toString() || "",
           teacherId: teacherId,
           exam: {
             name: exam.name,

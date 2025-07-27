@@ -1,5 +1,6 @@
 "use server";
 import { mongodb } from "@/lib/mongodb";
+import { examCollectionName, IExam } from "@/models/exam";
 import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
@@ -20,8 +21,7 @@ type AddExamData = {
       isCorrect?: boolean;
     }>;
   }>;
-  createdName: string;
-  createdByEmail: string;
+  teacherId: string;
 };
 
 export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
@@ -40,7 +40,7 @@ export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
 
     await mongodb.connect();
 
-    const res = await mongodb.collection("exam").insertOne({
+    const res = await mongodb.collection<IExam>(examCollectionName).insertOne({
       name: data.name,
       description: data.description,
       duration: data.duration,
@@ -66,7 +66,7 @@ export const addExam = async (data: AddExamData): Promise<AddExamResult> => {
           updatedAt: new Date(),
         };
       }),
-      createdByEmail: data.createdByEmail,
+      teacherId: new ObjectId(data.teacherId),
       createdAt: new Date(),
       updatedAt: new Date(),
     });

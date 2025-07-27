@@ -19,9 +19,8 @@ export type IQuestion = {
 };
 
 export type IExam = {
-  _id: ObjectId;
-  createdBy?: string;
-  createdByEmail?: string;
+  _id?: ObjectId;
+  teacherId: ObjectId;
   name: string;
   description: string;
   duration: number;

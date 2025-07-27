@@ -37,7 +37,7 @@ export const fetchAllExams = async (): Promise<FetchAllExamsResult> => {
         createdAt: question.createdAt,
         updatedAt: question.updatedAt,
       })),
-      createdByEmail: exam.createdByEmail,
+      teacherId: exam.teacherId,
       createdAt: exam.createdAt,
       updatedAt: exam.updatedAt,
     }));
