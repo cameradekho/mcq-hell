@@ -11,7 +11,7 @@ type AssistantMessageProps = {
 export const AssistantMessage = ({ message }: AssistantMessageProps) => {
   return (
     <div className="group prose prose-neutral flex w-full max-w-3xl flex-col gap-2 dark:prose-invert">
-      {message.content.map((part, index) => {
+      {message?.content?.map((part, index) => {
         if (part.type === "text") {
           return <Markdown key={index} text={part.text} />;
         }

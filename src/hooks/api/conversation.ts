@@ -40,6 +40,7 @@ const getConversationById = ({
   conversationId,
   ...params
 }: TConversationId): TApiPromise<TGetConversationByIdResponse> => {
+  console.log("Hubba calling main promise, ", conversationId);
   return api.get(`/conversation/${conversationId}`, { params });
 };
 
@@ -74,6 +75,7 @@ export const useGetConversationById = (
   params: TConversationId,
   options?: TQueryOpts<TGetConversationByIdResponse>
 ) => {
+  console.log("Hubba calling conversationId", params);
   return useQuery({
     queryKey: ["useGetConversationById", params],
     queryFn: () => getConversationById(params),

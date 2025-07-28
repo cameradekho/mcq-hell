@@ -42,9 +42,13 @@ const ChatPage = () => {
       conversationId: params._id,
     },
     {
-      enabled: params._id !== "new",
+      // enabled: params._id !== "new",
+      enabled: !isStreaming,
     }
   );
+
+  console.log("conversationData-->", conversationData);
+  console.log("messages-->", messages);
 
   useEffect(() => {
     console.log("conversationData", conversationData);
@@ -126,7 +130,7 @@ const ChatPage = () => {
     <div className="flex flex-col h-[calc(100vh-3rem)] max-w-3xl mx-auto w-full">
       <div className="pb-20 flex flex-col gap-4">
         {conversationData?.data?.messages && (
-          <MessageList messages={conversationData?.data?.messages} />
+          <MessageList messages={conversationData.data.messages} />
         )}
         {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
         {isStreaming && (

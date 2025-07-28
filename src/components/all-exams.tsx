@@ -117,9 +117,11 @@ export const AllExams = (params: Props) => {
     if (!examIDToDelete) return;
 
     try {
+      console.log("teacherId: ", params.teacherId);
+      console.log("examId: ", examIDToDelete);
       const res = await deleteExamById({
         examId: examIDToDelete,
-        teacherId: teacher?._id?.toString() || "",
+        teacherId: params.teacherId,
       });
 
       if (res.success) {
@@ -264,7 +266,7 @@ export const AllExams = (params: Props) => {
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 hover:scale-110"
                     onClick={() =>
-                      handleDeleteClick(exam?._id?.toString() || "")
+                      handleDeleteClick(exam._id?.toString() || "")
                     }
                     title="Delete exam"
                   >

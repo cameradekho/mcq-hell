@@ -27,7 +27,7 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
             disabled={text.length === 0}
           >
-            Start Exam
+            Create Exam
           </button>
         </div>
       </div>

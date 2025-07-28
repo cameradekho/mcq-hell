@@ -1,5 +1,6 @@
 import { parseMessage } from "@/lib/message-parser";
 import { AssistantQuestionList } from "./message/assistant-question-list";
+import { IQuestion } from "@/models/exam";
 
 export const StreamingMessage = ({
   currentMessage,
@@ -12,8 +13,8 @@ export const StreamingMessage = ({
   const parts = parseMessage(fullMessage);
 
   return (
-    <div className="flex justify-start">
-      <div className="rounded-lg max-w-[80%] break-words">
+    <div className=" w-full flex justify-start bg-orange-400">
+      <div className="rounded-lg w-full break-words">
         <div className="flex flex-col gap-2 text-sm">
           {parts.map((part, index) => {
             if (part.type === "text") {
@@ -33,9 +34,7 @@ export const StreamingMessage = ({
                   key={`streaming-${index}`}
                   className="whitespace-pre-wrap bg-gray-100"
                 >
-                  <AssistantQuestionList
-                    text={part.text as Record<string, any>}
-                  />
+                  <AssistantQuestionList text={part.text as IQuestion[]} />
                 </span>
               );
             }
