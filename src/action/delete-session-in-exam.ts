@@ -5,6 +5,7 @@ import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
 import { examsessionCollectionName } from "@/models/teacher-exam-session";
+import { deleteStudentExamSessionByTeachIdExamId } from "./session/student/delete-student-exam-session-by-teacherId-examId";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
 
@@ -65,6 +66,18 @@ export const deleteExamSession = async (
       return {
         success: false,
         message: "No exam session found with the provided examId and teacherId",
+      };
+    }
+
+    const deleteResStudentSession = await deleteStudentExamSessionByTeachIdExamId({
+      teacherId: teacherId,
+      examId: examId,
+    });
+
+    if (!deleteResStudentSession.success) {
+      return {
+        success: false,
+        message: deleteResStudentSession.message,
       };
     }
 

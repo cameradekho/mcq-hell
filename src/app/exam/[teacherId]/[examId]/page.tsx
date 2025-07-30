@@ -1,5 +1,5 @@
 "use client";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import React, { useEffect, useState } from "react";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { IExam, IQuestion } from "@/models/exam";
@@ -103,6 +103,10 @@ const Page = ({ params }: PageProps) => {
   const [isDateTimeMatched, setIsDateTimeMatched] = useState<boolean>(false);
   const [studentExamSession, setStudentExamSession] =
     useState<IStudentExamSessionWithDetails | null>(null);
+
+  // this state valiable is only used in the handleSubmit function
+  const [studentSessionStatus, setStudentSessionStatus] =
+    useState<IStudentExamSessionWithDetails["status"]>("completed");
 
   // validating the student account details, if not present in the DB then adding the students in the DB when `session` is available
   useEffect(() => {
@@ -342,7 +346,7 @@ const Page = ({ params }: PageProps) => {
     setAutoSubmit(false);
     setExamStarted(false);
   }
-
+  //function to shuffle the questions
   useEffect(() => {
     if (exam?.questions) {
       const shuffled: IQuestion[] = [...exam.questions]
@@ -443,15 +447,41 @@ const Page = ({ params }: PageProps) => {
       return;
     }
 
-    const checkTimeValidity = () => {
+    const checkTimeValidity = async () => {
       const now = new Date();
       const startTime = new Date(examSessionData.startTime?.toString() || "");
       const endTime = new Date(examSessionData.endTime?.toString() || "");
 
       const withinTimeRange = now >= startTime && now <= endTime;
 
+      // const isStudentExamSessionBlocked = studentExamSession.status === "block";
+
+      const studentExamSession = await fetchStudentExamSessionByStudentId({
+        studentId: studentDetails.studentId.toString() || "",
+        examId: params.examId,
+        teacherId: params.teacherId,
+        examSessionId: examSessionData._id?.toString() || "",
+      });
+
+      if (!studentExamSession.success) {
+        toast.error(studentExamSession.message);
+        return;
+      }
+
+      const studentExamSessionData = studentExamSession.data;
+
       if (!withinTimeRange) {
         toast.error("Sorry, the exam time is over");
+        setIsDateTimeMatched(false);
+        setAutoSubmit(false);
+        setExamStarted(false);
+        setTimeLeft(0);
+        setExamDuration(0);
+      }
+
+      if (studentExamSessionData.status === "block") {
+        setStudentSessionStatus("block");
+        toast.error("Your exam is blocked, please contact the teacher");
         setIsDateTimeMatched(false);
         setAutoSubmit(false);
         setExamStarted(false);
@@ -464,7 +494,7 @@ const Page = ({ params }: PageProps) => {
     checkTimeValidity();
 
     // Set up interval for periodic checks
-    const intervalId = setInterval(checkTimeValidity, 60000);
+    const intervalId = setInterval(checkTimeValidity, 200);
 
     // Cleanup interval on unmount or dependency change
     return () => clearInterval(intervalId);
@@ -588,7 +618,11 @@ const Page = ({ params }: PageProps) => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async ({
+    studentSessionStatus,
+  }: {
+    studentSessionStatus: "block" | "completed" | "not-started" | "started";
+  }) => {
     try {
       setSubmitting(true);
       if (!exam) return;
@@ -706,7 +740,7 @@ const Page = ({ params }: PageProps) => {
 
   useEffect(() => {
     if (autoSubmit) {
-      handleSubmit();
+      handleSubmit({ studentSessionStatus: studentSessionStatus });
       setAutoSubmit(false);
     }
   }, [autoSubmit]);
@@ -1053,7 +1087,9 @@ const Page = ({ params }: PageProps) => {
 
                     {!submitted && (
                       <Button
-                        onClick={handleSubmit}
+                        onClick={() =>
+                          handleSubmit({ studentSessionStatus: "completed" })
+                        }
                         size="lg"
                         disabled={submitting || isDateTimeMatched === false}
                         className="w-full sm:w-auto flex items-center gap-2"

@@ -20,6 +20,7 @@ import {
   Plus,
   Search,
   Bot,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteExamById } from "../action/delete-exam-by-id";
@@ -257,6 +258,24 @@ export const AllExams = (params: Props) => {
                       rel="noopener noreferrer"
                     >
                       <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
+                    </Link>
+                  </Button>
+
+                  {/* control */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-110"
+                    asChild
+                    title="Control exam"
+                  >
+                    <Link
+                      href={`/control-exam/${
+                        params.teacherId
+                      }/${exam?._id?.toString()}`}
+                      rel="noopener noreferrer"
+                    >
+                      <Settings className="h-3 w-3 md:h-4 md:w-4" />
                     </Link>
                   </Button>
 

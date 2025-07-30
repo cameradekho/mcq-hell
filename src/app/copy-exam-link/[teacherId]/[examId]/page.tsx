@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ExamSessionDate } from "./components/exam-session-date";
 import { use, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -11,9 +11,11 @@ import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { fetchExamSessionByExamId } from "@/action/fetch-session-by-examId";
 import { IExamSession } from "@/models/teacher-exam-session";
 import { TopNavigationBar } from "@/components/top-navigation-bar";
+import { fetchTeacherById } from "@/action/fetch-teacher-by-id";
 
 export default function Home() {
   const { data: session } = useSession();
+  const router = useRouter();
   const params = useParams();
   const teacherId = params.teacherId as string;
   const examId = params.examId as string;
@@ -40,8 +42,33 @@ export default function Home() {
   useEffect(() => {
     async function fetchInitialExamandSessionData() {
       try {
+        const teacherData = await fetchTeacherById({
+          teacherId: teacherId,
+        });
+
+        if (!teacherData.success) {
+          toast.error(teacherData.message);
+          return;
+        }
+
+        console.log("user email", session?.user.email);
+        console.log("teacher email", teacherData.data.email);
+
+        console.log("User Name", session?.user.name);
+        console.log("Teacher Name", teacherData.data.name);
+
+        if (
+          teacherData.data.email !== session?.user.email ||
+          teacherData.data.name !== session.user.name
+        ) {
+          toast.error("You cannot access this page");
+          router.push("/");
+          return;
+        }
+
         console.log("teacherId", teacherId);
         console.log("examId", examId);
+
         const [sessionData, examDetails] = await Promise.all([
           fetchExamSessionByExamId({ examId, teacherId }),
           fetchExamById({ examId, teacherId }),
@@ -70,9 +97,10 @@ export default function Home() {
         toast.error("Error fetching initial data");
       }
     }
-
-    fetchInitialExamandSessionData();
-  }, []);
+    if (examId && teacherId && session?.user.name && session.user.email) {
+      fetchInitialExamandSessionData();
+    }
+  }, [session?.user.name, session?.user.email, examId, teacherId]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start gap-24 bg-background px-4  ">
