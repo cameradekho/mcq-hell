@@ -20,6 +20,7 @@ import {
 } from "./ui/card";
 import { Plus, X, Image as ImageIcon } from "lucide-react";
 import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
+import { IAnswer, IQuestion } from "@/models/exam";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -33,7 +34,7 @@ const formSchema = z.object({
         options: z
           .array(
             z.object({
-              text: z.string().optional(),
+              textAnswer: z.string().optional(),
               image: z.string().optional(),
               isCorrect: z.boolean().optional(),
             })
@@ -47,9 +48,21 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const Questions = () => {
+export type IQestionProps = {
+  question: string;
+  image?: string;
+  options: IAnswer[];
+};
+
+type QuestionsProps = {
+  text?: IQestionProps[];
+};
+
+export const Questions = ({ text }: QuestionsProps) => {
   const { data: session } = useSession();
   const [teacherId, setTeacherId] = useState<string>("");
+
+  const [propData, setPropData] = useState<IQestionProps[]>(text || []);
 
   const {
     register,
@@ -70,10 +83,10 @@ export const Questions = () => {
           question: "",
           image: "",
           options: [
-            { text: "", image: "" },
-            { text: "", image: "" },
-            { text: "All of the above", image: "" },
-            { text: "None of the above", image: "" },
+            { textAnswer: "", image: "" },
+            { textAnswer: "", image: "" },
+            { textAnswer: "All of the above", image: "" },
+            { textAnswer: "None of the above", image: "" },
           ],
           answer: "",
         },
@@ -91,12 +104,29 @@ export const Questions = () => {
   });
 
   useEffect(() => {
+    if (text && text.length > 0) {
+      const newQuestions = text.map((q) => ({
+        question: q.question,
+        image: q.image || "",
+        options: q.options.map((opt) => ({
+          ...(opt.textAnswer ? { textAnswer: opt.textAnswer } : {}),
+          ...(opt.image ? { image: opt.image } : {}),
+          isCorrect: opt.isCorrect || false,
+        })),
+      }));
+
+      console.log("newQuestions-> ", newQuestions);
+
+      reset({ questions: newQuestions });
+    }
+  }, [text, reset]);
+
+  useEffect(() => {
     async function fetchTeacherDataByEmail() {
       try {
         const res = await fetchTeacherByEmail({
           email: session?.user?.email || "",
         });
-
         if (res.success) {
           console.log("teacher: ", res.data);
           setTeacherId(res?.data?._id?.toString() || "");
@@ -141,7 +171,7 @@ export const Questions = () => {
           question: q.question,
           image: q.image || "",
           options: q.options.map((opt) => ({
-            ...(opt.text ? { text: opt.text } : {}),
+            ...(opt.textAnswer ? { text: opt.textAnswer } : {}),
             ...(opt.image ? { image: opt.image } : {}),
             isCorrect: opt.isCorrect,
           })),
@@ -250,10 +280,10 @@ export const Questions = () => {
                   appendQuestion({
                     question: "",
                     options: [
-                      { text: "", image: "" },
-                      { text: "", image: "" },
-                      { text: "All of the above", image: "" },
-                      { text: "None of the above", image: "" },
+                      { textAnswer: "", image: "" },
+                      { textAnswer: "", image: "" },
+                      { textAnswer: "All of the above", image: "" },
+                      { textAnswer: "None of the above", image: "" },
                     ],
                     answer: "",
                   })
@@ -382,7 +412,7 @@ export const Questions = () => {
                                 onClick={() => {
                                   const newOptions = [...field.value];
                                   newOptions.push({
-                                    text: "",
+                                    textAnswer: "",
                                     image: "",
                                     isCorrect: false,
                                   });
@@ -450,10 +480,10 @@ export const Questions = () => {
 
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
-                                      value={option.text || ""}
+                                      value={option.textAnswer || ""}
                                       onChange={(e) => {
                                         const newOptions = [...field.value];
-                                        newOptions[optionIndex].text =
+                                        newOptions[optionIndex].textAnswer =
                                           e.target.value;
                                         field.onChange(newOptions);
                                       }}
@@ -540,10 +570,10 @@ export const Questions = () => {
                   appendQuestion({
                     question: "",
                     options: [
-                      { text: "", image: "" },
-                      { text: "", image: "" },
-                      { text: "All of the above", image: "" },
-                      { text: "None of the above", image: "" },
+                      { textAnswer: "", image: "" },
+                      { textAnswer: "", image: "" },
+                      { textAnswer: "All of the above", image: "" },
+                      { textAnswer: "None of the above", image: "" },
                     ],
                     answer: "",
                   })

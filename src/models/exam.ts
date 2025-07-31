@@ -11,7 +11,7 @@ export type IAnswer = { _id: ObjectId } & (
 export type IQuestion = {
   _id: ObjectId;
   question: string;
-  image: string;
+  image?: string;
   options: IAnswer[];
   answer: IAnswer["_id"][];
   createdAt: Date;

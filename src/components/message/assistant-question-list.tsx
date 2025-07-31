@@ -1,6 +1,8 @@
 "use client";
 
 import { IQuestion } from "@/models/exam";
+import { useQuestionContext } from "@/providers/question-provider";
+import { useRouter } from "next/navigation";
 
 type AssistantQuestionListProps = {
   text: IQuestion[];
@@ -9,7 +11,16 @@ type AssistantQuestionListProps = {
 export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
   text = [],
 }) => {
+  const router = useRouter();
   console.log("text", text);
+
+  const { setIsAIQuestionExists, setQuestions } = useQuestionContext();
+
+  const handleClickSaveExam = async () => {
+    setIsAIQuestionExists(true);
+    setQuestions(text);
+    router.push("/add-exam");
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
@@ -26,8 +37,9 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
           <button
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
             disabled={text.length === 0}
+            onClick={() => handleClickSaveExam()}
           >
-            Create Exam
+            Save Exam
           </button>
         </div>
       </div>
