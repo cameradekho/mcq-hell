@@ -17,10 +17,7 @@ export const useSSE = () => {
   const [loading, setLoading] = useState<{
     loading_text: string;
   } | null>();
-
-  useEffect(() => {
-    console.log("currentMessage", currentMessage);
-  }, [currentMessage]);
+  const [streamingError, setStreamingError] = useState<string | null>(null);
 
   // Cleanup function to reset streaming state
   const resetStreamingState = () => {
@@ -30,19 +27,23 @@ export const useSSE = () => {
   };
 
   const submitMessage = async (payload: TPayload) => {
-    resetStreamingState();
-
-    setMessages(
-      (prev) =>
-        [
+    if (payload.user_message) {
+      setMessages((prev) => {
+        const newMessage = [
           ...prev,
           {
             role: "user",
             content: [{ type: "text", text: payload.user_message }],
             conversation: payload.conversation_id,
-          },
-        ] as TMessage[]
-    );
+          } as TMessage,
+        ];
+        return newMessage;
+      });
+    }
+
+    setIsStreaming(true);
+    setCurrentMessage([]);
+    setStreamingError(null);
 
     try {
       const response = await fetch(
@@ -102,6 +103,7 @@ export const useSSE = () => {
 
                 case SSE_EVENTS.CHAT_ERROR:
                   resetStreamingState();
+                  setStreamingError(parsedEvent.data.error);
                   break;
 
                 case SSE_EVENTS.CHAT_COMPLETE:
@@ -143,6 +145,7 @@ export const useSSE = () => {
     isStreaming,
     messages,
     currentMessage,
+    streamingError,
     setMessages,
     submitMessage,
     resetStreamingState,

@@ -127,8 +127,8 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)] max-w-3xl mx-auto w-full">
-      <div className="pb-20 flex flex-col gap-4">
+    <div className="flex flex-col h-[calc(100vh-3rem)] max-w-3xl mx-auto w-full relative">
+      <div className="pb-60 flex flex-col gap-4">
         {conversationData?.data?.messages && (
           <MessageList messages={conversationData.data.messages} />
         )}
@@ -140,7 +140,7 @@ const ChatPage = () => {
           </div>
         )}
       </div>
-      <div className="sticky bottom-6 flex flex-col gap-2 items-center">
+      <div className="fixed bottom-6 flex flex-col gap-2 items-center max-w-3xl w-full">
         <Button size="sm" className="flex gap-2 items-center" asChild>
           <Link href="/chat/new">
             <MessageCircle className="size-4" />
