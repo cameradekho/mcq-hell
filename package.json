@@ -43,6 +43,7 @@
     "framer-motion": "^12.4.10",
     "immer": "^10.1.1",
     "inline-style-parser": "^0.2.4",
+    "katex": "^0.16.22",
     "lucide-react": "^0.476.0",
     "marked": "^16.0.0",
     "mongodb": "^6.13.1",

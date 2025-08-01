@@ -21,6 +21,8 @@ import {
 import { Plus, X, Image as ImageIcon } from "lucide-react";
 import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
 import { IAnswer, IQuestion } from "@/models/exam";
+import { useRouter } from "next/navigation";
+import MathInput from "./math-input";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -59,6 +61,7 @@ type QuestionsProps = {
 };
 
 export const Questions = ({ text }: QuestionsProps) => {
+  const router = useRouter();
   const { data: session } = useSession();
   const [teacherId, setTeacherId] = useState<string>("");
 
@@ -201,9 +204,17 @@ export const Questions = ({ text }: QuestionsProps) => {
                 Create a new exam with multiple choice questions
               </CardDescription>
             </div>
-            <Button type="submit" className="flex items-center gap-2">
-              Save Exam
-            </Button>
+            <div className=" w-max flex gap-2">
+              {text && (
+                <Button type="button" onClick={() => router.back()}>
+                  Back To Chat
+                </Button>
+              )}
+
+              <Button type="submit" className="flex items-center gap-2">
+                Save Exam
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -330,12 +341,20 @@ export const Questions = ({ text }: QuestionsProps) => {
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <Input
+                      <div className="space-y-2 ">
+                        {/* <Input
                           {...register(`questions.${questionIndex}.question`)}
                           placeholder="Enter your question here"
                           className="w-full"
+                        /> */}
+
+                        <MathInput
+                          value={watch(`questions.${questionIndex}.question`)}
+                          name={`questions.${questionIndex}.question`}
+                          register={register}
+                          readOnly={false}
                         />
+
                         {errors.questions?.[questionIndex]?.question && (
                           <p className="text-sm text-destructive">
                             {errors.questions[questionIndex]?.question?.message}

@@ -43,6 +43,7 @@ import { arraysEqual } from "./utils/array-equal";
 import { formatTime } from "./utils/format-time";
 import { IStudentExamSession } from "@/models/student-exam-session";
 import { start } from "repl";
+import MathBlock from "@/components/math-block";
 
 type PageProps = {
   params: {
@@ -972,7 +973,8 @@ const Page = ({ params }: PageProps) => {
                                 {qIndex + 1}
                               </span>
                               <h3 className="text-lg font-medium leading-none pt-1">
-                                {question.question}
+                                {/* {question.question} */}
+                                <MathBlock item={question.question} />
                               </h3>
                             </div>
 
@@ -993,7 +995,7 @@ const Page = ({ params }: PageProps) => {
                                 <label
                                   key={j}
                                   className={cn(
-                                    "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
+                                    "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors bg-lime-500",
                                     (question.answer.length > 1
                                       ? answers[question._id.toString()]?.some(
                                           (ans) =>
