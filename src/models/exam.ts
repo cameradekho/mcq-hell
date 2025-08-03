@@ -1,16 +1,21 @@
 import { ObjectId } from "mongodb";
 
+type IQuestionfromAI = {
+  textAnswer?: string;
+  mathExpression?: string;
+};
+
 export type IAnswer = { _id: ObjectId } & (
-  | { textAnswer: string; image?: string }
-  | { textAnswer?: string; image: string }
-  | { textAnswer: string; image: string }
+  | { textAnswer: IQuestionfromAI[]; image?: string }
+  | { textAnswer?: IQuestionfromAI[]; image: string }
+  | { textAnswer: IQuestionfromAI[]; image: string }
 ) & {
     isCorrect: boolean;
   };
 
 export type IQuestion = {
   _id: ObjectId;
-  question: string;
+  question: IQuestionfromAI[];
   image?: string;
   options: IAnswer[];
   answer: IAnswer["_id"][];
