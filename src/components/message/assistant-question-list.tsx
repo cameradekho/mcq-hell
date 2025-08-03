@@ -65,10 +65,10 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   Question {index + 1}
                 </h3>
-                {/* <p className="text-gray-700 leading-relaxed">{item.question}</p> */}
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">{item.question}</p>
+                {/* <p className="text-gray-700 leading-relaxed">
                   <MathBlock item={item.question} />
-                </p>
+                </p> */}
               </div>
 
               {/* Options */}
