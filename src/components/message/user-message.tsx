@@ -1,6 +1,3 @@
-import { motion } from "framer-motion";
-import { FileIcon } from "lucide-react";
-
 import type { TMessage } from "@/types/message";
 import { cn } from "@/lib/utils";
 

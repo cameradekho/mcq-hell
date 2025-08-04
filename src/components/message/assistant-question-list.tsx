@@ -1,6 +1,7 @@
 "use client";
 
 import MathBlock from "@/components/math-block";
+import { splitQuestionBySpecialTag } from "@/lib/message-parser";
 import { IQuestion } from "@/models/exam";
 import { useQuestionContext } from "@/providers/question-provider";
 import { useRouter } from "next/navigation";
@@ -65,10 +66,18 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   Question {index + 1}
                 </h3>
-                <p className="text-gray-700 leading-relaxed">{item.question}</p>
-                {/* <p className="text-gray-700 leading-relaxed">
-                  <MathBlock item={item.question} />
-                </p> */}
+                <div
+                  key={index}
+                  className="mb-6 text-gray-700 leading-relaxed flex flex-wrap gap-1"
+                >
+                  {splitQuestionBySpecialTag(item.question).map((part, i) =>
+                    part.type === "latex" ? (
+                      <MathBlock key={i} item={part.content} />
+                    ) : (
+                      <span key={i}>{part.content}</span>
+                    )
+                  )}
+                </div>
               </div>
 
               {/* Options */}
@@ -86,10 +95,19 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
                     <span className="font-medium text-gray-600 mr-3">
                       {String.fromCharCode(65 + index)}.
                     </span>
-                    {/* <span className="text-gray-800">{option.textAnswer}</span> */}
-                    <span className="text-gray-800">
+                    {/* <span className="text-gray-800">
                       <MathBlock item={option.textAnswer} />
-                    </span>
+                    </span> */}
+
+                    {option.textAnswer &&
+                      splitQuestionBySpecialTag(option.textAnswer).map(
+                        (part, i) =>
+                          part.type === "latex" ? (
+                            <MathBlock key={i} item={part.content} />
+                          ) : (
+                            <span key={i}>{part.content}</span>
+                          )
+                      )}
                     {option.isCorrect && (
                       <span className="ml-auto text-green-600 font-medium text-sm">
                         ✓ Correct
