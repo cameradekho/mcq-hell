@@ -3,25 +3,56 @@ import { TMessagePart } from "@/types/message";
 export const parseMessage = (message: string): TMessagePart[] => {
   const parts: TMessagePart[] = [];
 
-  const questionsTagRegex = /(<QUESTIONS>[\s\S]*?<\/QUESTIONS>)/g;
-  const segments = message.split(questionsTagRegex);
+  // Find QUESTIONS tag content
+  const questionsMatch = message.match(
+    /<QUESTIONS>\s*([\s\S]*?)\s*<\/QUESTIONS>/
+  );
 
-  for (const segment of segments) {
-    if (segment.startsWith("<QUESTIONS>")) {
-      const contentMatch = segment.match(/<QUESTIONS>([\s\S]*?)<\/QUESTIONS>/);
+  if (questionsMatch) {
+    const beforeQuestions = message.substring(0, questionsMatch.index);
+    const questionsContent = questionsMatch[1].trim();
+    const afterQuestions = message.substring(
+      questionsMatch?.index! + questionsMatch[0].length
+    );
 
-      if (contentMatch) {
-        const content = contentMatch[1];
-
-        parts.push({
-          type: "tag",
-          text: JSON.parse(content),
-        });
-      }
-    } else if (segment.trim()) {
+    // Add text before questions
+    if (beforeQuestions.trim()) {
       parts.push({
         type: "text",
-        text: segment.trim(),
+        text: beforeQuestions.trim(),
+      });
+    }
+
+    // Parse and add questions
+    try {
+      const parsedQuestions = JSON.parse(questionsContent);
+      parts.push({
+        type: "tag",
+        text: parsedQuestions,
+      });
+    } catch (error) {
+      console.error("JSON parsing error:", error);
+      console.error("Content:", questionsContent);
+
+      parts.push({
+        type: "text",
+        text: `JSON Parse Error: ${questionsContent}`,
+      });
+    }
+
+    // Add text after questions
+    if (afterQuestions.trim()) {
+      parts.push({
+        type: "text",
+        text: afterQuestions.trim(),
+      });
+    }
+  } else {
+    // No QUESTIONS tag found, treat entire message as text
+    if (message.trim()) {
+      parts.push({
+        type: "text",
+        text: message.trim(),
       });
     }
   }
@@ -31,33 +62,59 @@ export const parseMessage = (message: string): TMessagePart[] => {
 
 type ParsedPart = { type: "text" | "latex"; content: string };
 
-export function splitQuestionBySpecialTag(question: string): ParsedPart[] {
-  const regex = /<SPECIAL_TAG type="latex">(.*?)<\/SPECIAL_TAG>/g;
+export function splitQuestionBySpecialTag(questionText: string): ParsedPart[] {
+  if (!questionText) {
+    return [];
+  }
+
   const parts: ParsedPart[] = [];
+
+  // More flexible regex that handles various quote escaping scenarios
+  const regex = /<SPECIAL_TAG>(.*?)<\/SPECIAL_TAG>/gi;
+
   let lastIndex = 0;
   let match;
 
-  while ((match = regex.exec(question)) !== null) {
+  while ((match = regex.exec(questionText)) !== null) {
+    // Add text before the tag
     if (match.index > lastIndex) {
-      parts.push({
-        type: "text",
-        content: question.slice(lastIndex, match.index),
-      });
+      const textContent = questionText.slice(lastIndex, match.index);
+      if (textContent.trim()) {
+        parts.push({
+          type: "text",
+          content: textContent,
+        });
+      }
     }
+
+    // Add the LaTeX content (decode any escaped characters)
+    const latexContent = match[1];
     parts.push({
       type: "latex",
-      content: match[1],
+      content: latexContent,
     });
+
     lastIndex = regex.lastIndex;
   }
 
-  if (lastIndex < question.length) {
+  // Add remaining text after the last tag
+  if (lastIndex < questionText.length) {
+    const remainingText = questionText.slice(lastIndex);
+    if (remainingText.trim()) {
+      parts.push({
+        type: "text",
+        content: remainingText,
+      });
+    }
+  }
+
+  // If no SPECIAL_TAG found, return the entire text as a text part
+  if (parts.length === 0 && questionText.trim()) {
     parts.push({
       type: "text",
-      content: question.slice(lastIndex),
+      content: questionText,
     });
   }
 
   return parts;
 }
-

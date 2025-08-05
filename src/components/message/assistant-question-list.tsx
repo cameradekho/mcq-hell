@@ -68,13 +68,17 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
                 </h3>
                 <div
                   key={index}
-                  className="mb-6 text-gray-700 leading-relaxed flex flex-wrap gap-1"
+                  className="mb-6  leading-relaxed flex flex-wrap gap-1"
                 >
                   {splitQuestionBySpecialTag(item.question).map((part, i) =>
                     part.type === "latex" ? (
-                      <MathBlock key={i} item={part.content} />
+                      <span className=" text-blue-400">
+                        <MathBlock key={i} item={part.content} />
+                      </span>
                     ) : (
-                      <span key={i}>{part.content}</span>
+                      <span key={i} className=" text-orange-400">
+                        {part.content}
+                      </span>
                     )
                   )}
                 </div>
@@ -95,9 +99,6 @@ export const AssistantQuestionList: React.FC<AssistantQuestionListProps> = ({
                     <span className="font-medium text-gray-600 mr-3">
                       {String.fromCharCode(65 + index)}.
                     </span>
-                    {/* <span className="text-gray-800">
-                      <MathBlock item={option.textAnswer} />
-                    </span> */}
 
                     {option.textAnswer &&
                       splitQuestionBySpecialTag(option.textAnswer).map(
