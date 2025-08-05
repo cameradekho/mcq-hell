@@ -75,6 +75,8 @@ export function splitQuestionBySpecialTag(questionText: string): ParsedPart[] {
   let lastIndex = 0;
   let match;
 
+  // questionText.replace(/\\\\/g, "\\");
+
   while ((match = regex.exec(questionText)) !== null) {
     // Add text before the tag
     if (match.index > lastIndex) {

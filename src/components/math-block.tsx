@@ -3,6 +3,7 @@ import "katex/dist/katex.min.css";
 
 export default function MathBlock({ item }: { item: string | undefined }) {
   if (!item) return item;
+  item.replace(/\\\\/g, "\\");
   const html = katex.renderToString(item, {
     throwOnError: false,
   });
