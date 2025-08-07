@@ -44,6 +44,8 @@ import { formatTime } from "./utils/format-time";
 import { IStudentExamSession } from "@/models/student-exam-session";
 import { start } from "repl";
 import MathBlock from "@/components/math-block";
+import { splitQuestionBySpecialTag } from "@/lib/message-parser";
+import { split } from "postcss/lib/list";
 
 type PageProps = {
   params: {
@@ -974,7 +976,18 @@ const Page = ({ params }: PageProps) => {
                               </span>
                               <h3 className="text-lg font-medium leading-none pt-1">
                                 {/* {question.question} */}
-                                <MathBlock item={question.question} />
+                                {/* <MathBlock item={question.question} /> */}
+                                {splitQuestionBySpecialTag(
+                                  question.question
+                                ).map((part, index) => (
+                                  <span key={index}>
+                                    {part.type === "text" ? (
+                                      <span>{part.content}</span>
+                                    ) : part.type === "latex" ? (
+                                      <MathBlock item={part.content} />
+                                    ) : null}
+                                  </span>
+                                ))}
                               </h3>
                             </div>
 
@@ -995,7 +1008,7 @@ const Page = ({ params }: PageProps) => {
                                 <label
                                   key={j}
                                   className={cn(
-                                    "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors bg-lime-500",
+                                    "block cursor-pointer rounded-lg border bg-card p-4 hover:bg-accent/5 transition-colors",
                                     (question.answer.length > 1
                                       ? answers[question._id.toString()]?.some(
                                           (ans) =>
@@ -1065,10 +1078,23 @@ const Page = ({ params }: PageProps) => {
                                     />
                                     <div className="flex-1 space-y-3">
                                       {option.textAnswer && (
-                                        <span className="text-sm">
-                                          {option.textAnswer}
-                                        </span>
+                                        <>
+                                          {splitQuestionBySpecialTag(
+                                            option.textAnswer
+                                          ).map((part, index) => (
+                                            <span key={index}>
+                                              {part.type === "text" ? (
+                                                <span>{part.content}</span>
+                                              ) : part.type === "latex" ? (
+                                                <MathBlock
+                                                  item={part.content}
+                                                />
+                                              ) : null}
+                                            </span>
+                                          ))}
+                                        </>
                                       )}
+
                                       {option.image && (
                                         <Image
                                           src={option.image}
@@ -1165,7 +1191,17 @@ const Page = ({ params }: PageProps) => {
                                     {/* Question Text + Optional Image */}
                                     <TableCell>
                                       <div className="flex flex-col items-start gap-2">
-                                        <span>{question.question}</span>
+                                        {splitQuestionBySpecialTag(
+                                          question.question
+                                        ).map((part, index) => (
+                                          <span key={index}>
+                                            {part.type === "text" ? (
+                                              <span>{part.content}</span>
+                                            ) : part.type === "latex" ? (
+                                              <MathBlock item={part.content} />
+                                            ) : null}
+                                          </span>
+                                        ))}
                                         {question.image && (
                                           <Image
                                             src={question.image}
@@ -1208,7 +1244,24 @@ const Page = ({ params }: PageProps) => {
                                                 )}
                                                 {option.textAnswer && (
                                                   <span>
-                                                    {option.textAnswer}
+                                                    {/* {option.textAnswer} */}
+                                                    {splitQuestionBySpecialTag(
+                                                      option.textAnswer
+                                                    ).map((part, i) =>
+                                                      part.type === "latex" ? (
+                                                        <MathBlock
+                                                          key={i}
+                                                          item={part.content}
+                                                        />
+                                                      ) : (
+                                                        <span
+                                                          key={i}
+                                                          className=" text-orange-400"
+                                                        >
+                                                          {part.content}
+                                                        </span>
+                                                      )
+                                                    )}
                                                   </span>
                                                 )}
                                               </div>
@@ -1251,7 +1304,26 @@ const Page = ({ params }: PageProps) => {
                                                 />
                                               )}
                                               {option.textAnswer && (
-                                                <span>{option.textAnswer}</span>
+                                                // <span>{option.textAnswer}</span>
+                                                <span>
+                                                  {splitQuestionBySpecialTag(
+                                                    option.textAnswer
+                                                  ).map((part, i) =>
+                                                    part.type === "latex" ? (
+                                                      <MathBlock
+                                                        key={i}
+                                                        item={part.content}
+                                                      />
+                                                    ) : (
+                                                      <span
+                                                        key={i}
+                                                        className=" text-orange-400"
+                                                      >
+                                                        {part.content}
+                                                      </span>
+                                                    )
+                                                  )}
+                                                </span>
                                               )}
                                             </div>
                                           );

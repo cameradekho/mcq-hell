@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/popover";
 import { FaSortNumericUp, FaSortNumericDown } from "react-icons/fa";
 import { BiSortAlt2 } from "react-icons/bi";
+import { splitQuestionBySpecialTag } from "@/lib/message-parser";
+import MathBlock from "@/components/math-block";
 
 type IResponses = {
   responses: StudentAnswer[];
@@ -640,7 +642,26 @@ const Page = () => {
                               >
                                 <td className="px-4 py-2 font-medium flex flex-col items-start gap-2">
                                   <p className="text-sm">
-                                    {response.question}{" "}
+                                    {/* {response.question}{" "} */}
+                                    {splitQuestionBySpecialTag(
+                                      response.question
+                                    ).map((part, i) =>
+                                      part.type === "latex" ? (
+                                        <span className=" text-blue-400">
+                                          <MathBlock
+                                            key={i}
+                                            item={part.content}
+                                          />
+                                        </span>
+                                      ) : (
+                                        <span
+                                          key={i}
+                                          className=" text-orange-400"
+                                        >
+                                          {part.content}
+                                        </span>
+                                      )
+                                    )}
                                   </p>
                                   {response.image && (
                                     <>
@@ -659,9 +680,34 @@ const Page = () => {
                                 </td>
                                 <td className="px-4 py-2">
                                   {/* Display selected options text */}
-                                  {response.selectedOption
+                                  {/* {response.selectedOption
                                     .map((item) => item.content.text)
-                                    .join(", ") || "Not Answered"}
+                                    .join(", ") || "Not Answered"} */}
+
+                                  {response.selectedOption.length === 0 ? (
+                                    <span className="text-muted-foreground">
+                                      Not Answered
+                                    </span>
+                                  ) : (
+                                    splitQuestionBySpecialTag(
+                                      response.selectedOption
+                                        .map((item) => item.content.text)
+                                        .join(", ")
+                                    ).map((part, i) =>
+                                      part.type === "latex" ? (
+                                        <span className="text-blue-400" key={i}>
+                                          <MathBlock item={part.content} />
+                                        </span>
+                                      ) : (
+                                        <span
+                                          key={i}
+                                          className="text-orange-400"
+                                        >
+                                          {part.content}
+                                        </span>
+                                      )
+                                    )
+                                  )}
 
                                   {/* Display images if there are any selected options */}
                                   {response.selectedOption.length > 0 && (
@@ -696,11 +742,34 @@ const Page = () => {
                                   )}
                                 </td>
 
-                                <td className="px-4 py-2">
-                                  {/* Display correct option IDs as a comma-separated list */}
-                                  {response.correctOption
-                                    .map((item) => item.content.text)
-                                    .join(", ")}
+                                <td className="px-4 py-2 bg-black">
+                                  {response.correctOption.length === 0 ? (
+                                    <span className="text-muted-foreground">
+                                      Not Answered
+                                    </span>
+                                  ) : (
+                                    splitQuestionBySpecialTag(
+                                      response.correctOption
+                                        .map((item) => item.content.text)
+                                        .join(", ")
+                                    ).map((part, i) =>
+                                      part.type === "latex" ? (
+                                        <span className=" text-blue-400">
+                                          <MathBlock
+                                            key={i}
+                                            item={part.content}
+                                          />
+                                        </span>
+                                      ) : (
+                                        <span
+                                          key={i}
+                                          className=" text-orange-400"
+                                        >
+                                          {part.content}
+                                        </span>
+                                      )
+                                    )
+                                  )}
 
                                   {/* Display images for correct options */}
                                   {response.correctOption.length > 0 && (

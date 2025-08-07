@@ -20,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { invalidateQueries } from "@/lib/query-client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useChatContext } from "@/providers/chat-provider";
+import Link from "next/link";
 
 type FileSidebarProps = {
   isOpen: boolean;
@@ -68,7 +69,7 @@ export const FileSidebar = ({
     async (acceptedFiles: File[]) => {
       for (const file of acceptedFiles) {
         try {
-          uploadFile({ file, userId: "687f2b481adfa5f57632727e" });
+          uploadFile({ file, userId });
           toast.success(`${file.name} uploaded successfully.`);
         } catch (error) {
           console.error("Upload error:", error);
@@ -159,19 +160,85 @@ export const FileSidebar = ({
               </div>
             ) : (
               files?.data?.map((file) => (
+                // <div
+                //   key={file._id}
+                //   className="flex items-center gap-3 border rounded-lg p-2"
+                // >
+                //   <Checkbox
+                //     id={file._id}
+                //     checked={selectedFileIds.includes(file._id)}
+                //     onCheckedChange={() => handleToggle(file._id)}
+                //   />
+                //   <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                //   <div className="flex-1 min-w-0">
+                //     <Link
+                //       href={file.url}
+                //       target="_blank"
+                //       rel="noopener noreferrer"
+                //       className="font-medium truncate  hover:underline"
+                //     >
+                //       {file.name}
+                //     </Link>
+                //     <div className="flex items-center gap-2 text-xs">
+                //       <span
+                //         className={`flex items-center gap-1 ${getStatusColor(
+                //           file.processing_status
+                //         )}`}
+                //       >
+                //         {(file.processing_status === "processing" ||
+                //           file.processing_status === "unprocessed") && (
+                //           <Loader2 className="w-3 h-3 animate-spin" />
+                //         )}
+                //         {file.processing_status === "unprocessed"
+                //           ? "processing"
+                //           : file.processing_status}
+                //       </span>
+                //       <span className="text-muted-foreground">
+                //         {new Date(file.createdAt).toLocaleDateString()}
+                //       </span>
+                //     </div>
+                //   </div>
+                //   <Button
+                //     size="sm"
+                //     variant="ghost"
+                //     onClick={() => deleteFile(file._id)}
+                //     disabled={
+                //       file.processing_status === "unprocessed" ||
+                //       file.processing_status === "processing"
+                //     }
+                //     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                //   >
+                //     <Trash className="w-4 h-4" />
+                //   </Button>
+                // </div>
                 <div
                   key={file._id}
-                  className="flex items-center gap-3 border rounded-lg p-2"
+                  className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-900 p-4 shadow-sm hover:shadow-md transition-shadow"
                 >
+                  {/* Checkbox */}
                   <Checkbox
                     id={file._id}
                     checked={selectedFileIds.includes(file._id)}
                     onCheckedChange={() => handleToggle(file._id)}
                   />
-                  <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+
+                  {/* File Icon */}
+                  <FileText className="w-6 h-6 text-red-500 flex-shrink-0" />
+
+                  {/* File Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{file.name}</p>
-                    <div className="flex items-center gap-2 text-xs">
+                    {/* File Name */}
+                    <Link
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm font-medium text-blue-600 dark:text-blue-400 truncate hover:underline"
+                    >
+                      {file.name}
+                    </Link>
+
+                    {/* Status and Date */}
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                       <span
                         className={`flex items-center gap-1 ${getStatusColor(
                           file.processing_status
@@ -185,20 +252,23 @@ export const FileSidebar = ({
                           ? "processing"
                           : file.processing_status}
                       </span>
-                      <span className="text-muted-foreground">
+                      <span>•</span>
+                      <span>
                         {new Date(file.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
+
+                  {/* Delete Button */}
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={() => deleteFile(file._id)}
                     disabled={
                       file.processing_status === "unprocessed" ||
                       file.processing_status === "processing"
                     }
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive"
                   >
                     <Trash className="w-4 h-4" />
                   </Button>
