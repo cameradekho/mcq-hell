@@ -3,14 +3,11 @@
 import React, { useState, useEffect, useCallback, use } from "react";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
-import axios from "axios";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { FileText, Trash, Loader2, CloudUpload } from "lucide-react";
-import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
-import { env } from "@/constants/env";
-import { TFile } from "@/types/file";
+
 import {
   useDeleteFileById,
   useGetAllFiles,
@@ -69,7 +66,7 @@ export const FileSidebar = ({
     async (acceptedFiles: File[]) => {
       for (const file of acceptedFiles) {
         try {
-          uploadFile({ file, userId });
+          uploadFile({ file, userId: "687f2b481adfa5f57632727e" });
           toast.success(`${file.name} uploaded successfully.`);
         } catch (error) {
           console.error("Upload error:", error);
@@ -160,57 +157,6 @@ export const FileSidebar = ({
               </div>
             ) : (
               files?.data?.map((file) => (
-                // <div
-                //   key={file._id}
-                //   className="flex items-center gap-3 border rounded-lg p-2"
-                // >
-                //   <Checkbox
-                //     id={file._id}
-                //     checked={selectedFileIds.includes(file._id)}
-                //     onCheckedChange={() => handleToggle(file._id)}
-                //   />
-                //   <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
-                //   <div className="flex-1 min-w-0">
-                //     <Link
-                //       href={file.url}
-                //       target="_blank"
-                //       rel="noopener noreferrer"
-                //       className="font-medium truncate  hover:underline"
-                //     >
-                //       {file.name}
-                //     </Link>
-                //     <div className="flex items-center gap-2 text-xs">
-                //       <span
-                //         className={`flex items-center gap-1 ${getStatusColor(
-                //           file.processing_status
-                //         )}`}
-                //       >
-                //         {(file.processing_status === "processing" ||
-                //           file.processing_status === "unprocessed") && (
-                //           <Loader2 className="w-3 h-3 animate-spin" />
-                //         )}
-                //         {file.processing_status === "unprocessed"
-                //           ? "processing"
-                //           : file.processing_status}
-                //       </span>
-                //       <span className="text-muted-foreground">
-                //         {new Date(file.createdAt).toLocaleDateString()}
-                //       </span>
-                //     </div>
-                //   </div>
-                //   <Button
-                //     size="sm"
-                //     variant="ghost"
-                //     onClick={() => deleteFile(file._id)}
-                //     disabled={
-                //       file.processing_status === "unprocessed" ||
-                //       file.processing_status === "processing"
-                //     }
-                //     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                //   >
-                //     <Trash className="w-4 h-4" />
-                //   </Button>
-                // </div>
                 <div
                   key={file._id}
                   className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-900 p-4 shadow-sm hover:shadow-md transition-shadow"

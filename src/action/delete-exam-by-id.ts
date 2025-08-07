@@ -56,10 +56,12 @@ export const deleteExamById = async (
 
     if (!teacherDoc) throw new Error("Teacher not found");
 
-    const deleteRes = await mongodb.collection<IExam>(examCollectionName).deleteOne({
-      _id: new ObjectId(props.examId),
-      teacherId: new ObjectId(props.teacherId),
-    });
+    const deleteRes = await mongodb
+      .collection<IExam>(examCollectionName)
+      .deleteOne({
+        _id: new ObjectId(props.examId),
+        teacherId: new ObjectId(props.teacherId),
+      });
 
     if (!deleteRes.acknowledged) {
       return {
@@ -83,7 +85,7 @@ export const deleteExamById = async (
     if (!deleteExamSessionRes.success) {
       return {
         success: false,
-        message: deleteExamSessionRes.message,
+        message: "yooo->" + deleteExamSessionRes.message,
       };
     }
 

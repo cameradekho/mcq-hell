@@ -4,7 +4,10 @@ import { logger } from "@/models/logger";
 import { ServerActionResult } from "@/types";
 import { ObjectId } from "mongodb";
 import { fetchTeacherById } from "./fetch-teacher-by-id";
-import { examsessionCollectionName } from "@/models/teacher-exam-session";
+import {
+  examsessionCollectionName,
+  IExamSession,
+} from "@/models/teacher-exam-session";
 import { deleteStudentExamSessionByTeachIdExamId } from "./session/student/delete-student-exam-session-by-teacherId-examId";
 
 export type DeleteExamByIdResult = ServerActionResult<undefined>;
@@ -49,9 +52,9 @@ export const deleteExamSession = async (
     await mongodb.connect();
 
     const deleteRes = await mongodb
-      .collection(examsessionCollectionName)
+      .collection<IExamSession>(examsessionCollectionName)
       .deleteOne({
-        examId: new ObjectId(examId),
+        _id: new ObjectId(examId),
         teacherId: new ObjectId(teacherId),
       });
 
@@ -69,15 +72,16 @@ export const deleteExamSession = async (
       };
     }
 
-    const deleteResStudentSession = await deleteStudentExamSessionByTeachIdExamId({
-      teacherId: teacherId,
-      examId: examId,
-    });
+    const deleteResStudentSession =
+      await deleteStudentExamSessionByTeachIdExamId({
+        teacherId: teacherId,
+        examId: examId,
+      });
 
     if (!deleteResStudentSession.success) {
       return {
         success: false,
-        message: deleteResStudentSession.message,
+        message: "pro--->"+deleteResStudentSession.message,
       };
     }
 
