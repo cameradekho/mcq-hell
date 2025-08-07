@@ -14,7 +14,6 @@ type MessageListProps = {
 };
 
 const MessageListComponent = ({ messages }: MessageListProps) => {
-  console.log("IN MESSAGE LIST:", messages);
   return (
     <div className="flex w-full flex-col gap-6 text-sm">
       {messages?.map((message, index) => {

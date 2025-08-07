@@ -47,13 +47,6 @@ const ChatPage = () => {
     }
   );
 
-  console.log("conversationData-->", conversationData);
-  console.log("messages-->", messages);
-
-  useEffect(() => {
-    console.log("conversationData", conversationData);
-  }, [conversationData]);
-
   useEffect(() => {
     if (params._id !== "new" && pendingMessage) {
       submitMessage({
@@ -79,7 +72,8 @@ const ChatPage = () => {
     }
   };
 
-  const handlePaperclipClick = () => {
+  const handlePaperclipClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     setIsSidebarOpen(!isSidebarOpen);
   };
 

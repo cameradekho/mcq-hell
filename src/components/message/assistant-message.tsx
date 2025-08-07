@@ -1,4 +1,3 @@
-import { parseMessage } from "@/lib/message-parser";
 import { TMessage } from "@/types/message";
 import { Markdown } from "../markdown";
 import { AssistantQuestionList } from "./assistant-question-list";

@@ -12,7 +12,6 @@ export const StreamingMessage = ({
 
   const fullMessage = currentMessage.join("");
   const parts = parseMessage(fullMessage);
-  console.log("hubba =====>", parts);
 
   return (
     <div className=" w-full flex justify-start">

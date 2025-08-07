@@ -25,7 +25,9 @@ export const parseMessage = (message: string): TMessagePart[] => {
 
     // Parse and add questions
     try {
-      const parsedQuestions = JSON.parse(questionsContent);
+      const safeQuestionsContent = questionsContent.replace(/\\/g, "\\\\");
+
+      const parsedQuestions = JSON.parse(safeQuestionsContent);
       parts.push({
         type: "tag",
         text: parsedQuestions,
@@ -62,7 +64,9 @@ export const parseMessage = (message: string): TMessagePart[] => {
 
 type ParsedPart = { type: "text" | "latex"; content: string };
 
-export function splitQuestionBySpecialTag(questionText: string | undefined): ParsedPart[] {
+export function splitQuestionBySpecialTag(
+  questionText: string | undefined
+): ParsedPart[] {
   if (!questionText || questionText === undefined) {
     return [];
   }
