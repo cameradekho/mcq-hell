@@ -40,8 +40,13 @@ const getConversationById = ({
   conversationId,
   ...params
 }: TConversationId): TApiPromise<TGetConversationByIdResponse> => {
-  console.log("Hubba calling main promise, ", conversationId);
   return api.get(`/conversation/${conversationId}`, { params });
+};
+
+const updateConversationName = ({
+  conversationId,
+}: TConversationId): TApiPromise<undefined> => {
+  return api.patch(`/conversation/rename/${conversationId}`);
 };
 
 const updateConversationById = ({
@@ -75,7 +80,6 @@ export const useGetConversationById = (
   params: TConversationId,
   options?: TQueryOpts<TGetConversationByIdResponse>
 ) => {
-  console.log("Hubba calling conversationId", params);
   return useQuery({
     queryKey: ["useGetConversationById", params],
     queryFn: () => getConversationById(params),
@@ -99,6 +103,16 @@ export const useDeleteConversationById = (
   return useMutation({
     mutationKey: ["useDeleteConversationById"],
     mutationFn: deleteConversationById,
+    ...options,
+  });
+};
+
+export const useUpdateConversationName = (
+  options?: TMutationOpts<TConversationId, undefined>
+) => {
+  return useMutation({
+    mutationKey: ["useUpdateConversationName"],
+    mutationFn: updateConversationName,
     ...options,
   });
 };

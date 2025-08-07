@@ -1,6 +1,5 @@
 "use client";
 
-
 import { format } from "date-fns";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -8,7 +7,6 @@ import { SearchBar } from "@/components/search-bar";
 import { useQueryParams } from "@/hooks/custom/use-query-params";
 import { useGetAllConversations } from "@/hooks/api/conversation";
 import { Pagination } from "@/components/pagination";
-
 
 const HistoryPage = () => {
   const { params, updateParam } = useQueryParams();

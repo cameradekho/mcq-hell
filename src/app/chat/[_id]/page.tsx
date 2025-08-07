@@ -9,12 +9,16 @@ import { MessageList } from "@/components/message-list";
 import { generateMongoId } from "@/lib/generate-mongo-id";
 import { StreamingMessage } from "@/components/streaming-message";
 import { Loader2, MessageCircle } from "lucide-react";
-import { useGetConversationById } from "@/hooks/api/conversation";
+import {
+  useGetConversationById,
+  useUpdateConversationName,
+} from "@/hooks/api/conversation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import AuthButtons from "@/components/auth/auth-buttons";
 import { FileSidebar } from "./components/file-sidebar";
+import { invalidateQueries } from "@/lib/query-client";
 
 const ChatPage = () => {
   const { data: session, status } = useSession();
@@ -47,6 +51,19 @@ const ChatPage = () => {
     }
   );
 
+  // Hook to update conversation name
+  const { mutate: updateConversationName } = useUpdateConversationName({
+    onSuccess: () => {
+      // Invalidate queries to refresh conversation data
+      invalidateQueries({
+        queryKey: ["useGetConversationById", { conversationId: params._id }],
+      });
+      invalidateQueries({
+        queryKey: ["useGetAllConversations"],
+      });
+    },
+  });
+
   useEffect(() => {
     if (params._id !== "new" && pendingMessage) {
       submitMessage({
@@ -57,6 +74,19 @@ const ChatPage = () => {
     }
     setPendingMessage(null);
   }, [params._id]);
+
+  // Effect to update conversation name when there are 2 messages
+  useEffect(() => {
+    if (
+      params._id !== "new" &&
+      conversationData?.data?.messages &&
+      conversationData.data.messages.length === 2
+    ) {
+      updateConversationName({
+        conversationId: params._id,
+      });
+    }
+  }, [conversationData?.data?.messages, params._id, updateConversationName]);
 
   const handleSubmit = async (data: { message: string }) => {
     if (params._id === "new") {
