@@ -15,7 +15,7 @@ const formSchema = z.object({
 type ChatInputProps = {
   onSubmit: (data: z.infer<typeof formSchema>) => void;
   isStreaming: boolean;
-  onPaperclipClick?: () => void;
+  onPaperclipClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   selectedFileIds?: string[];
 };
 
