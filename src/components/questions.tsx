@@ -23,6 +23,8 @@ import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
 import { IAnswer, IQuestion } from "@/models/exam";
 import { useRouter } from "next/navigation";
 import MathInput from "./math-input";
+import MathBlock from "./math-block";
+import { splitQuestionBySpecialTag } from "@/lib/message-parser";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -185,6 +187,7 @@ export const Questions = ({ text }: QuestionsProps) => {
       if (res.success) {
         toast.success("Exam added successfully!");
         reset();
+        router.push("/");
       } else {
         toast.error(res.message);
       }
@@ -342,18 +345,28 @@ export const Questions = ({ text }: QuestionsProps) => {
                       </div>
 
                       <div className="space-y-2 ">
-                        {/* <Input
-                          {...register(`questions.${questionIndex}.question`)}
-                          placeholder="Enter your question here"
-                          className="w-full"
-                        /> */}
+                        {splitQuestionBySpecialTag(field.question).map(
+                          (part, i) =>
+                            part.type === "latex" ? (
+                              <span className=" text-blue-400">
+                                <MathBlock key={i} item={part.content} />
+                              </span>
+                            ) : (
+                              <span key={i} className=" text-orange-400">
+                                {part.content}
+                              </span>
+                            )
+                        )}
 
-                        <MathInput
-                          value={watch(`questions.${questionIndex}.question`)}
-                          name={`questions.${questionIndex}.question`}
-                          register={register}
-                          readOnly={false}
-                        />
+                        {/* <Input
+                          value={option.textAnswer || ""}
+                          onChange={(e) => {
+                            const newOptions = [...field.value];
+                            newOptions[optionIndex].textAnswer = e.target.value;
+                            field.onChange(newOptions);
+                          }}
+                          placeholder="Option text"
+                        /> */}
 
                         {errors.questions?.[questionIndex]?.question && (
                           <p className="text-sm text-destructive">
@@ -414,8 +427,8 @@ export const Questions = ({ text }: QuestionsProps) => {
                       </div>
                     </CardHeader>
 
+                    {/* Options */}
                     <CardContent>
-                      {/* Options */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <Label className="text-base">
@@ -470,7 +483,7 @@ export const Questions = ({ text }: QuestionsProps) => {
                                             e.target.checked;
                                           field.onChange(newOptions);
                                         }}
-                                        className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                        className="h-4 w-4 rounded border-primary focus:ring-primary text-red-800"
                                       />
                                       <Label
                                         htmlFor={`correct-${questionIndex}-${optionIndex}`}
@@ -497,77 +510,101 @@ export const Questions = ({ text }: QuestionsProps) => {
                                     )}
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Input
-                                      value={option.textAnswer || ""}
-                                      onChange={(e) => {
-                                        const newOptions = [...field.value];
-                                        newOptions[optionIndex].textAnswer =
-                                          e.target.value;
-                                        field.onChange(newOptions);
-                                      }}
-                                      placeholder="Option text"
-                                    />
-
-                                    <div>
-                                      {option.image ? (
-                                        <div className="relative inline-block">
-                                          <img
-                                            src={option.image}
-                                            alt="Option preview"
-                                            className="h-16 object-cover rounded-md border"
+                                  <div className=" flex flex-col gap-2">
+                                    {splitQuestionBySpecialTag(
+                                      option.textAnswer
+                                    ).map((part, i) =>
+                                      part.type === "latex" ? (
+                                        <span className=" text-blue-400">
+                                          <MathBlock
+                                            key={i}
+                                            item={part.content}
                                           />
-                                          <Button
-                                            type="button"
-                                            onClick={() => {
-                                              const newOptions = [
-                                                ...field.value,
-                                              ];
-                                              newOptions[optionIndex].image =
-                                                "";
-                                              field.onChange(newOptions);
-                                            }}
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute -top-2 -right-2"
-                                          >
-                                            <X className="h-4 w-4" />
-                                          </Button>
-                                        </div>
+                                        </span>
                                       ) : (
-                                        <div className="border rounded-md p-2">
-                                          <label className="flex items-center gap-2 cursor-pointer">
-                                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                                            <span className="text-sm text-muted-foreground">
-                                              Add image
-                                            </span>
-                                            <input
-                                              type="file"
-                                              accept="image/*"
-                                              className="hidden"
-                                              onChange={(e) => {
-                                                const file =
-                                                  e.target.files?.[0];
-                                                if (file) {
-                                                  const reader =
-                                                    new FileReader();
-                                                  reader.onloadend = () => {
-                                                    const newOptions = [
-                                                      ...field.value,
-                                                    ];
-                                                    newOptions[
-                                                      optionIndex
-                                                    ].image =
-                                                      reader.result as string;
-                                                    field.onChange(newOptions);
-                                                  };
-                                                  reader.readAsDataURL(file);
-                                                }
-                                              }}
+                                        <span
+                                          key={i}
+                                          className=" text-orange-400"
+                                        >
+                                          {part.content}
+                                        </span>
+                                      )
+                                    )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+                                      <Input
+                                        value={option.textAnswer || ""}
+                                        onChange={(e) => {
+                                          const newOptions = [...field.value];
+                                          newOptions[optionIndex].textAnswer =
+                                            e.target.value;
+                                          field.onChange(newOptions);
+                                        }}
+                                        placeholder="Option text"
+                                      />
+
+                                      <div>
+                                        {option.image ? (
+                                          <div className="relative inline-block">
+                                            <img
+                                              src={option.image}
+                                              alt="Option preview"
+                                              className="h-16 object-cover rounded-md border"
                                             />
-                                          </label>
-                                        </div>
-                                      )}
+                                            <Button
+                                              type="button"
+                                              onClick={() => {
+                                                const newOptions = [
+                                                  ...field.value,
+                                                ];
+                                                newOptions[optionIndex].image =
+                                                  "";
+                                                field.onChange(newOptions);
+                                              }}
+                                              variant="destructive"
+                                              size="icon"
+                                              className="absolute -top-2 -right-2"
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="border rounded-md p-2">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-sm text-muted-foreground">
+                                                Add image
+                                              </span>
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                  const file =
+                                                    e.target.files?.[0];
+                                                  if (file) {
+                                                    const reader =
+                                                      new FileReader();
+                                                    reader.onloadend = () => {
+                                                      const newOptions = [
+                                                        ...field.value,
+                                                      ];
+                                                      newOptions[
+                                                        optionIndex
+                                                      ].image =
+                                                        reader.result as string;
+                                                      field.onChange(
+                                                        newOptions
+                                                      );
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }
+                                                }}
+                                              />
+                                            </label>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>

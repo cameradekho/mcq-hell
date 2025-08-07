@@ -62,8 +62,8 @@ export const parseMessage = (message: string): TMessagePart[] => {
 
 type ParsedPart = { type: "text" | "latex"; content: string };
 
-export function splitQuestionBySpecialTag(questionText: string): ParsedPart[] {
-  if (!questionText) {
+export function splitQuestionBySpecialTag(questionText: string | undefined): ParsedPart[] {
+  if (!questionText || questionText === undefined) {
     return [];
   }
 

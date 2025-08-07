@@ -23,6 +23,8 @@ import { IAnswer, IExam, IQuestion } from "@/models/exam";
 import { updateExamByExamIdAndTeacherId } from "@/action/update-exam-by-examId-and-teacherId";
 import { fetchExamById } from "@/action/fetch-exam-by-id";
 import { createTempId } from "@/utils/temp-id-for-client-generator";
+import { splitQuestionBySpecialTag } from "@/lib/message-parser";
+import MathBlock from "@/components/math-block";
 
 const UpdateExamPage = () => {
   const { teacherId, examId } = useParams() as {
@@ -555,13 +557,21 @@ const UpdateExamPage = () => {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-4">
-                <div>
-                  <Label
-                    htmlFor={`question-${question._id?.toString()}`}
-                    className="text-sm font-medium"
-                  >
-                    Question Text
-                  </Label>
+                <div className=" flex flex-col gap-2">
+                  <div>
+                    {splitQuestionBySpecialTag(question.question).map(
+                      (part, i) =>
+                        part.type === "latex" ? (
+                          <span className=" text-blue-400">
+                            <MathBlock key={i} item={part.content} />
+                          </span>
+                        ) : (
+                          <span key={i} className=" text-orange-400">
+                            {part.content}
+                          </span>
+                        )
+                    )}
+                  </div>
                   <Input
                     id={`question-${question._id?.toString()}`}
                     value={question.question}
@@ -667,8 +677,20 @@ const UpdateExamPage = () => {
                               {String.fromCharCode(65 + optionIndex)}.
                             </span>
 
-                            {option.textAnswer && (
+                            {/* {option.textAnswer && (
                               <span>{option.textAnswer}</span>
+                            )} */}
+                            {splitQuestionBySpecialTag(option.textAnswer).map(
+                              (part, i) =>
+                                part.type === "latex" ? (
+                                  <span className=" text-blue-400">
+                                    <MathBlock key={i} item={part.content} />
+                                  </span>
+                                ) : (
+                                  <span key={i} className=" text-orange-400">
+                                    {part.content}
+                                  </span>
+                                )
                             )}
 
                             {option.image && (
@@ -769,7 +791,20 @@ const UpdateExamPage = () => {
                                 key={answerId?.toString()}
                                 className="bg-green-100 text-green-800 border-green-300"
                               >
-                                {option.textAnswer || "Image option"}
+                                {/* {option.textAnswer || "Image option"} */}
+                                {splitQuestionBySpecialTag(
+                                  option.textAnswer
+                                ).map((part, i) =>
+                                  part.type === "latex" ? (
+                                    <span className=" text-blue-400">
+                                      <MathBlock key={i} item={part.content} />
+                                    </span>
+                                  ) : (
+                                    <span key={i} className=" text-orange-400">
+                                      {part.content}
+                                    </span>
+                                  )
+                                )}
                               </Badge>
                             ) : null;
                           })
