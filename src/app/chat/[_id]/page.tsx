@@ -47,12 +47,6 @@ const ChatPage = () => {
     }
   );
 
-  console.log("conversationData-->", conversationData);
-  console.log("messages-->", messages);
-
-  useEffect(() => {
-    console.log("conversationData", conversationData);
-  }, [conversationData]);
 
   useEffect(() => {
     if (params._id !== "new" && pendingMessage) {
