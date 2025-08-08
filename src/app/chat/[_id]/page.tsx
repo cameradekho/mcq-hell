@@ -34,8 +34,14 @@ const ChatPage = () => {
   } = useChatContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const { messages, loading, isStreaming, submitMessage, currentMessage } =
-    useSSE();
+  const {
+    messages,
+    setMessages,
+    loading,
+    isStreaming,
+    submitMessage,
+    currentMessage,
+  } = useSSE();
 
   const {
     data: conversationData,
@@ -87,6 +93,12 @@ const ChatPage = () => {
       });
     }
   }, [conversationData?.data?.messages, params._id, updateConversationName]);
+
+  useEffect(() => {
+    if (conversationData?.data?.messages) {
+      setMessages(conversationData.data.messages);
+    }
+  }, [conversationData?.data?.messages]);
 
   const handleSubmit = async (data: { message: string }) => {
     if (params._id === "new") {
@@ -153,9 +165,7 @@ const ChatPage = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-3rem)] max-w-3xl mx-auto w-full relative">
       <div className="pb-60 flex flex-col gap-4">
-        {conversationData?.data?.messages && (
-          <MessageList messages={conversationData.data.messages} />
-        )}
+        {!isLoadingConversation && <MessageList messages={messages} />}
         {isStreaming && <StreamingMessage currentMessage={currentMessage} />}
         {isStreaming && (
           <div className="flex justify-left items-center gap-2">
