@@ -15,6 +15,10 @@ type TFileId = {
   fileId: string;
 };
 
+type TUserId = {
+  userId: string;
+};
+
 type TGetFileByIdResponse = {
   file: TFile<string>;
 };
@@ -25,6 +29,9 @@ type TUpdateFileByIdPayload = {
 
 type TGetAllFilesQParams = TPaginationQParams;
 
+type TGetAllFilesByUserIDQParams = TPaginationQParams & {
+  userId: string;
+};
 type TFileUploadPayload = {
   file: File;
   userId: string;
@@ -36,6 +43,12 @@ const getAllFiles = (
   params: TGetAllFilesQParams = {}
 ): TApiPromise<TFile<string>[]> => {
   return api.get("/file", { params });
+};
+
+const getAllFileByUserId = ({
+  userId,
+}: TUserId): TApiPromise<TFile<string>[]> => {
+  return api.get(`/file/${userId}`);
 };
 
 const getFileById = ({
@@ -73,6 +86,17 @@ export const useGetAllFiles = (
   return useQuery({
     queryKey: ["useGetAllFiles", params],
     queryFn: () => getAllFiles(params),
+    ...options,
+  });
+};
+
+export const useGetAllFileByUserId = (
+  params: TGetAllFilesByUserIDQParams,
+  options: TQueryOpts<TFile<string>[]>
+) => {
+  return useQuery({
+    queryKey: ["useGetAllFileByUserId", params],
+    queryFn: () => getAllFileByUserId(params),
     ...options,
   });
 };

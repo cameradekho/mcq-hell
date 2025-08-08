@@ -10,13 +10,13 @@ import { FileText, Trash, Loader2, CloudUpload } from "lucide-react";
 
 import {
   useDeleteFileById,
+  useGetAllFileByUserId,
   useGetAllFiles,
   useUploadFile,
 } from "@/hooks/api/file";
-import { revalidatePath } from "next/cache";
 import { invalidateQueries } from "@/lib/query-client";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useChatContext } from "@/providers/chat-provider";
+import { fetchTeacherByEmail } from "@/action/fetch-teacher-by-email";
 import Link from "next/link";
 
 type FileSidebarProps = {
@@ -35,16 +35,38 @@ export const FileSidebar = ({
   const { data: session } = useSession();
   const [userId, setUserId] = useState<string>("");
 
+  useEffect(() => {
+    async function getUserId() {
+      if (!session?.user?.email) {
+        return;
+      }
+      const user = await fetchTeacherByEmail({
+        email: session?.user?.email,
+      });
+
+      if (!user.success) {
+        return;
+      }
+      user.data._id && setUserId(user?.data._id?.toString());
+    }
+
+    if (session?.user?.email) {
+      getUserId();
+    }
+  }, []);
+
   const {
-    data: files,
-    isLoading: isLoadingFiles,
-    error: errorFiles,
-  } = useGetAllFiles(
-    {},
+    data: filesByUserId,
+    isLoading: isLoadingFilesByUserId,
+    error: errorFilesByUserId,
+  } = useGetAllFileByUserId(
+    { userId: userId },
     {
       enabled: isOpen,
     }
   );
+
+  console.log("FEtchd file by userId", filesByUserId);
 
   const { mutate: deleteFileById } = useDeleteFileById({
     onSuccess: () => {
@@ -66,7 +88,7 @@ export const FileSidebar = ({
     async (acceptedFiles: File[]) => {
       for (const file of acceptedFiles) {
         try {
-          uploadFile({ file, userId: "687f2b481adfa5f57632727e" });
+          uploadFile({ file, userId: userId });
           toast.success(`${file.name} uploaded successfully.`);
         } catch (error) {
           console.error("Upload error:", error);
@@ -146,17 +168,17 @@ export const FileSidebar = ({
 
           {/* Files List */}
           <div className="flex-1 overflow-y-auto space-y-3">
-            {isLoadingFiles ? (
+            {isLoadingFilesByUserId ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin" />
                 <span className="ml-2">Loading files...</span>
               </div>
-            ) : files?.data?.length === 0 ? (
+            ) : filesByUserId?.data?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No files uploaded yet
               </div>
             ) : (
-              files?.data?.map((file) => (
+              filesByUserId?.data?.map((file) => (
                 <div
                   key={file._id}
                   className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-900 p-4 shadow-sm hover:shadow-md transition-shadow"
