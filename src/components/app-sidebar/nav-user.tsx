@@ -25,12 +25,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { signOut, useSession } from "next-auth/react";
+import { useAuth } from "@/context/auth-provider";
+import { useFirebase } from "@/hooks/custom/use-firebase";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-
-  const { data: session } = useSession();
+  const { session } = useAuth();
+  const { logout } = useFirebase();
 
   return (
     <SidebarMenu>
@@ -43,16 +44,22 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={session?.user?.avatar}
-                  alt={session?.user?.name}
+                  src={session.user?.avatar || "/images/cat-guest.png"}
+                  alt={session.user?.name}
                 />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {session.user?.name?.[0]?.toUpperCase() ||
+                    session.session.user?.email?.[0]?.toUpperCase() ||
+                    "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
-                  {session?.user?.name}
+                  {session.user?.name}
                 </span>
-                <span className="truncate text-xs">{session?.user?.email}</span>
+                <span className="truncate text-xs">
+                  {session.session.user?.email}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -67,17 +74,21 @@ export function NavUser() {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={session?.user?.avatar}
-                    alt={session?.user?.name}
+                    src={session.user?.avatar || "/images/cat-guest.png"}
+                    alt={session.user?.name || session.user?.email}
                   />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {session.user?.name?.[0]?.toUpperCase() ||
+                      session.user?.email?.[0]?.toUpperCase() ||
+                      "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">
-                    {session?.user?.name}
+                    {session.user?.name || session.user?.email}
                   </span>
                   <span className="truncate text-xs">
-                    {session?.user?.email}
+                    {session.user?.email}
                   </span>
                 </div>
               </div>
@@ -105,7 +116,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={logout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

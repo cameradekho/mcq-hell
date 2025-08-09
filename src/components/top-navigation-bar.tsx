@@ -1,13 +1,15 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/context/auth-provider";
+import { useFirebase } from "@/hooks/custom/use-firebase";
 import AuthButtons from "./auth/auth-buttons";
 
 export function TopNavigationBar() {
-  const { data: session } = useSession();
+  const { session } = useAuth();
+  const { logout } = useFirebase();
 
   return (
     <nav className="w-full bg-background border-b border-border">
@@ -20,7 +22,7 @@ export function TopNavigationBar() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {session ? (
+            {session.user ? (
               <div className="flex items-center space-x-4">
                 <Link
                   href="/chat"
@@ -34,29 +36,19 @@ export function TopNavigationBar() {
                 >
                   Support
                 </Link>
-                {/* <Link
-                  href="/result"
-                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-                >
-                  Results
-                </Link> */}
                 <div className="flex items-center space-x-2">
                   <Image
-                    src={session.user?.avatar || "/images/cat-guest.png"}
+                    src={session.user.avatar || "/images/cat-guest.png"}
                     alt="avatar"
                     width={32}
                     height={32}
                     className="rounded-full border border-border"
                   />
                   <span className="text-sm font-medium text-foreground">
-                    {session.user?.name}
+                    {session.user.name}
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => signOut()}
-                  className="text-sm"
-                >
+                <Button variant="outline" onClick={logout} className="text-sm">
                   Sign Out
                 </Button>
               </div>

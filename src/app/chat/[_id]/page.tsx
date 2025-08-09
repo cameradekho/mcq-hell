@@ -15,13 +15,13 @@ import {
 } from "@/hooks/api/conversation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/context/auth-provider";
 import AuthButtons from "@/components/auth/auth-buttons";
 import { FileSidebar } from "./components/file-sidebar";
 import { invalidateQueries } from "@/lib/query-client";
 
 const ChatPage = () => {
-  const { data: session, status } = useSession();
+  const { session } = useAuth();
 
   const params = useParams<{ _id: string }>();
   const router = useRouter();
@@ -123,7 +123,7 @@ const ChatPage = () => {
     setIsSidebarOpen(open);
   };
 
-  if (!session) {
+  if (!session?.user) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <h1 className="text-2xl font-bold mb-4">Please log in to continue</h1>

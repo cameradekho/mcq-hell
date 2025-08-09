@@ -1,31 +1,32 @@
 // middleware.ts
-import { getToken } from 'next-auth/jwt'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  })
-  
-  // Public routes - allow root, all /form/* paths, and auth endpoints
-  if (
-    request.nextUrl.pathname === '/' ||
-    request.nextUrl.pathname.startsWith('/form') ||
-    request.nextUrl.pathname.startsWith('/api/auth')
-  ) {
-    return NextResponse.next()
+  // Public routes - allow these without authentication
+  const publicRoutes = [
+    "/",
+    "/sign-in",
+    "/form",
+    "/privacy-policy",
+    "/api/generate-object-id",
+  ];
+
+  // Check if current path is public
+  const isPublicRoute = publicRoutes.some(
+    (route) =>
+      request.nextUrl.pathname === route ||
+      request.nextUrl.pathname.startsWith(route + "/")
+  );
+
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
 
-  // Protected routes - require authentication
-  if (!token) {
-    // Redirect unauthenticated users to the form page
-    return NextResponse.redirect(new URL('/form', request.url))
-  }
-
-  return NextResponse.next()
+  // For protected routes, we'll let Firebase handle authentication on the client side
+  // This middleware now only handles routing logic
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-}
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};

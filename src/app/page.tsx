@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use, useEffect, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/context/auth-provider";
 import { addUser } from "../action/add-user";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -18,7 +18,7 @@ import { IStudent } from "@/models/student";
 import { ITeacher } from "@/models/teacher";
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { session } = useAuth();
   const hasRun = useRef(false);
   const [stats, setStats] = useState({
     totalExams: 0,
@@ -33,12 +33,12 @@ export default function Home() {
       if (hasRun.current) return;
       hasRun.current = true;
       try {
-        if (session) {
+        if (session?.user) {
           const res = await addUser({
-            name: session.user.name,
-            email: session.user.email,
-            avatar: session.user.avatar,
-            role: session.user.role,
+            name: session.user?.name || "",
+            email: session.user?.email || "",
+            avatar: session.user?.avatar || "",
+            role: session.user?.role || "",
           });
 
           if (res.success) {
@@ -50,7 +50,7 @@ export default function Home() {
       }
     };
 
-    if (session) {
+    if (session?.user) {
       addUserToDB();
     }
   }, [session]);
